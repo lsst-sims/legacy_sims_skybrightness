@@ -12,7 +12,7 @@ class BaseSingleInterp(object):
     """
     def __init__(self, compName=None, sortedOrder=['airmass','nightTimes']):
 
-        dataDir =  os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA'), 'ESO_Spectra/'+compName)
+        dataDir =  os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'ESO_Spectra/'+compName)
         filenames = glob.glob(dataDir+'/*.npz')
         if len(filenames) == 1:
             temp = np.load(filenames[0])
@@ -124,7 +124,7 @@ class TwilightInterp(object):
         """
         Read the Solar spectrum into a handy object and compute mags in different filters
         """
-        dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA')
+        dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 
         solarSaved = np.load(os.path.join(dataDir,'solarSpec/solarSpec.npz'))
         self.solarSpec = Sed(wavelen=solarSaved['wave'], flambda=solarSaved['spec'])
