@@ -1,9 +1,9 @@
 import numpy as np
 import ephem
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
-from lsst.sims.utils import haversine, altAzToRaDec
+from lsst.sims.utils import haversine, altAzToRaDec, raDecToAltAzPa
 import warnings
-from lsst.sims.skybrightness.utils import wrapRA,  mjd2djd, raDecToAltAz
+from lsst.sims.skybrightness.utils import wrapRA,  mjd2djd
 from .interpComponents import ScatteredStar,Airglow,LowerAtm,UpperAtm,MergedSpec,TwilightInterp,MoonInterp,ZodiacalInterp
 from lsst.sims.photUtils import Sed
 
@@ -77,11 +77,11 @@ class SkyModel(object):
         # Wrap in array just in case single points were passed
         if not type(ra).__module__ == np.__name__ :
             if np.size(ra) == 1:
-                self.ra = np.array([ra])
-                self.dec = np.array([dec])
+                ra = np.array([ra])
+                dec = np.array([dec])
             else:
-                self.ra = np.array(ra)
-                self.dec = np.array(dec)
+                ra = np.array(ra)
+                dec = np.array(dec)
         if degrees:
             self.ra = np.radians(ra)
             self.dec = np.radians(dec)
@@ -92,14 +92,10 @@ class SkyModel(object):
         if azAlt:
             self.azs = ra.copy()
             self.alts = dec.copy()
-            # I think there's a bug in this!!!
-            warnings.warn('I think altAzToRaDec is broken!')
             self.ra,self.dec = altAzToRaDec(self.alts,self.azs, self.Observatory.lon,
                                             self.Observatory.lat, self.mjd)
         else:
-            # calc airmass for each point
-            # XXX-check this damn thing!
-            self.alts,self.azs = raDecToAltAz(self.ra, self.dec, self.Observatory.lon,
+            self.alts,self.azs,pa = raDecToAltAzPa(self.ra, self.dec, self.Observatory.lon,
                                                    self.Observatory.lat, self.mjd)
 
         self.npts = self.ra.size
@@ -109,7 +105,6 @@ class SkyModel(object):
         types = [float]*len(names)
         self.points = np.zeros(self.npts, zip(names,types))
 
-        # Now to set the relevant parameters
 
         # Switch to Dublin Julian Date for pyephem
         self.Observatory.date = mjd2djd(self.mjd)
@@ -194,6 +189,13 @@ class SkyModel(object):
         self.npts = np.size(airmass)
 
     def computeSpec(self, npix = 17001):
+        """
+        Interpolate the template spectra to the set RA,Dec and MJD.
+
+        the results are stored as attributes of the class:
+        .wave = the wavelength in nm
+        .spec = array of spectra with units of ergs/s/cm^2/nm
+        """
         # set up array to hold the resulting spectra for each ra,dec point.
         self.spec = np.zeros((self.npts, npix), dtype=float)
 
@@ -202,6 +204,7 @@ class SkyModel(object):
                            'upperAtm':self.upperAtm, 'airglow':self.airglow,'zodiacal':self.zodiacal,
                            'scatteredStar':self.scatteredStar, 'mergedSpec':self.mergedSpec}
 
+        # Loop over each component and add it to the result.
         for key in self.components:
             if self.components[key]:
                 result = self.interpObjs[key](self.points)
