@@ -51,6 +51,9 @@ fig = plt.figure()
 sunAltMax = np.radians(-11.)
 residPlot1 = plt.figure()
 residPlot2 = plt.figure()
+altBPlot = plt.figure()
+altBHAPlot = plt.figure()
+
 paramList = []
 
 fitDict = {}
@@ -229,6 +232,26 @@ for filterName in filters:
     cb = residPlot2.colorbar(s)
     cb.set_label('Target Altitude (degrees)')
 
+    ax = altBPlot.add_subplot(3,1,counter)
+    lowAM = np.where((xdata2['airmass'] > 0) & (xdata2['airmass'] < 1.1))
+    ax.scatter(np.degrees(xdata2['sunAlt'][lowAM]),  -2.5*np.log10(flux[lowAM]),
+               c=xdata2['airmass'][lowAM], edgecolor=None, alpha=0.2)
+    ax.set_xlabel('Sun Altitude (degrees)')
+    ax.set_ylabel(' mags')
+    ax.set_title('X < 1.1, %s' % filterName)
+    ax.set_xlim(ax.get_xlim()[::-1] )
+    ax.set_ylim(ax.get_ylim()[::-1] )
+
+
+    ax = altBHAPlot.add_subplot(3,1,counter)
+    lowAM = np.where((xdata2['airmass'] < 2.5) & (xdata2['airmass'] > 2.))
+    ax.scatter(np.degrees(xdata2['sunAlt'][lowAM]),  -2.5*np.log10(flux[lowAM]),
+               c=xdata2['airmass'][lowAM], edgecolor=None, alpha=0.2)
+    ax.set_xlabel('Sun Altitude (degrees)')
+    ax.set_ylabel('mags')
+    ax.set_title('2.5 <  X < 2.0, %s' % filterName)
+    ax.set_xlim(ax.get_xlim()[::-1] )
+    ax.set_ylim(ax.get_ylim()[::-1] )
 
     #--------
     # Let's look at the zeropoints
@@ -260,7 +283,7 @@ print '-------------'
 print 'Best fit parameters:'
 print fitDict
 
-fig.savefig('simulfits.png')
+fig.savefig('Plots/simulfits.png')
 plt.close(fig)
 residPlot1.tight_layout()
 residPlot1.savefig('Plots/residPlot1.png')
@@ -269,6 +292,15 @@ plt.close(residPlot1)
 residPlot2.tight_layout()
 residPlot2.savefig('Plots/residPlot2.png')
 plt.close(residPlot2)
+
+
+altBPlot.tight_layout()
+altBPlot.savefig('Plots/altDecay.png')
+plt.close(altBPlot)
+
+altBHAPlot.tight_layout()
+altBHAPlot.savefig('Plots/altDecayHA.png')
+plt.close(altBHAPlot)
 
 #hp.mollview(constMap2, rot=(0,90))
 

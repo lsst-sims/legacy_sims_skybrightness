@@ -34,7 +34,7 @@ filterNames = ['R', 'G', 'B']
 
 for filterName in filterNames:
 
-    dataPath = os.getenv('SIMS_SKYBRIGHTNESS_DATA')
+    dataPath = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
     dbAddress = 'sqlite:///'+os.path.join(dataPath, 'photometry','skydata.sqlite' )
 
     names = ['mjd', 'ra','dec','alt','starMag', 'sky', 'filter']
