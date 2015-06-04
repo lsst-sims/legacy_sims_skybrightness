@@ -1,0 +1,4 @@
+
+headers for ut*.txt files:
+
+RA        Dec      HA      xcalc  ycalc    BT     VT     V    (B-V)  (V-I)     m      x       y    HAcalc Decalc  alt    rad   minst   dm   sky  dvig

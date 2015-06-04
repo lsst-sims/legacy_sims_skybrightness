@@ -1,0 +1,4 @@
+Pull the photodiode data from Michael
+
+The data has columns of MJD, R,Y,Z
+
