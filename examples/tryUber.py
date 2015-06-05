@@ -71,7 +71,7 @@ types = [float,float,float, float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-#maxID = 5000
+maxID = 5000
 
 for dateID in np.arange(0,maxID+1):
     sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i;' % (filt,dateID)
@@ -149,3 +149,8 @@ skymap[resultHpIDs[good].astype(int)] = patchZP[good]
 skymap[np.where(skymap == 0)] = hp.UNSEEN
 hp.mollview(skymap, rot=(0,90))
 plt.show()
+
+
+## XXX--Add a snippet of healpy to convert hpid to alt/az
+lat,resultAz = hp.pix2ang(nside, resultHpIDs.astype(int))
+resultAlt = np.pi/2.-alt

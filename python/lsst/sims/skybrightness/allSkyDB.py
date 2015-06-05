@@ -11,7 +11,7 @@ def allSkyDB(dateID, sqlQ=None, dtypes=None, dbAddress=None, filt='R' ):
     return the star and sky magnitudes in a numpy structured array.
     """
     if dbAddress is None:
-        dataPath = os.getenv('SIMS_SKYBRIGHTNESS_DATA')
+        dataPath = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
         dbAddress = 'sqlite:///'+os.path.join(dataPath, 'photometry','skydata.sqlite' )
     if sqlQ is None:
         sqlQ = 'select stars.ra, stars.dec,  obs.alt, obs.starMag, obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i;' % (filt,dateID)
@@ -36,7 +36,7 @@ def allSkyDB(dateID, sqlQ=None, dtypes=None, dbAddress=None, filt='R' ):
 
 def diodeSkyDB(midMJD, sqlQ=None, dtypes=None, dbAddress=None, clean=True ):
     if dbAddress is None:
-        dataPath = os.getenv('SIMS_SKYBRIGHTNESS_DATA')
+        dataPath = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
         dbAddress = 'sqlite:///'+os.path.join(dataPath, 'photometry','skydata.sqlite' )
     if sqlQ is None:
         sqlQ = 'select mjd, R, Y, Z from photdiode where mjd > %f-1 and  mjd < %f+1'% (midMJD,midMJD)
