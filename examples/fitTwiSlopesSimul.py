@@ -71,6 +71,8 @@ for key in canonFiles.keys():
     band.setBandpass(data['wave'], data['throughput'])
     canonDict[key]=band
 
+# Dict to save the fitted mag zeropoints
+cannonZPs = {}
 
 for filterName in filters:
     twi = np.load('TwilightMaps/twiMaps_'+filterName+'.npz')
@@ -271,6 +273,7 @@ for filterName in filters:
     good = np.where( (esoAz > np.pi/2) & (esoAz < 3.*np.pi/2 ) )
     m0 = np.median(esoMags[good]+2.5*np.log10(constMap[hpids][good]))
 
+    cannonZPs[filterName] = m0
 
     # Let's apply the median zeropoint to the fits
     fitDict[filterName][1] = fitDict[filterName][1]/(10.**(0.4*m0))
@@ -321,3 +324,13 @@ masked = np.where(modelMap == hp.UNSEEN)
 unmasked = np.where(modelMap != hp.UNSEEN)
 magResid[masked] = hp.UNSEEN
 hp.mollview(magResid, rot=(0,90))
+
+print '----------'
+print 'Fitted Cannon filter zeropoints'
+for key in cannonZPs: print '%s, %f' % (key,cannonZPs[key])
+
+
+#Fitted Cannon filter zeropoints
+#B, 13.640601
+#R, 12.438971
+#G, 13.436144
