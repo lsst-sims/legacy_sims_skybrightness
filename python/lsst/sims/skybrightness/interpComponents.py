@@ -10,24 +10,40 @@ class BaseSingleInterp(object):
     """
     Base class for sky components that only need to be interpolated on airmass
     """
-    def __init__(self, compName=None, sortedOrder=['airmass','nightTimes']):
+    def __init__(self, compName=None, sortedOrder=['airmass','nightTimes'], specOrMag='spec'):
+        """
+        specOrMag: set if the interpolator should use full SEDs for the interpolation, or interpolate
+        LSST filter magnitudes. Set to 'spec' or 'mag'.
+        """
+
+        self.specOrMag = specOrMag
 
         dataDir =  os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'ESO_Spectra/'+compName)
-        filenames = glob.glob(dataDir+'/*.npz')
-        if len(filenames) == 1:
+        if specOrMag == 'spec':
+            filenames = glob.glob(dataDir+'/*.npz')
+            if len(filenames) == 1:
+                temp = np.load(filenames[0])
+                self.wave = temp['wave'].copy()
+                self.spec = temp['spec'].copy()
+            else:
+                temp = np.load(filenames[0])
+                self.wave = temp['wave'].copy()
+                self.spec = temp['spec'].copy()
+                for filename in filenames[1:]:
+                    temp = np.load(filename)
+                    self.spec = np.append(self.spec, temp['spec'])
+            # Take the log of the spectra in case we want to interp in log space.
+            self.logSpec = np.log10(self.spec['spectra'])
+            self.specSize = self.spec['spectra'][0].size
+        elif specOrMag == 'mag':
+            dataDir = os.path.join(dataDir, 'mags')
+            filenames = glob.glob(dataDir+'/*.npz')
             temp = np.load(filenames[0])
             self.wave = temp['wave'].copy()
-            self.spec = temp['spec'].copy()
-        else:
-            temp = np.load(filenames[0])
-            self.wave = temp['wave'].copy()
-            self.spec = temp['spec'].copy()
-            for filename in filenames[1:]:
-                temp = np.load(filename)
-                self.spec = np.append(self.spec, temp['spec'])
+            self.spec = temp['magArr'].copy()
+            self.logSpec = self.spec['mags']
+            self.specSize = self.spec['mags'][0].size
 
-        # Take the log of the spectra in case we want to interp in log space.
-        self.logSpec = np.log10(self.spec['spectra'])
         # What order are the dimesions sorted by (from how the .npz was packaged)
         self.sortedOrder = sortedOrder
         self.dimDict = {}
@@ -46,7 +62,8 @@ class BaseSingleInterp(object):
 
         order = np.argsort(interpPoints, order=self.sortedOrder)
 
-        results = np.zeros( (interpPoints.size, self.spec['spectra'][0].size) ,dtype=float)
+
+        results = np.zeros( (interpPoints.size, self.specSize) ,dtype=float)
 
         # The model values for the left and right side.
         right = np.searchsorted(self.dimDict['airmass'], interpPoints['airmass'][order])
@@ -77,8 +94,10 @@ class BaseSingleInterp(object):
         # XXX--should I use the log spectra?  Make a check and switch back and forth?
         results[order[inRange]] = w1[inRange,np.newaxis]*self.logSpec[left[inRange]*nextra] + \
                                   w2[inRange,np.newaxis]*self.logSpec[right[inRange]*nextra]
-        results[order[inRange]] = 10.**results[order[inRange]]
-        #results[order] = results
+        if self.specOrMag == 'spec':
+            results[order[inRange]] = 10.**results[order[inRange]]
+        elif self.specOrMag == 'mag':
+            results[order[inRange]] = 10.**(-0.4*(results[order[inRange]]-np.log10(3631.)))
         return {'spec':results, 'wave':self.wave}
 
 
@@ -86,41 +105,41 @@ class ScatteredStar(BaseSingleInterp):
     """
     Interpolate the spectra caused by scattered starlight.
     """
-    def __init__(self, compName='ScatteredStarLight'):
-        super(ScatteredStar,self).__init__(compName=compName)
+    def __init__(self, compName='ScatteredStarLight', specOrMag='spec'):
+        super(ScatteredStar,self).__init__(compName=compName, specOrMag=specOrMag)
 
 class Airglow(BaseSingleInterp):
     """
     Interpolate the spectra caused by airglow.
     """
-    def __init__(self, compName='Airglow'):
-        super(Airglow,self).__init__(compName=compName)
+    def __init__(self, compName='Airglow', specOrMag='spec'):
+        super(Airglow,self).__init__(compName=compName, specOrMag=specOrMag)
 
 class LowerAtm(BaseSingleInterp):
     """
     Interpolate the spectra caused by the lower atmosphere.
     """
-    def __init__(self, compName='LowerAtm'):
-        super(LowerAtm,self).__init__(compName=compName)
+    def __init__(self, compName='LowerAtm', specOrMag='spec'):
+        super(LowerAtm,self).__init__(compName=compName, specOrMag=specOrMag)
 
 class UpperAtm(BaseSingleInterp):
     """
     Interpolate the spectra caused by the upper atmosphere.
     """
-    def __init__(self, compName='UpperAtm'):
-        super(UpperAtm,self).__init__(compName=compName)
+    def __init__(self, compName='UpperAtm', specOrMag='spec'):
+        super(UpperAtm,self).__init__(compName=compName, specOrMag=specOrMag)
 
 class MergedSpec(BaseSingleInterp):
     """
     Interpolate the spectra caused by the sum of the scattered starlight, airglow, upper and lower atmosphere.
     """
-    def __init__(self, compName='MergedSpec'):
-        super(MergedSpec,self).__init__(compName=compName)
+    def __init__(self, compName='MergedSpec', specOrMag='spec'):
+        super(MergedSpec,self).__init__(compName=compName, specOrMag=specOrMag)
 
 
 
 class TwilightInterp(object):
-    def __init__(self):
+    def __init__(self, specOrMag='spec'):
         """
         Read the Solar spectrum into a handy object and compute mags in different filters
         """
@@ -171,12 +190,17 @@ class TwilightInterp(object):
                          (interpPoints['airmass'] <= maxAM) &
                          (interpPoints['airmass'] >= 1.) )[0]
 
+        # Compute the expected flux in each of the filters that we have fits for
         fluxes = []
         for filterName in self.filterNames:
             fluxes.append( twilightFunc(interpPoints[good],*self.fitResults[filterName]))
         fluxes = np.array(fluxes)
 
-        yvals = 10.**(np.log10(fluxes.T)+self.solarMag/2.5)
+
+        # wtf am I doing here?
+        # ratio of model flux to raw solar flux:
+
+        yvals = fluxes.T/(10.**(-0.4*(self.solarMag+np.log10(3631.)) ))   #10.**( 0.4*(-np.log10(fluxes.T)+self.solarMag))
 
         for i,yval in enumerate(yvals):
             interpF = interp1d(self.effWave, yval, bounds_error=False, fill_value=yval[-1])
@@ -192,8 +216,8 @@ class MoonInterp(BaseSingleInterp):
     """
     Read in the saved Lunar spectra and interpolate.
     """
-    def __init__(self, compName='Moon', sortedOrder=['moonSunSep','moonAltitude', 'hpid']):
-        super(MoonInterp,self).__init__(compName=compName, sortedOrder=sortedOrder)
+    def __init__(self, compName='Moon', sortedOrder=['moonSunSep','moonAltitude', 'hpid'], specOrMag='spec'):
+        super(MoonInterp,self).__init__(compName=compName, sortedOrder=sortedOrder, specOrMag=specOrMag)
         # Magic number from when the templates were generated
         self.nside = 4
 
@@ -205,7 +229,7 @@ class MoonInterp(BaseSingleInterp):
         all numpy array slicing
         """
 
-        result = np.zeros( (interpPoints.size, self.spec['spectra'][0].size) ,dtype=float)
+        result = np.zeros( (interpPoints.size, self.specSize) ,dtype=float)
 
         for i,point in enumerate(interpPoints):
             hpids, hweights = hp.get_neighbours(self.nside, np.pi/2.-point['alt'],
@@ -254,11 +278,12 @@ class MoonInterp(BaseSingleInterp):
                                                  (self.spec['hpid'] == hpid))[0]
                                 if np.size(good) > 0:
                                     result[i] += hweight*phasew*maw*self.logSpec[good[0]]
-                    result[i] = 10.**result[i]
 
-
+        if self.specOrMag == 'spec':
+            result = 10.**result
+        elif self.specOrMag == 'mag':
+            result = 10.**(-0.4*(result-np.log10(3631.)))
         return {'spec':result, 'wave':self.wave}
-
 
     def New__call__(self, interpPoints):
         """
@@ -368,8 +393,8 @@ class ZodiacalInterp(BaseSingleInterp):
     the healpixels are in ecliptic coordinates, with the sun at ecliptic longitude zero
     """
 
-    def __init__(self, compName='Zodiacal', sortedOrder=['airmass', 'hpid']):
-        super(ZodiacalInterp,self).__init__(compName=compName, sortedOrder=sortedOrder)
+    def __init__(self, compName='Zodiacal', sortedOrder=['airmass', 'hpid'], specOrMag='spec'):
+        super(ZodiacalInterp,self).__init__(compName=compName, sortedOrder=sortedOrder, specOrMag=specOrMag)
         self.nside = hp.npix2nside(np.size(np.where(self.spec['airmass'] ==
                                                     np.unique(self.spec['airmass'])[0])[0]))
 
@@ -379,7 +404,7 @@ class ZodiacalInterp(BaseSingleInterp):
         point in parameter-space. Then, calculate a biliniear interpolation weight for each model spectrum.
         """
 
-        result = np.zeros( (interpPoints.size, self.spec['spectra'][0].size) ,dtype=float)
+        result = np.zeros( (interpPoints.size, self.specSize) ,dtype=float)
 
         for i,point in enumerate(interpPoints):
 
@@ -410,7 +435,11 @@ class ZodiacalInterp(BaseSingleInterp):
                                          (self.spec['hpid'] == hpid))[0]
                         if np.size(good) > 0:
                             result[i] += hweight*amw*self.logSpec[good[0]]
-                result[i] = 10.**result[i]
+
+        if self.specOrMag == 'spec':
+            result = 10.**result
+        elif self.specOrMag == 'mag':
+            result = 10.**(-0.4*(result-np.log10(3631.)))
         return {'spec':result, 'wave':self.wave}
 
     def new__call__(self, interpPoints):
