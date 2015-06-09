@@ -176,13 +176,35 @@ class TwilightInterp(object):
                            'R': [50.08252239,2.01774730e-04,-0.6953,-1.,-0.76808688]}
 
 
+        self.solarWave = self.solarSpec.wavelen
+        self.solarFlux = self.solarSpec.flambda
+        # This one isn't as bad as the model grids, maybe we could get away with computing the magnitudes
+        # in the __call__ each time.
+        if specOrMag == 'mag':
+            # Load up the LSST filters and convert the solarSpec.flabda and solarSpec.wavelen to fluxes
+            throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+            keys = ['u','g','r','i','z','y']
+            newSolarWave = []
+            newSolarFlux = []
+            for filtername in keys:
+                bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+                                dtype=zip(['wave','trans'],[float]*2 ))
+                tempB = Bandpass()
+                tempB.setBandpass(bp['wave'],bp['trans'])
+                newSolarWave.append(tempB.calcEffWavelen()[0])
+                mag = self.solarSpec.calcMag(tempB)
+                flux = 10.**(-0.4*(mag-np.log10(3631.)))
+                newSolarFlux.append(flux)
+            self.solarWave = np.array(newSolarWave)
+            self.solarFlux = np.array(newSolarFlux)
+
     def __call__(self, interpPoints, maxAM=2.5,
                      limits=[np.radians(-11.), np.radians(-20.)]):
         """
         interpPoints should have airmass, azRelSun, and sunAlt.
         """
 
-        npts = np.size(self.solarSpec.wavelen)
+        npts = np.size(self.solarWave)
         result = np.zeros((np.size(interpPoints), npts), dtype=float )
 
         good = np.where( (interpPoints['sunAlt'] >= np.min(limits)) &
@@ -196,19 +218,16 @@ class TwilightInterp(object):
             fluxes.append( twilightFunc(interpPoints[good],*self.fitResults[filterName]))
         fluxes = np.array(fluxes)
 
-
-        # wtf am I doing here?
         # ratio of model flux to raw solar flux:
-
-        yvals = fluxes.T/(10.**(-0.4*(self.solarMag+np.log10(3631.)) ))   #10.**( 0.4*(-np.log10(fluxes.T)+self.solarMag))
+        yvals = fluxes.T/(10.**(-0.4*(self.solarMag+np.log10(3631.)) ))
 
         for i,yval in enumerate(yvals):
             interpF = interp1d(self.effWave, yval, bounds_error=False, fill_value=yval[-1])
-            ratio = interpF(self.solarSpec.wavelen)
-            ratio[np.where(self.solarSpec.wavelen < np.min(self.effWave))] = yval[0]
-            result[good[i]] = self.solarSpec.flambda*ratio
+            ratio = interpF(self.solarWave)
+            ratio[np.where(self.solarWave < np.min(self.effWave))] = yval[0]
+            result[good[i]] = self.solarFlux*ratio
 
-        return {'spec':result, 'wave':self.solarSpec.wavelen}
+        return {'spec':result, 'wave':self.solarWave}
 
 
 
@@ -279,10 +298,12 @@ class MoonInterp(BaseSingleInterp):
                                 if np.size(good) > 0:
                                     result[i] += hweight*phasew*maw*self.logSpec[good[0]]
 
+        mask = np.where(result == 0.)
         if self.specOrMag == 'spec':
             result = 10.**result
         elif self.specOrMag == 'mag':
             result = 10.**(-0.4*(result-np.log10(3631.)))
+        result[mask] = 0.
         return {'spec':result, 'wave':self.wave}
 
     def New__call__(self, interpPoints):
@@ -436,10 +457,12 @@ class ZodiacalInterp(BaseSingleInterp):
                         if np.size(good) > 0:
                             result[i] += hweight*amw*self.logSpec[good[0]]
 
+        mask = np.where(result == 0.)
         if self.specOrMag == 'spec':
             result = 10.**result
         elif self.specOrMag == 'mag':
             result = 10.**(-0.4*(result-np.log10(3631.)))
+        result[mask] = 0
         return {'spec':result, 'wave':self.wave}
 
     def new__call__(self, interpPoints):
