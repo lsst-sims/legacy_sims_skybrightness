@@ -71,7 +71,7 @@ types = [float,float,float, float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-maxID = 5000
+maxID = 1000
 
 for dateID in np.arange(0,maxID+1):
     sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i;' % (filt,dateID)
@@ -153,4 +153,7 @@ plt.show()
 
 ## XXX--Add a snippet of healpy to convert hpid to alt/az
 lat,resultAz = hp.pix2ang(nside, resultHpIDs.astype(int))
-resultAlt = np.pi/2.-alt
+resultAlt = np.pi/2.-lat
+
+# Convert resultDateIDs to mjd. I think this should work--presumably the dateIDs and mjds are both increasing?
+resultMjds = intid2id(resultDateIDs, np.unique(dateIDs), np.unique(mjds), dtype=float)

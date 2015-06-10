@@ -3,6 +3,7 @@ import glob
 import pyfits
 import healpy as hp
 import os
+from lsst.sims.photUtils import Sed,Bandpass
 
 dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 outDir = os.path.join(dataDir, 'ESO_Spectra/Zodiacal')
@@ -48,7 +49,7 @@ nwave = wave.size
 
 dtype = [('airmass', 'float'),
          ('hpid', 'int' ),
-         ('spectra', 'float', (nwave))]
+         ('spectra', 'float', (nwave)), ('mags', 'float', (6))]
 npix = hp.nside2npix(nside)
 Spectra = np.zeros(nAM*npix, dtype=dtype)
 for i,am in enumerate(uAM):
@@ -78,9 +79,33 @@ Spectra['spectra'] = Spectra['spectra']/(100.**2)*hPlank*cLight/(wave*1e-7)/1e3
 # Sort things since this might be helpful later
 Spectra.sort(order=['airmass', 'hpid'])
 
+# Load LSST filters
+throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+keys = ['u','g','r','i','z','y']
+nfilt = len(keys)
+filters = {}
+for filtername in keys:
+    bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+                    dtype=zip(['wave','trans'],[float]*2 ))
+    tempB = Bandpass()
+    tempB.setBandpass(bp['wave'],bp['trans'])
+    filters[filtername] = tempB
+
+filterWave = np.array([filters[f].calcEffWavelen()[0] for f in keys ])
+
+for i,spectrum in enumerate(Spectra['spectra']):
+    tempSed = Sed()
+    tempSed.setSED(wave,flambda=spectrum)
+    for j,filtName in enumerate(keys):
+        try:
+            Spectra['mags'][i][j] = tempSed.calcMag(filters[filtName])
+        except:
+            pass
+
+
 #span this over multiple files to store in github
 nbreak = 3
 nrec = np.size(Spectra)
 
 for i in np.arange(nbreak):
-    np.savez(os.path.join(outDir,'zodiacalSpectra_'+str(i)+'.npz'), wave = wave, spec=Spectra[i*nrec/nbreak:(i+1)*nrec/nbreak])
+    np.savez(os.path.join(outDir,'zodiacalSpectra_'+str(i)+'.npz'), wave = wave, spec=Spectra[i*nrec/nbreak:(i+1)*nrec/nbreak], filterWave=filterWave)

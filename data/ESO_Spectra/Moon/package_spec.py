@@ -2,6 +2,7 @@ import numpy as np
 import glob
 import pyfits
 import os
+from lsst.sims.photUtils import Sed,Bandpass
 
 dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 outDir = os.path.join(dataDir, 'ESO_Spectra/Moon')
@@ -89,7 +90,7 @@ nwave = moonWave.size
 dtype = [('hpid', 'int'),
          ('moonAltitude', 'float'),
          ('moonSunSep', 'float'),
-         ('spectra', 'float', (nwave))]
+         ('spectra', 'float', (nwave)), ('mags', 'float', (6))]
 moonSpectra = np.zeros(nrec, dtype=dtype)
 moonSpectra['hpid'] = hpid
 moonSpectra['moonAltitude'] = moonAlt
@@ -111,11 +112,38 @@ moonSpectra.sort(order=['moonSunSep','moonAltitude', 'hpid'])
 good =np.where((moonSpectra['moonAltitude'] >= 0) & (moonSpectra['moonAltitude'] < 89.) )
 moonSpectra = moonSpectra[good]
 
+
+# Load LSST filters
+throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+keys = ['u','g','r','i','z','y']
+nfilt = len(keys)
+filters = {}
+for filtername in keys:
+    bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+                    dtype=zip(['wave','trans'],[float]*2 ))
+    tempB = Bandpass()
+    tempB.setBandpass(bp['wave'],bp['trans'])
+    filters[filtername] = tempB
+
+filterWave = np.array([filters[f].calcEffWavelen()[0] for f in keys ])
+
+for i,spectrum in enumerate(moonSpectra['spectra']):
+    tempSed = Sed()
+    tempSed.setSED(moonWave,flambda=spectrum)
+    for j,filtName in enumerate(keys):
+        try:
+            moonSpectra['mags'][i][j] = tempSed.calcMag(filters[filtName])
+        except:
+            pass
+
+
+
+
 nbreak=5
 nrec = np.size(moonSpectra)
 
 for i in np.arange(nbreak):
-    np.savez(os.path.join(outDir,'moonSpectra_'+str(i)+'.npz'), wave = moonWave, spec=moonSpectra[i*nrec/nbreak:(i+1)*nrec/nbreak])
+    np.savez(os.path.join(outDir,'moonSpectra_'+str(i)+'.npz'), wave = moonWave, spec=moonSpectra[i*nrec/nbreak:(i+1)*nrec/nbreak], filterWave=filterWave)
 
 
 # Skip this stuff, fixed it later

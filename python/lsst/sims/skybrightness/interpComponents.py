@@ -19,30 +19,24 @@ class BaseSingleInterp(object):
         self.specOrMag = specOrMag
 
         dataDir =  os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'ESO_Spectra/'+compName)
-        if specOrMag == 'spec':
-            filenames = glob.glob(dataDir+'/*.npz')
-            if len(filenames) == 1:
-                temp = np.load(filenames[0])
-                self.wave = temp['wave'].copy()
-                self.spec = temp['spec'].copy()
-            else:
-                temp = np.load(filenames[0])
-                self.wave = temp['wave'].copy()
-                self.spec = temp['spec'].copy()
-                for filename in filenames[1:]:
-                    temp = np.load(filename)
-                    self.spec = np.append(self.spec, temp['spec'])
-            # Take the log of the spectra in case we want to interp in log space.
-            self.logSpec = np.log10(self.spec['spectra'])
-            self.specSize = self.spec['spectra'][0].size
-        elif specOrMag == 'mag':
-            dataDir = os.path.join(dataDir, 'mags')
-            filenames = glob.glob(dataDir+'/*.npz')
+
+        filenames = glob.glob(dataDir+'/*.npz')
+        if len(filenames) == 1:
             temp = np.load(filenames[0])
             self.wave = temp['wave'].copy()
-            self.spec = temp['magArr'].copy()
-            self.logSpec = self.spec['mags']
-            self.specSize = self.spec['mags'][0].size
+            self.filterWave = temp['filterWave'].copy()
+            self.spec = temp['spec'].copy()
+        else:
+            temp = np.load(filenames[0])
+            self.wave = temp['wave'].copy()
+            self.filterWave = temp['filterWave'].copy()
+            self.spec = temp['spec'].copy()
+            for filename in filenames[1:]:
+                temp = np.load(filename)
+                self.spec = np.append(self.spec, temp['spec'])
+        # Take the log of the spectra in case we want to interp in log space.
+        self.logSpec = np.log10(self.spec['spectra'])
+        self.specSize = self.spec['spectra'][0].size
 
         # What order are the dimesions sorted by (from how the .npz was packaged)
         self.sortedOrder = sortedOrder
@@ -52,7 +46,15 @@ class BaseSingleInterp(object):
             self.dimDict[dt] = np.unique(self.spec[dt])
             self.dimSizes[dt] = np.size(np.unique(self.spec[dt]))
 
-    def __call__(self, interpPoints):
+
+
+    def __call__(self, intepPoints):
+        if self.specOrMag == 'spec':
+            return self.interpSpec(intepPoints)
+        elif self.specOrMag == 'mag':
+            return self.interpMag(intepPoints)
+
+    def _weighting(self, interpPoints, values):
         """
         given a list/array of airmass values, return a dict with the interpolated
         spectrum at each airmass and the wavelength array.
@@ -62,8 +64,7 @@ class BaseSingleInterp(object):
 
         order = np.argsort(interpPoints, order=self.sortedOrder)
 
-
-        results = np.zeros( (interpPoints.size, self.specSize) ,dtype=float)
+        results = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
         # The model values for the left and right side.
         right = np.searchsorted(self.dimDict['airmass'], interpPoints['airmass'][order])
@@ -92,14 +93,25 @@ class BaseSingleInterp(object):
         nextra = 3
 
         # XXX--should I use the log spectra?  Make a check and switch back and forth?
-        results[order[inRange]] = w1[inRange,np.newaxis]*self.logSpec[left[inRange]*nextra] + \
-                                  w2[inRange,np.newaxis]*self.logSpec[right[inRange]*nextra]
-        if self.specOrMag == 'spec':
-            results[order[inRange]] = 10.**results[order[inRange]]
-        elif self.specOrMag == 'mag':
-            results[order[inRange]] = 10.**(-0.4*(results[order[inRange]]-np.log10(3631.)))
-        return {'spec':results, 'wave':self.wave}
+        results[order[inRange]] = w1[inRange,np.newaxis]*values[left[inRange]*nextra] + \
+                                  w2[inRange,np.newaxis]*values[right[inRange]*nextra]
 
+        return results
+
+
+    def interpSpec(self, interpPoints):
+        result = self._weighting(interpPoints, self.logSpec)
+        mask = np.where(result == 0.)
+        result = 10.**result
+        result[mask]  = 0.
+        return {'spec':result, 'wave':self.wave}
+
+    def interpMag(self, interpPoints):
+        result = self._weighting(interpPoints, self.spec['mags'])
+        mask = np.where(result == 0.)
+        result =  10.**(-0.4*(result-np.log10(3631.)))
+        result[mask]  = 0.
+        return {'spec':result, 'wave':self.filterWave}
 
 class ScatteredStar(BaseSingleInterp):
     """
@@ -242,13 +254,13 @@ class MoonInterp(BaseSingleInterp):
 
 
 
-    def __call__(self, interpPoints):
+    def _weighting(self, interpPoints, values):
         """
         A temporary method that does a stupid loop until I can figure out how to do the proper
         all numpy array slicing
         """
 
-        result = np.zeros( (interpPoints.size, self.specSize) ,dtype=float)
+        result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
         for i,point in enumerate(interpPoints):
             hpids, hweights = hp.get_neighbours(self.nside, np.pi/2.-point['alt'],
@@ -296,15 +308,10 @@ class MoonInterp(BaseSingleInterp):
                                                  (self.spec['moonAltitude'] == moonAlt) &
                                                  (self.spec['hpid'] == hpid))[0]
                                 if np.size(good) > 0:
-                                    result[i] += hweight*phasew*maw*self.logSpec[good[0]]
+                                    result[i] += hweight*phasew*maw*values[good[0]]
 
-        mask = np.where(result == 0.)
-        if self.specOrMag == 'spec':
-            result = 10.**result
-        elif self.specOrMag == 'mag':
-            result = 10.**(-0.4*(result-np.log10(3631.)))
-        result[mask] = 0.
-        return {'spec':result, 'wave':self.wave}
+
+        return result
 
     def New__call__(self, interpPoints):
         """
@@ -419,13 +426,13 @@ class ZodiacalInterp(BaseSingleInterp):
         self.nside = hp.npix2nside(np.size(np.where(self.spec['airmass'] ==
                                                     np.unique(self.spec['airmass'])[0])[0]))
 
-    def __call__(self, interpPoints):
+    def _weighting(self, interpPoints, values):
         """
         Use some np.where mojo to find the templates that surround each interpolation
         point in parameter-space. Then, calculate a biliniear interpolation weight for each model spectrum.
         """
 
-        result = np.zeros( (interpPoints.size, self.specSize) ,dtype=float)
+        result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
         for i,point in enumerate(interpPoints):
 
@@ -455,15 +462,9 @@ class ZodiacalInterp(BaseSingleInterp):
                         good = np.where( (self.spec['airmass'] == airmass)  &
                                          (self.spec['hpid'] == hpid))[0]
                         if np.size(good) > 0:
-                            result[i] += hweight*amw*self.logSpec[good[0]]
+                            result[i] += hweight*amw*values[good[0]]
 
-        mask = np.where(result == 0.)
-        if self.specOrMag == 'spec':
-            result = 10.**result
-        elif self.specOrMag == 'mag':
-            result = 10.**(-0.4*(result-np.log10(3631.)))
-        result[mask] = 0
-        return {'spec':result, 'wave':self.wave}
+        return result
 
     def new__call__(self, interpPoints):
         """

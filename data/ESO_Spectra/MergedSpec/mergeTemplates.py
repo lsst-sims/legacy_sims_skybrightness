@@ -17,9 +17,18 @@ temp = np.load(files[0])
 wave = temp['wave'].copy()
 spec = temp['spec'].copy()
 spec['spectra'] = spec['spectra']*0.
+spec['mags'] = spec['mags']*0.
 
 for filename in files:
     restored = np.load(filename)
     spec['spectra'] += restored['spec']['spectra']
+    try:
+        flux = 10.**(-0.4*(restored['spec']['mags']-np.log10(3631.)))
+    except:
+        import pdb ; pdb.set_trace()
+    flux[np.where(restored['spec']['mags'] == 0.)] = 0.
+    spec['mags'] += flux
 
-np.savez(os.path.join(outDir,'mergedSpec.npz'), spec=spec, wave=wave)
+spec['mags'] = -2.5*np.log10(spec['mags'])+np.log10(3631.)
+
+np.savez(os.path.join(outDir,'mergedSpec.npz'), spec=spec, wave=wave, filterWave=temp['filterWave'])

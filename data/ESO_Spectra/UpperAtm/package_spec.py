@@ -2,6 +2,7 @@ import numpy as np
 import glob
 import pyfits
 import os
+from lsst.sims.photUtils import Sed,Bandpass
 
 dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 outDir = os.path.join(dataDir, 'ESO_Spectra/UpperAtm')
@@ -37,7 +38,7 @@ nwave = wave.size
 
 dtype = [('airmass', 'float'),
          ('nightTimes', 'float'),
-         ('spectra', 'float', (nwave))]
+         ('spectra', 'float', (nwave)), ('mags', 'float', (6))]
 Spectra = np.zeros(nrec, dtype=dtype)
 Spectra['airmass'] = airmasses
 Spectra['nightTimes'] = nightTimes
@@ -53,4 +54,28 @@ Spectra['spectra'] = Spectra['spectra']/(100.**2)*hPlank*cLight/(wave*1e-7)/1e3
 # Sort things since this might be helpful later
 Spectra.sort(order=['airmass','nightTimes'])
 
-np.savez(os.path.join(outDir,'Spectra.npz'), wave = wave, spec=Spectra)
+# Load LSST filters
+throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+keys = ['u','g','r','i','z','y']
+nfilt = len(keys)
+filters = {}
+for filtername in keys:
+    bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+                    dtype=zip(['wave','trans'],[float]*2 ))
+    tempB = Bandpass()
+    tempB.setBandpass(bp['wave'],bp['trans'])
+    filters[filtername] = tempB
+
+filterWave = np.array([filters[f].calcEffWavelen()[0] for f in keys ])
+
+for i,spectrum in enumerate(Spectra['spectra']):
+    tempSed = Sed()
+    tempSed.setSED(wave,flambda=spectrum)
+    for j,filtName in enumerate(keys):
+        try:
+            Spectra['mags'][i][j] = tempSed.calcMag(filters[filtName])
+        except:
+            pass
+
+
+np.savez(os.path.join(outDir,'Spectra.npz'), wave = wave, spec=Spectra, filterWave=filterWave)
