@@ -5,6 +5,7 @@ import healpy as hp
 from lsst.sims.photUtils import Sed,Bandpass
 from lsst.sims.skybrightness.twilightFunc import twilightFunc
 from scipy.interpolate import interp1d
+import os
 
 class BaseSingleInterp(object):
     """
@@ -170,6 +171,18 @@ class TwilightInterp(object):
             bpTemp = Bandpass()
             bpTemp.setBandpass(bpdata['wave'], bpdata['through'])
             canonFilters.append(bpTemp)
+
+        # Tack on the LSST z and y filter
+        throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+        lsstKeys = ['z','y']
+        for key in lsstKeys:
+            bp = np.loadtxt(os.path.join(throughPath, 'filter_'+key+'.dat'),
+                            dtype=zip(['wave','trans'],[float]*2 ))
+            tempB = Bandpass()
+            tempB.setBandpass(bp['wave'],bp['trans'])
+            canonFilters.append(tempB)
+            self.filterNames.append(key)
+
         self.effWave = []
         self.solarMag = []
         for cfilter in canonFilters:
@@ -186,9 +199,15 @@ class TwilightInterp(object):
         # 2: airmass term (e^(arg[2]*(1-X)))
         # 3: <unused>
         # 4: azimuth term.
+
+        # XXX--danger, need to make sure all thes zeropoints are correct and consistent
+        # z and y are based on fitting the zenith decay in:
+        # fitDiode.py
         self.fitResults = {'B': [ 53.20504282,4.85950702e-04,-0.65325829,-1.,-0.69345613],
                            'G': [52.38200428,4.18033020e-04,-0.69706203,-1.,-0.72186434],
-                           'R': [50.08252239,2.01774730e-04,-0.6953,-1.,-0.76808688]}
+                           'R': [50.08252239,2.01774730e-04,-0.6953,-1.,-0.76808688],
+                           'z': [5.38260172e+01, 2.49544554e-02, -0.69, -1., -0.77],
+                           'y': [5.39057781e+01, 1.65870589e-02,  -0.69, -1., -0.77]}
 
 
         self.solarWave = self.solarSpec.wavelen

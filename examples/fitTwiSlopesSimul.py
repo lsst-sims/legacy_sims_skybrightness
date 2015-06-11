@@ -272,8 +272,11 @@ for filterName in filters:
 
     good = np.where( (esoAz > np.pi/2) & (esoAz < 3.*np.pi/2 ) )
     m0 = np.median(esoMags[good]+2.5*np.log10(constMap[hpids][good]))
-
     cannonZPs[filterName] = m0
+
+    #fluxRatio = np.median(10.**(-0.4*(esoMags[good]-2.5*np.log10(3631.)))/constMap[hpids][good])
+    #fitDict[filterName][1] = fitDict[filterName][1]*fluxRatio
+
 
     # Let's apply the median zeropoint to the fits
     fitDict[filterName][1] = fitDict[filterName][1]/(10.**(0.4*m0))

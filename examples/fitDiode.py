@@ -3,13 +3,19 @@ from scipy.optimize import curve_fit
 import lsst.sims.skybrightness as sb
 import matplotlib.pylab as plt
 from lsst.sims.skybrightness.utils import robustRMS
+import os
+import lsst.sims.photUtils.Bandpass as Bandpass
 
 
-def expPlusC(xdata, x0,x1, x3):
+# Let's just fit the photodiode data and use the ESO model to get a zeropoint.
+
+
+
+def expPlusC(xdata, x0,x1, x2):
     """
     Let the sky flux be exponentially declining and hit some constant value
     """
-    flux = x0*np.exp( (xdata)*x1)+x3
+    flux = x0*np.exp( (xdata)*x1)+x2
     return flux
 
 
@@ -38,9 +44,6 @@ def medFilt(x,y,bins=30):
 
     return np.array(xbinned), np.array(ybinned), np.array(yrms)
 
-
-# Let's just fit the photodiode data and use the ESO model to get a zeropoint.
-
 # Note this is an old npz I have lying around
 data = np.load('/Users/yoachim/gitRepos/stash_skybrigtness/data/photodiode/photodiode.npz')
 diode = data['photodiode'].copy()
@@ -56,6 +59,34 @@ tempz = diode['y'].copy()
 
 diode['y'] = tempy
 diode['z'] = tempz
+
+# Load up LSST filters
+throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+keys = ['r','z','y']
+nfilt = len(keys)
+filters = {}
+for filtername in keys:
+    bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+                    dtype=zip(['wave','trans'],[float]*2 ))
+    tempB = Bandpass()
+    tempB.setBandpass(bp['wave'],bp['trans'])
+    filters[filtername] = tempB
+
+
+sm = sb.SkyModel(twilight=False, moon=False, zodiacal=False,mags=True)
+sm.setRaDecMjd( [0.], [np.radians(90.)], 45000., azAlt=True )
+sm.computeSpec()
+mags = sm.computeMags()
+modelFluxLevels={}
+modelFluxLevels['r'] = sm.spec[0][2]
+modelFluxLevels['z'] = sm.spec[0][4]
+modelFluxLevels['y'] = sm.spec[0][5]
+
+modelMagLevels = {}
+modelMagLevels['r'] = mags[2]
+modelMagLevels['z'] = mags[4]
+modelMagLevels['y'] = mags[5]
+
 
 
 # Make some plots
@@ -85,12 +116,19 @@ for i,filterName in enumerate(filterNames):
     fitParams, fitCovariances = curve_fit(expPlusC, np.radians(xbinned[goodBinned]),
                                           ybinned[goodBinned],
                                           sigma=yrms[goodBinned])
-    fittedParams[filterName] = fitParams
+
     ax.plot(xbinned[goodBinned], expPlusC(np.radians(xbinned[goodBinned]), *fitParams), 'b' )
 
-    # now need to compute what the zeropoint is expected to be
+
+    ratio = modelFluxLevels[filterName]/fitParams[2]
+    fitParams[0] *= ratio
+
+    fittedParams[filterName] = fitParams
 
 
 fig.tight_layout()
 fig.savefig('Plots/diode.png')
 plt.close(fig)
+
+print 'Best fit exponential = constant, normalized to ESO dark zenith'
+print fittedParams
