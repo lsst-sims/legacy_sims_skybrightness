@@ -150,7 +150,7 @@ for filterName in filters:
     ax = fig.add_subplot(3,1,counter)
     ax.semilogy(xdata['sunAlt'], flux, 'ko', alpha=.1)
     ax.plot(xdata['sunAlt'], variableBack(xdata,*fitParams), color=colors[counter-1], alpha=.2)
-    np.savez('slopeFits_%s.npz'%colors[counter-1], fitParams=fitParams, hpidIn=hpidIn)
+    #np.savez('slopeFits_%s.npz'%colors[counter-1], fitParams=fitParams, hpidIn=hpidIn)
 
     modelFluxes = variableBack(xdata,*fitParams)
     modelMags = -2.5*np.log10(modelFluxes)
