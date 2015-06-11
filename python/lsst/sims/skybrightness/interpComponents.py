@@ -10,13 +10,12 @@ class BaseSingleInterp(object):
     """
     Base class for sky components that only need to be interpolated on airmass
     """
-    def __init__(self, compName=None, sortedOrder=['airmass','nightTimes'], specOrMag='spec'):
+    def __init__(self, compName=None, sortedOrder=['airmass','nightTimes'], mags=False):
         """
-        specOrMag: set if the interpolator should use full SEDs for the interpolation, or interpolate
-        LSST filter magnitudes. Set to 'spec' or 'mag'.
+        mags: Rather than the full spectrum, return the LSST ugrizy magnitudes.
         """
 
-        self.specOrMag = specOrMag
+        self.mags = mags
 
         dataDir =  os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'ESO_Spectra/'+compName)
 
@@ -46,13 +45,11 @@ class BaseSingleInterp(object):
             self.dimDict[dt] = np.unique(self.spec[dt])
             self.dimSizes[dt] = np.size(np.unique(self.spec[dt]))
 
-
-
     def __call__(self, intepPoints):
-        if self.specOrMag == 'spec':
-            return self.interpSpec(intepPoints)
-        elif self.specOrMag == 'mag':
+        if self.mags:
             return self.interpMag(intepPoints)
+        else:
+            return self.interpSpec(intepPoints)
 
     def _weighting(self, interpPoints, values):
         """
@@ -117,41 +114,41 @@ class ScatteredStar(BaseSingleInterp):
     """
     Interpolate the spectra caused by scattered starlight.
     """
-    def __init__(self, compName='ScatteredStarLight', specOrMag='spec'):
-        super(ScatteredStar,self).__init__(compName=compName, specOrMag=specOrMag)
+    def __init__(self, compName='ScatteredStarLight', mags=False):
+        super(ScatteredStar,self).__init__(compName=compName, mags=mags)
 
 class Airglow(BaseSingleInterp):
     """
     Interpolate the spectra caused by airglow.
     """
-    def __init__(self, compName='Airglow', specOrMag='spec'):
-        super(Airglow,self).__init__(compName=compName, specOrMag=specOrMag)
+    def __init__(self, compName='Airglow', mags=False):
+        super(Airglow,self).__init__(compName=compName, mags=mags)
 
 class LowerAtm(BaseSingleInterp):
     """
     Interpolate the spectra caused by the lower atmosphere.
     """
-    def __init__(self, compName='LowerAtm', specOrMag='spec'):
-        super(LowerAtm,self).__init__(compName=compName, specOrMag=specOrMag)
+    def __init__(self, compName='LowerAtm', mags=False):
+        super(LowerAtm,self).__init__(compName=compName,mags=mags )
 
 class UpperAtm(BaseSingleInterp):
     """
     Interpolate the spectra caused by the upper atmosphere.
     """
-    def __init__(self, compName='UpperAtm', specOrMag='spec'):
-        super(UpperAtm,self).__init__(compName=compName, specOrMag=specOrMag)
+    def __init__(self, compName='UpperAtm', mags=False):
+        super(UpperAtm,self).__init__(compName=compName, mags=mags)
 
 class MergedSpec(BaseSingleInterp):
     """
     Interpolate the spectra caused by the sum of the scattered starlight, airglow, upper and lower atmosphere.
     """
-    def __init__(self, compName='MergedSpec', specOrMag='spec'):
-        super(MergedSpec,self).__init__(compName=compName, specOrMag=specOrMag)
+    def __init__(self, compName='MergedSpec', mags=False):
+        super(MergedSpec,self).__init__(compName=compName, mags=mags)
 
 
 
 class TwilightInterp(object):
-    def __init__(self, specOrMag='spec'):
+    def __init__(self, mags=False):
         """
         Read the Solar spectrum into a handy object and compute mags in different filters
         """
@@ -192,7 +189,7 @@ class TwilightInterp(object):
         self.solarFlux = self.solarSpec.flambda
         # This one isn't as bad as the model grids, maybe we could get away with computing the magnitudes
         # in the __call__ each time.
-        if specOrMag == 'mag':
+        if mags:
             # Load up the LSST filters and convert the solarSpec.flabda and solarSpec.wavelen to fluxes
             throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
             keys = ['u','g','r','i','z','y']
@@ -247,11 +244,10 @@ class MoonInterp(BaseSingleInterp):
     """
     Read in the saved Lunar spectra and interpolate.
     """
-    def __init__(self, compName='Moon', sortedOrder=['moonSunSep','moonAltitude', 'hpid'], specOrMag='spec'):
-        super(MoonInterp,self).__init__(compName=compName, sortedOrder=sortedOrder, specOrMag=specOrMag)
+    def __init__(self, compName='Moon', sortedOrder=['moonSunSep','moonAltitude', 'hpid'], mags=False):
+        super(MoonInterp,self).__init__(compName=compName, sortedOrder=sortedOrder, mags=mags)
         # Magic number from when the templates were generated
         self.nside = 4
-
 
 
     def _weighting(self, interpPoints, values):
@@ -421,8 +417,8 @@ class ZodiacalInterp(BaseSingleInterp):
     the healpixels are in ecliptic coordinates, with the sun at ecliptic longitude zero
     """
 
-    def __init__(self, compName='Zodiacal', sortedOrder=['airmass', 'hpid'], specOrMag='spec'):
-        super(ZodiacalInterp,self).__init__(compName=compName, sortedOrder=sortedOrder, specOrMag=specOrMag)
+    def __init__(self, compName='Zodiacal', sortedOrder=['airmass', 'hpid'], mags=False):
+        super(ZodiacalInterp,self).__init__(compName=compName, sortedOrder=sortedOrder, mags=mags)
         self.nside = hp.npix2nside(np.size(np.where(self.spec['airmass'] ==
                                                     np.unique(self.spec['airmass'])[0])[0]))
 

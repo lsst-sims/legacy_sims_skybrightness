@@ -19,9 +19,21 @@ class SkyModel(object):
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True,  moon=True,
                  lowerAtm=False, upperAtm=False, airglow=False, scatteredStar=False,
-                 mergedSpec=True, verbose=True, specOrMag='spec', npix=None):
+                 mergedSpec=True, mags=False):
         """By default, assume this is for LSST site, otherwise expect an observatory object
-        with attributes lat,lon.elev"""
+        with attributes lat,lon.elev
+        twilight
+        zodiacal
+        moon
+        lowerAtm
+        upperAtm
+        airglow
+        scatteredStar
+        mergedSpec: Since the lowerAtm, upperAtm, airglow, and scatteredStar components are
+            all functions of only airmass, they can be combined into a single interpolation.
+        mags: By default, the sky model computes a 17,001 element spectrum. If mags is true,
+              the model will return the LSST ugrizy magnitudes.
+        """
 
         self.moon=moon
         self.lowerAtm = lowerAtm
@@ -31,15 +43,12 @@ class SkyModel(object):
         self.airglow = airglow
         self.scatteredStar = scatteredStar
         self.mergedSpec = mergedSpec
-        self.verbose = verbose
-        self.specOrMag = specOrMag
-        if specOrMag == 'spec':
-            self.npix = 17001
-        elif specOrMag == 'mag':
-            self.npix = 6
+        self.mags = mags
 
-        if npix is not None:
-            self.npix = npix
+        if self.mags:
+            self.npix = 6
+        else:
+            self.npix = 17001
 
         self.components = {'moon':self.moon, 'lowerAtm':self.lowerAtm, 'twilight':self.twilight,
                            'upperAtm':self.upperAtm, 'airglow':self.airglow,'zodiacal':self.zodiacal,
@@ -61,7 +70,7 @@ class SkyModel(object):
         self.interpObjs = {}
         for key in self.components:
             if self.components[key]:
-                self.interpObjs[key] = interpolators[key](specOrMag=specOrMag)
+                self.interpObjs[key] = interpolators[key](mags=self.mags)
 
 
         # Set up a pyephem observatory object
@@ -228,17 +237,20 @@ class SkyModel(object):
 
     def computeMags(self, bandpass=None):
         """After the spectra have been computed, optionally convert to mags"""
-        if self.specOrMag == 'spec':
-            self.mags = np.zeros(self.npts, dtype=float)-666
+        if self.mags:
+            mags = -2.5*np.log10(self.spec)+np.log10(3631.)
+        else:
+            mags = np.zeros(self.npts, dtype=float)-666
             tempSed = Sed()
             for i, ra in enumerate(self.ra):
                 if np.max(self.spec[i,:]) > 0:
                     tempSed.setSED(self.wave, flambda=self.spec[i,:])
                     # Need to try/except because the spectra might be zero in the filter
+                    # XXX-upgrade this to check if it's zero
                     try:
-                        self.mags[i] = tempSed.calcMag(bandpass)
+                        mags[i] = tempSed.calcMag(bandpass)
                     except:
                         pass
-        elif self.specOrMag == 'mag':
-            self.mags = -2.5*np.log10(self.spec)+np.log10(3631.)
-        return self.mags
+
+
+        return mags
