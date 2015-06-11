@@ -182,7 +182,13 @@ class TwilightInterp(object):
         self.solarMag = np.array(self.solarMag)
 
         # MAGIC NUMBERS from fitting the all-sky camera:
-        # Code to make in fitTwiSlopesSimul.py
+        # Code to generate values in fitTwiSlopesSimul.py
+        # values are of the form:
+        # 0: decay slope
+        # 1: zenith flux at sunAlt=0 (ergs/s/cm^2)
+        # 2: airmass term (e^(arg[2]*(1-X)))
+        # 3: <unused>
+        # 4: azimuth term.
         self.fitResults = {'B': [ 53.20504282,4.85950702e-04,-0.65325829,-1.,-0.69345613],
                            'G': [52.38200428,4.18033020e-04,-0.69706203,-1.,-0.72186434],
                            'R': [50.08252239,2.01774730e-04,-0.6953,-1.,-0.76808688]}
