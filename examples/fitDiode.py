@@ -5,18 +5,10 @@ import matplotlib.pylab as plt
 from lsst.sims.skybrightness.utils import robustRMS
 import os
 import lsst.sims.photUtils.Bandpass as Bandpass
+from lsst.sims.skybrightness import zenithTwilight
 
 
 # Let's just fit the photodiode data and use the ESO model to get a zeropoint.
-
-
-
-def expPlusC(xdata, x0,x1, x2):
-    """
-    Let the sky flux be exponentially declining and hit some constant value
-    """
-    flux = x0*np.exp( (xdata)*x1)+x2
-    return flux
 
 
 
@@ -45,20 +37,22 @@ def medFilt(x,y,bins=30):
     return np.array(xbinned), np.array(ybinned), np.array(yrms)
 
 # Note this is an old npz I have lying around
-data = np.load('/Users/yoachim/gitRepos/stash_skybrigtness/data/photodiode/photodiode.npz')
-diode = data['photodiode'].copy()
-data.close()
+if 'diode' not in globals():
+    print 'Loading diode data'
+    data = np.load('/Users/yoachim/gitRepos/stash_skybrigtness/data/photodiode/photodiode.npz')
+    diode = data['photodiode'].copy()
+    data.close()
 
-good = np.where((diode['sunAlt'] > np.radians(-23.)) & (diode['moonAlt'] < 0.)
-                & (diode['r'] > 0) & (diode['z'] > 0) &(diode['y'] > 0) )
-diode = diode[good]
+    good = np.where((diode['sunAlt'] > np.radians(-23.)) & (diode['moonAlt'] < 0.)
+                    & (diode['r'] > 0) & (diode['z'] > 0) &(diode['y'] > 0) )
+    diode = diode[good]
 
-# Arg, I think the z and y filters might have been mis-labeled and swapped at some point.
-tempy = diode['z'].copy()
-tempz = diode['y'].copy()
+    # Arg, I think the z and y filters might have been mis-labeled and swapped at some point.
+    tempy = diode['z'].copy()
+    tempz = diode['y'].copy()
 
-diode['y'] = tempy
-diode['z'] = tempz
+    diode['y'] = tempy
+    diode['z'] = tempz
 
 # Load up LSST filters
 throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
@@ -83,9 +77,9 @@ modelFluxLevels['z'] = sm.spec[0][4]
 modelFluxLevels['y'] = sm.spec[0][5]
 
 modelMagLevels = {}
-modelMagLevels['r'] = mags[2]
-modelMagLevels['z'] = mags[4]
-modelMagLevels['y'] = mags[5]
+modelMagLevels['r'] = mags[0][2]
+modelMagLevels['z'] = mags[0][4]
+modelMagLevels['y'] = mags[0][5]
 
 
 
@@ -96,6 +90,8 @@ filterNames = ['r','z','y']
 altLimits = {'r':-9.5, 'z':-8.4,'y':-7.5}
 
 fittedParams = {}
+
+filterNames=['y']
 
 fig = plt.figure()
 for i,filterName in enumerate(filterNames):
@@ -113,15 +109,13 @@ for i,filterName in enumerate(filterNames):
     ax.axvline(x=altLimits[filterName], color='b', linestyle='--')
 
     goodBinned = np.where(xbinned < altLimits[filterName])
-    fitParams, fitCovariances = curve_fit(expPlusC, np.radians(xbinned[goodBinned]),
+    p0 = np.array([1.,20.,-1,-1,100.] )
+    fitParams, fitCovariances = curve_fit(zenithTwilight, np.radians(xbinned[goodBinned]),
                                           ybinned[goodBinned],
-                                          sigma=yrms[goodBinned])
+                                          sigma=yrms[goodBinned], p0=p0)
 
-    ax.plot(xbinned[goodBinned], expPlusC(np.radians(xbinned[goodBinned]), *fitParams), 'b' )
+    ax.plot(xbinned[goodBinned], zenithTwilight(np.radians(xbinned[goodBinned]), *fitParams), 'b' )
 
-
-    ratio = modelFluxLevels[filterName]/fitParams[2]
-    fitParams[0] *= ratio
 
     fittedParams[filterName] = fitParams
 

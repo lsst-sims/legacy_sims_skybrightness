@@ -159,55 +159,77 @@ class TwilightInterp(object):
         self.solarSpec = Sed(wavelen=solarSaved['wave'], flambda=solarSaved['spec'])
         solarSaved.close()
 
-        canonFilters = []
+        canonFilters = {}
         fnames = ['blue_canon.csv', 'green_canon.csv','red_canon.csv']
 
         # Filter names, from bluest to reddest.
         self.filterNames = ['B', 'G', 'R']
 
-        for fname in fnames:
+        for fname,filterName in zip(fnames,self.filterNames) :
             bpdata = np.genfromtxt(os.path.join(dataDir, 'Canon/', fname), delimiter=',',
                                    dtype=zip(['wave','through'],[float]*2))
             bpTemp = Bandpass()
             bpTemp.setBandpass(bpdata['wave'], bpdata['through'])
-            canonFilters.append(bpTemp)
+            canonFilters[filterName] = bpTemp
 
-        # Tack on the LSST z and y filter
+        # Tack on the LSST r z and y filter
         throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
-        lsstKeys = ['z','y']
+        lsstKeys = ['r', 'z','y']
         for key in lsstKeys:
             bp = np.loadtxt(os.path.join(throughPath, 'filter_'+key+'.dat'),
                             dtype=zip(['wave','trans'],[float]*2 ))
             tempB = Bandpass()
             tempB.setBandpass(bp['wave'],bp['trans'])
-            canonFilters.append(tempB)
+            canonFilters[key] = tempB
             self.filterNames.append(key)
 
-        self.effWave = []
-        self.solarMag = []
-        for cfilter in canonFilters:
-            self.effWave.append(cfilter.calcEffWavelen()[0])
-            self.solarMag.append(self.solarSpec.calcMag(cfilter))
-
-        self.solarMag = np.array(self.solarMag)
 
         # MAGIC NUMBERS from fitting the all-sky camera:
         # Code to generate values in fitTwiSlopesSimul.py
         # values are of the form:
-        # 0: decay slope
-        # 1: zenith flux at sunAlt=0 (ergs/s/cm^2)
-        # 2: airmass term (e^(arg[2]*(1-X)))
-        # 3: <unused>
-        # 4: azimuth term.
+        # 0: ratio of f^z_12 to f_dark^z
+        # 1: slope of curve wrt sun alt
+        # 2: airmass term (10^(arg[2]*(1-X)))
+        # 3: azimuth term.
+        # 4: zenith dark sky flux (erg/s/cm^2)
 
-        # XXX--danger, need to make sure all thes zeropoints are correct and consistent
-        # z and y are based on fitting the zenith decay in:
+        # r, z, and y are based on fitting the zenith decay in:
         # fitDiode.py
-        self.fitResults = {'B': [ 53.20504282,4.85950702e-04,-0.65325829,-1.,-0.69345613],
-                           'G': [52.38200428,4.18033020e-04,-0.69706203,-1.,-0.72186434],
-                           'R': [50.08252239,2.01774730e-04,-0.6953,-1.,-0.76808688],
-                           'z': [5.38260172e+01, 2.49544554e-02, -0.69, -1., -0.77],
-                           'y': [5.39057781e+01, 1.65870589e-02,  -0.69, -1., -0.77]}
+        # Just assuming the shape parameter fits are similar to the other bands.
+        # XXX-- I don't understand why R and r are so different. Or why z is so bright.
+        self.fitResults = {'B': [6.00582707e-01,2.31066563e+01,-2.83706669e-01,
+                                 -3.01164316e-01,3.34831571e-03 ],
+                           'G': [4.55731707e-01,   2.27492144e+01,  -3.02730044e-01,
+                                 -3.13501503e-01,   3.73656118e-03]}#,
+                           #'R': [1.81005632e-01,   2.17505607e+01,  -3.01964811e-01,
+                           #      -3.33575724e-01,   2.93269010e-03],
+                           #'r': [ 0.52247301,  22.51393345,  -0.3        ,  -0.3        ,  54.8812249],
+                           #'z': [0.74072461,  23.37634241,      -0.3    ,     -0.3     ,  12.88718065],
+                           #'y': [0.13894689,  23.41098193,     -0.3     ,  -0.3        ,  29.46852266]}
+
+
+        # Take out any filters that don't have fit results
+        self.filterNames = [ key for key in self.filterNames if key in self.fitResults.keys() ]
+
+        self.effWave = []
+        self.solarMag = []
+        for filterName in self.filterNames :
+            self.effWave.append(canonFilters[filterName].calcEffWavelen()[0])
+            self.solarMag.append(self.solarSpec.calcMag(canonFilters[filterName]))
+
+        self.solarMag = np.array(self.solarMag)
+
+
+        # Set what I think the dark sky magnitudes are.  Note, these are at a single random
+        # time and should have the zodiacal component averaged over.
+        darkSkyMags = {'u':22.8, 'g':22.3, 'r':21.2, 'i':20.3, 'z':19.3, 'y':18.0,
+                       'B':22.35, 'G':21.71, 'R':21.3}
+
+        # update the fit results to be zeropointed properly
+        for key in self.fitResults:
+            f0 = 10.**(-0.4*(darkSkyMags[key]-np.log10(3631.)))
+            self.fitResults[key][-1] = f0
+
 
 
         self.solarWave = self.solarSpec.wavelen
@@ -253,7 +275,7 @@ class TwilightInterp(object):
         fluxes = np.array(fluxes)
 
         # ratio of model flux to raw solar flux:
-        yvals = fluxes.T/(10.**(-0.4*(self.solarMag+np.log10(3631.)) ))
+        yvals = fluxes.T/(10.**(-0.4*(self.solarMag-np.log10(3631.)) ))
 
         for i,yval in enumerate(yvals):
             interpF = interp1d(self.effWave, yval, bounds_error=False, fill_value=yval[-1])

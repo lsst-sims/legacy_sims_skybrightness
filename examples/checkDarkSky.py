@@ -18,8 +18,8 @@ for filtername in keys:
     tempB.setBandpass(bp['wave'],bp['trans'])
     filters[filtername] = tempB
 
-
-sm = sb.SkyModel( )
+# XXX--hmm, the zodiacal seems to be fairly important here!
+sm = sb.SkyModel( moon=False, twilight=False)#, zodiacal=False)
 mjd = 56948.05174
 sm.setRaDecMjd(np.array([0.]), np.array([90.]), mjd,azAlt=True, degrees=True)
 sm.computeSpec()
@@ -27,3 +27,20 @@ print 'filter  ESO model   Overview Paper'
 for i,key in enumerate(keys):
     print key+'     %.2f      %.2f ' %(sm.computeMags(filters[key])[0], overview_vals[i])
 
+# Let's also output the cannon filters while we're at it:
+canonFilters = {}
+fnames = ['blue_canon.csv', 'green_canon.csv','red_canon.csv']
+dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
+# Filter names, from bluest to reddest.
+cannonKeys = ['B','G','R']
+for key,fname in zip(cannonKeys,fnames):
+    bpdata = np.genfromtxt(os.path.join(dataDir, 'Canon/', fname), delimiter=',',
+                           dtype=zip(['wave','through'],[float]*2))
+    bpTemp = Bandpass()
+    bpTemp.setBandpass(bpdata['wave'], bpdata['through'])
+    canonFilters[key] = bpTemp
+
+print '----------'
+print 'Cannon Filters'
+for i,key in enumerate(cannonKeys):
+    print key+'     %.2f    ' %(sm.computeMags(canonFilters[key])[0])

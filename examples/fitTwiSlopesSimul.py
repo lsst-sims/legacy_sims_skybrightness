@@ -2,7 +2,7 @@ import numpy as np
 import healpy as hp
 from scipy.optimize import curve_fit
 import matplotlib.pylab as plt
-from lsst.sims.skybrightness import twilightFunc
+from lsst.sims.skybrightness import twilightFunc, simpleTwi
 import lsst.sims.skybrightness as sb
 import os
 import lsst.sims.photUtils.Bandpass as Bandpass
@@ -145,14 +145,14 @@ for filterName in filters:
     p0.extend([1e-4]* np.size(np.unique(xdata['hpid'])))
     p0 = np.array(p0)
 
-    fitParams, fitCovariances = curve_fit(variableBack, xdata,flux,sigma=fluxerr,  p0=p0)
+    fitParams, fitCovariances = curve_fit(simpleTwi, xdata,flux,sigma=fluxerr,  p0=p0)
 
     ax = fig.add_subplot(3,1,counter)
     ax.semilogy(xdata['sunAlt'], flux, 'ko', alpha=.1)
-    ax.plot(xdata['sunAlt'], variableBack(xdata,*fitParams), color=colors[counter-1], alpha=.2)
+    ax.plot(xdata['sunAlt'], simpleTwi(xdata,*fitParams), color=colors[counter-1], alpha=.2)
     #np.savez('slopeFits_%s.npz'%colors[counter-1], fitParams=fitParams, hpidIn=hpidIn)
 
-    modelFluxes = variableBack(xdata,*fitParams)
+    modelFluxes = simpleTwi(xdata,*fitParams)
     modelMags = -2.5*np.log10(modelFluxes)
     trueMags = -2.5*np.log10(flux)
     resids = modelMags-trueMags
@@ -172,6 +172,7 @@ for filterName in filters:
                 title='Canon %s, sunAlt=0'%colors[counter-1])
     fig2.savefig('Plots/magMap_%s.png'%colors[counter-1])
     plt.close(fig2)
+
 
     # Let's print out a little info:
     print '-------'
@@ -194,9 +195,10 @@ for filterName in filters:
 
     # OK, now let's try the better fitter
     p0 = np.zeros(5.+np.size(np.unique(xdata['hpid'])))
-    p0[0] = fitParams[0]
-    p0[1] = -20.
-    p0[2:5] = -1.
+    p0[0] = .5 # ratio of f_12 to f_dark
+    p0[1] = 20. # slope wrt sun alt
+    p0[2:4] = -1.
+    p0[4] = 20.
     p0[5:] += fitParams[-np.size(np.unique(xdata['hpid'])):]
 
     xdata2 = np.zeros(xdata.size, dtype=zip(['sunAlt','hpid','airmass','azRelSun'],[float,int,float,float]))
@@ -273,13 +275,15 @@ for filterName in filters:
     good = np.where( (esoAz > np.pi/2) & (esoAz < 3.*np.pi/2 ) )
     m0 = np.median(esoMags[good]+2.5*np.log10(constMap[hpids][good]))
     cannonZPs[filterName] = m0
+    # Let's apply the median zeropoint to the fits
+    #fitDict[filterName][1] = fitDict[filterName][1]/(10.**(0.4*m0))
+
+
 
     #fluxRatio = np.median(10.**(-0.4*(esoMags[good]-2.5*np.log10(3631.)))/constMap[hpids][good])
     #fitDict[filterName][1] = fitDict[filterName][1]*fluxRatio
 
 
-    # Let's apply the median zeropoint to the fits
-    fitDict[filterName][1] = fitDict[filterName][1]/(10.**(0.4*m0))
 
 
     counter += 1
