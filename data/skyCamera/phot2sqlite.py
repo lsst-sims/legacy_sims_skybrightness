@@ -77,7 +77,7 @@ maxJ = float(len(allFiles))
 for j,filename in enumerate(allFiles):
     # Maybe read in a dummy column, set it to the filter and then stack all of these so they can quickly be sorted?
     data = np.genfromtxt(filename, dtype = zip(names,types),
-                         usecols=(0,1,2,11,16,19,20,21))
+                         usecols=(0,1,2,18,16,19,20,21))
     if data.size > 0:
         data['band'] = filename[0]
 
@@ -115,11 +115,3 @@ for j,filename in enumerate(allFiles):
         sys.stdout.write(text)
         sys.stdout.flush()
 f.close()
-
-
-
-
-
-
-
-

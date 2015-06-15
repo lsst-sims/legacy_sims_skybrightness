@@ -134,6 +134,9 @@ resultPatchIDs = intid2id(uintPatchids, uintPatchids, upatchIDs)
 resultDateIDs = np.floor(resultPatchIDs/multFactor)
 resultHpIDs = resultPatchIDs - resultDateIDs*multFactor
 
+# Here's what the best fit came up with:
+resultObsMags = A.dot(solution[0])
+
 
 # so all the say, patches at helpix #44 should be
 hpwanted = 8
