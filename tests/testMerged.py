@@ -1,7 +1,6 @@
 import numpy as np
 import lsst.sims.skybrightness as sb
 import unittest
-from lsst.sims.skybrightness.utils import raDecToAltAz
 
 
 class TestMerged(unittest.TestCase):
