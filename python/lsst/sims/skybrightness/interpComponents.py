@@ -149,10 +149,18 @@ class MergedSpec(BaseSingleInterp):
 
 
 class TwilightInterp(object):
-    def __init__(self, mags=False):
+    def __init__(self, mags=False,
+                 darkSkyMags = {'u':22.8, 'g':22.3, 'r':21.2,
+                                'i':20.3, 'z':19.3, 'y':18.0,
+                                'B':22.35, 'G':21.71, 'R':21.3}):
         """
         Read the Solar spectrum into a handy object and compute mags in different filters
+
+        darkSkyMags = dict of the zenith dark sky values to be assumed. The twilight fits are
+        done relative to the dark sky level.
         """
+        # XXX Note the darkSkyMags still need to be averaged over lots of zodiacal values.
+
         dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 
         solarSaved = np.load(os.path.join(dataDir,'solarSpec/solarSpec.npz'))
@@ -189,7 +197,7 @@ class TwilightInterp(object):
         # values are of the form:
         # 0: ratio of f^z_12 to f_dark^z
         # 1: slope of curve wrt sun alt
-        # 2: airmass term (10^(arg[2]*(1-X)))
+        # 2: airmass term (10^(arg[2]*(X-1)))
         # 3: azimuth term.
         # 4: zenith dark sky flux (erg/s/cm^2)
 
@@ -197,15 +205,15 @@ class TwilightInterp(object):
         # fitDiode.py
         # Just assuming the shape parameter fits are similar to the other bands.
         # XXX-- I don't understand why R and r are so different. Or why z is so bright.
-        self.fitResults = {'B': [6.00582707e-01,2.31066563e+01,-2.83706669e-01,
-                                 -3.01164316e-01,3.34831571e-03 ],
-                           'G': [4.55731707e-01,   2.27492144e+01,  -3.02730044e-01,
-                                 -3.13501503e-01,   3.73656118e-03]}#,
-                           #'R': [1.81005632e-01,   2.17505607e+01,  -3.01964811e-01,
-                           #      -3.33575724e-01,   2.93269010e-03],
-                           #'r': [ 0.52247301,  22.51393345,  -0.3        ,  -0.3        ,  54.8812249],
-                           #'z': [0.74072461,  23.37634241,      -0.3    ,     -0.3     ,  12.88718065],
-                           #'y': [0.13894689,  23.41098193,     -0.3     ,  -0.3        ,  29.46852266]}
+        self.fitResults = {'B': [ 6.65202455e+00,   2.31066560e+01,   2.83706875e-01,
+                                  3.01164450e-01,   3.02304747e-04 ],
+                           'G': [4.05196324e+00,   2.27492146e+01,   3.02730529e-01,
+                                 3.13501976e-01,   4.20257609e-04],
+                           'R': [1.77783956e+00,   2.17505591e+01,   3.01964448e-01,
+                                 3.33575403e-01,   2.98583706e-04],
+                           #'r': [ 0.52247301,  22.51393345, 0.3, 0.3,  54.8812249],
+                           'z': [0.74072461,  23.37634241, 0.3, 0.3,  12.88718065],
+                           'y': [0.13894689,  23.41098193, 0.3, 0.3,  29.46852266]}
 
 
         # Take out any filters that don't have fit results
@@ -219,18 +227,10 @@ class TwilightInterp(object):
 
         self.solarMag = np.array(self.solarMag)
 
-
-        # Set what I think the dark sky magnitudes are.  Note, these are at a single random
-        # time and should have the zodiacal component averaged over.
-        darkSkyMags = {'u':22.8, 'g':22.3, 'r':21.2, 'i':20.3, 'z':19.3, 'y':18.0,
-                       'B':22.35, 'G':21.71, 'R':21.3}
-
         # update the fit results to be zeropointed properly
         for key in self.fitResults:
             f0 = 10.**(-0.4*(darkSkyMags[key]-np.log10(3631.)))
             self.fitResults[key][-1] = f0
-
-
 
         self.solarWave = self.solarSpec.wavelen
         self.solarFlux = self.solarSpec.flambda

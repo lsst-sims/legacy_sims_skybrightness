@@ -1,7 +1,7 @@
 import numpy as np
 import lsst.sims.skybrightness as sb
 import healpy as hp
-from lsst.sims.utils import raDecToAltAzPa
+from lsst.sims.utils import altAzPaFromRaDec
 import healpy as hp
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
 import ephem
@@ -71,14 +71,14 @@ types = [float,float,float, float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-maxID = 1000
+#maxID = 1000
 
 for dateID in np.arange(0,maxID+1):
     sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i;' % (filt,dateID)
 
     # Note that RA,Dec are in degrees
     data,mjd = sb.allSkyDB(dateID, sqlQ=sqlQ, dtypes=dtypes)
-    alt,az,pa = raDecToAltAzPa(np.radians(data['ra']), np.radians(data['dec']),
+    alt,az,pa = altAzPaFromRaDec(np.radians(data['ra']), np.radians(data['dec']),
                                telescope.lon, telescope.lat, mjd)
 
     # Let's trim off any overly high airmass values

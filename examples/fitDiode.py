@@ -91,8 +91,6 @@ altLimits = {'r':-9.5, 'z':-8.4,'y':-7.5}
 
 fittedParams = {}
 
-filterNames=['y']
-
 fig = plt.figure()
 for i,filterName in enumerate(filterNames):
     good = np.where( diode[filterName] < 480. )

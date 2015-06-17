@@ -53,22 +53,14 @@ def twilightFunc(xdata, *args):
     towards = np.where( (airmass > amCut) & ((az < np.pi/2) | (az > 3.*np.pi/2)))
 
 
-    # Do I need that "1+" in there?  That seems odd. Wait, should the flux have the airmass in an exponent?
-    # That probably makes more sense! Maybe the same with the cos term.
-
-    flux = args[0]*args[4]*10.**(args[1]*(sunAlt+np.radians(12.))+args[2]*(1.-airmass))
-    flux[towards] *= 10.**(args[3]*np.cos(az[towards])*(1.-airmass[towards]))
-
-    #flux[away] = args[1]*(1.+args[2]*airmass[away])*np.exp(sunAlt[away]*args[0])
-
-    #flux[towards] = args[1]*(1.+args[3]*airmass[towards])*np.exp(sunAlt[towards]*args[0]) \
-    #                * (args[4]*np.cos(az[towards])+1)
+    flux = args[0]*args[4]*10.**(args[1]*(sunAlt+np.radians(12.))+args[2]*(airmass-1.))
+    flux[towards] *= 10.**(args[3]*np.cos(az[towards])*(airmass[towards]-1.))
 
     # This let's one fit the dark sky background simultaneously.
     # It assumes the dark sky is a function of airmass only. Forced to be args[4] at zenith.
     if np.size(args) >=6:
-        flux[away] += args[4]*np.exp( args[5:][xdata['hpid'][away]]*(1.-airmass[away]))
-        flux[towards] += args[4]*np.exp(args[5:][xdata['hpid'][towards]]*(1.-airmass[towards]))
+        flux[away] += args[4]*np.exp( args[5:][xdata['hpid'][away]]*(airmass[away]-1.))
+        flux[towards] += args[4]*np.exp(args[5:][xdata['hpid'][towards]]*(airmass[towards]-1.))
 
     return flux
 

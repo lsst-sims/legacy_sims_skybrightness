@@ -148,8 +148,9 @@ for filterName in filters:
     fitParams, fitCovariances = curve_fit(simpleTwi, xdata,flux,sigma=fluxerr,  p0=p0)
 
     ax = fig.add_subplot(3,1,counter)
-    ax.semilogy(xdata['sunAlt'], flux, 'ko', alpha=.1)
-    ax.plot(xdata['sunAlt'], simpleTwi(xdata,*fitParams), color=colors[counter-1], alpha=.2)
+    ax.semilogy(np.degrees(xdata['sunAlt']), flux, 'ko', alpha=.1)
+    ax.plot(np.degrees(xdata['sunAlt']), simpleTwi(xdata,*fitParams), color=colors[counter-1], alpha=.2)
+    ax.set_xlabel('sun altitude')
     #np.savez('slopeFits_%s.npz'%colors[counter-1], fitParams=fitParams, hpidIn=hpidIn)
 
     modelFluxes = simpleTwi(xdata,*fitParams)
@@ -211,6 +212,7 @@ for filterName in filters:
                                     p0=p0)
 
     fitDict[filterName] = fitParams2[0:5]
+    #import pdb ;pdb.set_trace()
 
     paramList.append(fitParams2)
     modelFluxes2 = twilightFunc(xdata2, *fitParams2)
@@ -260,9 +262,14 @@ for filterName in filters:
     #--------
     # Let's look at the zeropoints
     hpids = np.unique(xdata2['hpid'])
+    # need the airmass of each hpid
+    lathp, azhp = hp.pix2ang(nside, hpids)
+    althp = np.pi/2.-lathp
+    airmasshp = 1./np.cos(np.pi/2.-althp)
+
     flux_constants = fitParams2[5:] # this is the constant value
     constMap = np.zeros(npix, dtype=float) + hp.UNSEEN
-    constMap[hpids] = flux_constants
+    constMap[hpids] = fitParams2[4]*np.exp(flux_constants*(airmasshp-1.))
 
     # Maybe mask out the direction of the sun?
     esoAlt = alt[hpids]
@@ -274,6 +281,7 @@ for filterName in filters:
 
     good = np.where( (esoAz > np.pi/2) & (esoAz < 3.*np.pi/2 ) )
     m0 = np.median(esoMags[good]+2.5*np.log10(constMap[hpids][good]))
+
     cannonZPs[filterName] = m0
     # Let's apply the median zeropoint to the fits
     #fitDict[filterName][1] = fitDict[filterName][1]/(10.**(0.4*m0))
