@@ -4,7 +4,7 @@ import glob
 import healpy as hp
 from lsst.sims.photUtils import Sed,Bandpass
 from lsst.sims.skybrightness.twilightFunc import twilightFunc
-from scipy.interpolate import interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 import os
 
 class BaseSingleInterp(object):
@@ -277,10 +277,14 @@ class TwilightInterp(object):
         # ratio of model flux to raw solar flux:
         yvals = fluxes.T/(10.**(-0.4*(self.solarMag-np.log10(3631.)) ))
 
+        # Find wavelengths bluer than cutoff
+        blueRegion = np.where(self.solarWave < np.min(self.effWave))
+
         for i,yval in enumerate(yvals):
             interpF = interp1d(self.effWave, yval, bounds_error=False, fill_value=yval[-1])
             ratio = interpF(self.solarWave)
-            ratio[np.where(self.solarWave < np.min(self.effWave))] = yval[0]
+            interpBlue = InterpolatedUnivariateSpline(self.effWave, yval, k=1)
+            ratio[blueRegion] = interpBlue(self.solarWave[blueRegion])
             result[good[i]] = self.solarFlux*ratio
 
         return {'spec':result, 'wave':self.solarWave}
