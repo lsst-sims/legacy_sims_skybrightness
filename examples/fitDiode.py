@@ -105,6 +105,8 @@ for i,filterName in enumerate(filterNames):
                                    diode[filterName][good])
     ax.errorbar(xbinned,ybinned, yerr=yrms, fmt='yo')
     ax.axvline(x=altLimits[filterName], color='b', linestyle='--')
+    ax.set_xlim([-5,-24])
+    ax.axvline(x=-12, color='g', linestyle='-')
 
     goodBinned = np.where(xbinned < altLimits[filterName])
     p0 = np.array([1.,20.,-1,-1,100.] )
