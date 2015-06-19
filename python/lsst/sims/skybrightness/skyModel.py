@@ -226,8 +226,6 @@ class SkyModel(object):
             if self.components[key]:
                 result = self.interpObjs[key](self.points)
                 self.spec += result['spec']
-                if np.max(result['spec'] >= 1.):
-                    import pdb ; pdb.set_trace()
                 if not hasattr(self,'wave'):
                     self.wave = result['wave']
                 else:
