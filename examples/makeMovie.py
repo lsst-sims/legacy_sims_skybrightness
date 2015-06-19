@@ -57,11 +57,11 @@ nside = 8
 #select * from dates where sunAlt < -12/180*3.14 and mjd > 56948  and mjd < 56961.106458+1 and moonPhase > 50 limit  100
 # 8191. 8649
 #dateIDs = np.arange(8191, 8694, 2)  #np.arange(1665, 2506, 5) #[2133,2134]
-dateIDs = np.arange(28793, 29220, 10)
+dateIDs = np.arange(28793, 29651, 2)
 outDir = 'Movie'
 
-cmin = 19.
-cmax = 22.
+cmin = 18.
+cmax = 21.5
 
 zp = 12.11
 
@@ -79,23 +79,25 @@ for i,dateID in enumerate(dateIDs):
     skyhp = healplots.healbin(az, alt, skydata['sky'], nside=nside)
 
     sm.setRaDecMjd(np.radians(skydata['ra']), np.radians(skydata['dec']), mjd, degrees=False)
-    sm.computeSpec()
-    mags = sm.computeMags(canonDict[band])
+    if sm.sunAlt < np.radians(-12.):
+        sm.computeSpec()
+        mags = sm.computeMags(canonDict[band])
 
-    good = np.where(mags > 0)
-    if np.size(good[0]) > 10:
-        modelhp = healplots.healbin(az[good], alt[good], mags[good], nside=nside)
-        zp = np.median(mags[good] - skydata['sky'][good])
-        #zps.append(zp)
-        fig = plt.figure(num=1)
-        hp.mollview(skyhp+zp, rot=(0,90), sub=(1,2,1), fig=1, title='Cannon '+band, min=cmin, max=cmax)
-        hp.mollview(modelhp, rot=(0,90), sub=(1,2,2), fig=1, title='Model', min=cmin, max=cmax)
+        good = np.where(mags > 0)
+        if np.size(good[0]) > 10:
+            modelhp = healplots.healbin(az[good], alt[good], mags[good], nside=nside)
+            zp = np.median(mags[good] - skydata['sky'][good])
+            #zps.append(zp)
+            fig = plt.figure(num=1)
+            hp.mollview(skyhp+zp, rot=(0,90), sub=(1,2,1), fig=1, title='Cannon '+band+' mjd=%0.2f'%sm.mjd,
+                        min=cmin, max=cmax)
+            hp.mollview(modelhp, rot=(0,90), sub=(1,2,2), fig=1, title='Model', min=cmin, max=cmax)
 
-        fig.savefig(os.path.join(outDir,'skymovie_%04d' % counter + '.png'))
-        plt.close(1)
-        counter += 1
+            fig.savefig(os.path.join(outDir,'skymovie_%04d' % counter + '.png'))
+            plt.close(1)
+            counter += 1
 
-    progress = i/maxI*100
+    progress = i/float(maxI)*100
     text = "\rprogress = %.1f%%"%progress
     sys.stdout.write(text)
     sys.stdout.flush()
