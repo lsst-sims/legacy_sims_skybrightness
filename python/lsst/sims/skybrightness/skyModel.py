@@ -222,16 +222,20 @@ class SkyModel(object):
                            'scatteredStar':self.scatteredStar, 'mergedSpec':self.mergedSpec}
 
         # Loop over each component and add it to the result.
+        mask = np.ones(self.npts)
         for key in self.components:
             if self.components[key]:
                 result = self.interpObjs[key](self.points)
+                # Make sure the component has something
+                if np.max(result['spec']) > 0:
+                    mask[np.where(np.sum(result['spec'], axis=1) == 0)] = 0
                 self.spec += result['spec']
                 if not hasattr(self,'wave'):
                     self.wave = result['wave']
                 else:
                     if not np.array_equal(result['wave'], self.wave):
                         warnings.warn('Wavelength arrays of components do not match.')
-
+        self.spec[np.where(mask == 0),:] = 0
 
     def computeMags(self, bandpass=None):
         """After the spectra have been computed, optionally convert to mags"""
