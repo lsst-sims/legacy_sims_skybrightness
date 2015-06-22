@@ -1,7 +1,7 @@
 import numpy as np
 import ephem
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
-from lsst.sims.utils import haversine, altAzToRaDec, raDecToAltAzPa
+from lsst.sims.utils import haversine, raDecFromAltAz, altAzPaFromRaDec
 import warnings
 from lsst.sims.skybrightness.utils import wrapRA,  mjd2djd
 from .interpComponents import ScatteredStar,Airglow,LowerAtm,UpperAtm,MergedSpec,TwilightInterp,MoonInterp,ZodiacalInterp
@@ -19,9 +19,21 @@ class SkyModel(object):
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True,  moon=True,
                  lowerAtm=False, upperAtm=False, airglow=False, scatteredStar=False,
-                 mergedSpec=True, verbose=True):
+                 mergedSpec=True, mags=False):
         """By default, assume this is for LSST site, otherwise expect an observatory object
-        with attributes lat,lon.elev"""
+        with attributes lat,lon.elev
+        twilight
+        zodiacal
+        moon
+        lowerAtm
+        upperAtm
+        airglow
+        scatteredStar
+        mergedSpec: Since the lowerAtm, upperAtm, airglow, and scatteredStar components are
+            all functions of only airmass, they can be combined into a single interpolation.
+        mags: By default, the sky model computes a 17,001 element spectrum. If mags is true,
+              the model will return the LSST ugrizy magnitudes.
+        """
 
         self.moon=moon
         self.lowerAtm = lowerAtm
@@ -31,7 +43,12 @@ class SkyModel(object):
         self.airglow = airglow
         self.scatteredStar = scatteredStar
         self.mergedSpec = mergedSpec
-        self.verbose = verbose
+        self.mags = mags
+
+        if self.mags:
+            self.npix = 6
+        else:
+            self.npix = 17001
 
         self.components = {'moon':self.moon, 'lowerAtm':self.lowerAtm, 'twilight':self.twilight,
                            'upperAtm':self.upperAtm, 'airglow':self.airglow,'zodiacal':self.zodiacal,
@@ -53,7 +70,7 @@ class SkyModel(object):
         self.interpObjs = {}
         for key in self.components:
             if self.components[key]:
-                self.interpObjs[key] = interpolators[key]()
+                self.interpObjs[key] = interpolators[key](mags=self.mags)
 
 
         # Set up a pyephem observatory object
@@ -92,10 +109,10 @@ class SkyModel(object):
         if azAlt:
             self.azs = ra.copy()
             self.alts = dec.copy()
-            self.ra,self.dec = altAzToRaDec(self.alts,self.azs, self.Observatory.lon,
+            self.ra,self.dec = raDecFromAltAz(self.alts,self.azs, self.Observatory.lon,
                                             self.Observatory.lat, self.mjd)
         else:
-            self.alts,self.azs,pa = raDecToAltAzPa(self.ra, self.dec, self.Observatory.lon,
+            self.alts,self.azs,pa = altAzPaFromRaDec(self.ra, self.dec, self.Observatory.lon,
                                                    self.Observatory.lat, self.mjd)
 
         self.npts = self.ra.size
@@ -188,7 +205,7 @@ class SkyModel(object):
         self.moonTargSep = haversine(azs, alts, moonAz, self.moonAlt)
         self.npts = np.size(airmass)
 
-    def computeSpec(self, npix = 17001):
+    def computeSpec(self):
         """
         Interpolate the template spectra to the set RA,Dec and MJD.
 
@@ -197,7 +214,7 @@ class SkyModel(object):
         .spec = array of spectra with units of ergs/s/cm^2/nm
         """
         # set up array to hold the resulting spectra for each ra,dec point.
-        self.spec = np.zeros((self.npts, npix), dtype=float)
+        self.spec = np.zeros((self.npts, self.npix), dtype=float)
 
         # Rebuild the components dict so things can be turned on/off
         self.components = {'moon':self.moon, 'lowerAtm':self.lowerAtm, 'twilight':self.twilight,
@@ -216,16 +233,22 @@ class SkyModel(object):
                         warnings.warn('Wavelength arrays of components do not match.')
 
 
-    def computeMags(self, throughput):
+    def computeMags(self, bandpass=None):
         """After the spectra have been computed, optionally convert to mags"""
-        self.mags = np.zeros(self.npts, dtype=float)-666
-        tempSed = Sed()
-        for i, ra in enumerate(self.ra):
-            if np.max(self.spec[i,:]) > 0:
-                tempSed.setSED(self.wave, flambda=self.spec[i,:])
-                # Need to try/except because the spectra might be zero in the filter
-                try:
-                    self.mags[i] = tempSed.calcMag(throughput)
-                except:
-                    pass
-        return self.mags
+        if self.mags:
+            mags = -2.5*np.log10(self.spec)+np.log10(3631.)
+        else:
+            mags = np.zeros(self.npts, dtype=float)-666
+            tempSed = Sed()
+            for i, ra in enumerate(self.ra):
+                if np.max(self.spec[i,:]) > 0:
+                    tempSed.setSED(self.wave, flambda=self.spec[i,:])
+                    # Need to try/except because the spectra might be zero in the filter
+                    # XXX-upgrade this to check if it's zero
+                    try:
+                        mags[i] = tempSed.calcMag(bandpass)
+                    except:
+                        pass
+
+
+        return mags

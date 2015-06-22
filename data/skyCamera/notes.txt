@@ -1,4 +1,10 @@
 
+To build:
+python phot2sqlite.py
+sqlite3 skydata.sqlite < createTables.sql
+
+
+
 headers for ut*.txt files:
 
 RA        Dec      HA      xcalc  ycalc    BT     VT     V    (B-V)  (V-I)     m      x       y    HAcalc Decalc  alt    rad   minst   dm   sky  dvig
