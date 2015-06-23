@@ -346,6 +346,9 @@ class MoonInterp(BaseSingleInterp):
         """
 
         result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
+
+        # Check that moonAltitude is in range, otherwise return zero array
+
         # Find the neighboring healpixels
         hpids, hweights =  hp.get_neighbours(self.nside, np.pi/2.-interpPoints['alt'],
                                                 interpPoints['azRelMoon'] )
