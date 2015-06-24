@@ -244,15 +244,15 @@ class SkyModel(object):
         else:
             mags = np.zeros(self.npts, dtype=float)-666
             tempSed = Sed()
+            isThrough = np.where(bandpass.sb > 0)
+            minWave = bandpass.wavelen[isThrough].min()
+            maxWave = bandpass.wavelen[isThrough].max()
+            inBand = np.where( (self.wave >= minWave) & (self.wave <= maxWave))
             for i, ra in enumerate(self.ra):
-                if np.max(self.spec[i,:]) > 0:
+                if np.max(self.spec[i,inBand]) > 0:
                     tempSed.setSED(self.wave, flambda=self.spec[i,:])
                     # Need to try/except because the spectra might be zero in the filter
                     # XXX-upgrade this to check if it's zero
-                    try:
-                        mags[i] = tempSed.calcMag(bandpass)
-                    except:
-                        pass
-
+                    mags[i] = tempSed.calcMag(bandpass)
 
         return mags

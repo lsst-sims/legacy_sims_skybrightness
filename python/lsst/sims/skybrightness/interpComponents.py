@@ -4,8 +4,46 @@ import glob
 import healpy as hp
 from lsst.sims.photUtils import Sed,Bandpass
 from lsst.sims.skybrightness.twilightFunc import twilightFunc
-from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d, RegularGridInterpolator
 import os
+
+
+def id2intid(ids):
+    """
+    take an array of ids, and convert them to an integer id.
+    Handy if you want to put things into a sparse array.
+    """
+    uids = np.unique(ids)
+    order = np.argsort(ids)
+    oids = ids[order]
+    uintids = np.arange(np.size(uids), dtype=int)
+    left = np.searchsorted(oids , uids)
+    right = np.searchsorted(oids,uids, side='right')
+    intids = np.empty(ids.size, dtype=int)
+    for i in range(np.size(left)): intids[left[i]:right[i]]=uintids[i]
+    result = intids*0
+    result[order] = intids
+    return result, uids, uintids
+
+
+def intid2id(intids, uintids, uids, dtype=int):
+    """
+    convert an int back to an id
+    """
+    ids = np.zeros(np.size(intids))
+
+    order = np.argsort(intids)
+    ointids = intids[order]
+    left = np.searchsorted(ointids,uintids,side='left' )
+    right = np.searchsorted(ointids,uintids,side='right' )
+    for i,(le,ri) in enumerate(zip(left,right)): ids[le:ri]=uids[i]
+    result = np.zeros(np.size(intids), dtype=dtype)
+    result[order] = ids
+
+    return result
+
+
+
 
 class BaseSingleInterp(object):
     """
@@ -155,11 +193,14 @@ class TwilightInterp(object):
                                 'B':22.35, 'G':21.71, 'R':21.3}):
         """
         Read the Solar spectrum into a handy object and compute mags in different filters
+        mags:  If true, only return the LSST filter magnitudes, otherwise return the full spectrum
 
         darkSkyMags = dict of the zenith dark sky values to be assumed. The twilight fits are
         done relative to the dark sky level.
         """
-        # XXX Note the darkSkyMags still need to be averaged over lots of zodiacal values.
+        # XXX Note the darkSkyMags still should to be averaged over lots of zodiacal values.
+
+        self.mags = mags
 
         dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 
@@ -239,22 +280,55 @@ class TwilightInterp(object):
         if mags:
             # Load up the LSST filters and convert the solarSpec.flabda and solarSpec.wavelen to fluxes
             throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
-            keys = ['u','g','r','i','z','y']
-            newSolarWave = []
-            newSolarFlux = []
-            for filtername in keys:
+            self.lsstFilterNames = ['u','g','r','i','z','y']
+            self.lsstEquations = np.zeros((np.size(self.lsstFilterNames),
+                                           np.size(self.fitResults['B'])), dtype=float)
+            self.lsstEffWave = []
+
+            fits = np.empty((np.size(self.effWave), np.size(self.fitResults['B'])), dtype=float)
+            for i,fn in enumerate(self.filterNames):
+                fits[i,:] = self.fitResults[fn]
+
+            for filtername in self.lsstFilterNames:
                 bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
                                 dtype=zip(['wave','trans'],[float]*2 ))
                 tempB = Bandpass()
                 tempB.setBandpass(bp['wave'],bp['trans'])
-                newSolarWave.append(tempB.calcEffWavelen()[0])
-                mag = self.solarSpec.calcMag(tempB)
-                flux = 10.**(-0.4*(mag-np.log10(3631.)))
-                newSolarFlux.append(flux)
-            self.solarWave = np.array(newSolarWave)
-            self.solarFlux = np.array(newSolarFlux)
+                self.lsstEffWave.append(tempB.calcEffWavelen()[0] )
+            # loop through the parameters and interpolate to new eff wavelengths
+            for i in np.arange(self.lsstEquations[0,:].size):
+                interp = InterpolatedUnivariateSpline(self.effWave,fits[:,i]) #interp1d(self.effWave,fits[:,i])
+                self.lsstEquations[:,i] = interp(self.lsstEffWave)
+            # Set the dark sky flux
+            for i,filterName in enumerate(self.lsstFilterNames):
+                self.lsstEquations[i,-1] = 10.**(-0.4*(darkSkyMags[filterName]-np.log10(3631.)))
 
-    def __call__(self, interpPoints, maxAM=2.5,
+    def __call__(self, intepPoints):
+        if self.mags:
+            return self.interpMag(intepPoints)
+        else:
+            return self.interpSpec(intepPoints)
+
+
+
+    def interpMag(self, interpPoints, maxAM=2.5,
+                     limits=[np.radians(-11.), np.radians(-20.)]):
+        npts = np.size(self.lsstEffWave)
+        result = np.zeros((np.size(interpPoints), npts), dtype=float )
+
+        good = np.where( (interpPoints['sunAlt'] >= np.min(limits)) &
+                         (interpPoints['sunAlt'] <= np.max(limits)) &
+                         (interpPoints['airmass'] <= maxAM) &
+                         (interpPoints['airmass'] >= 1.) )[0]
+
+        for i,filterName in enumerate(self.lsstFilterNames):
+            result[good,i] = twilightFunc(interpPoints[good], *self.lsstEquations[i,:].tolist() )
+        #mask = np.where(result == 0.)
+        #result =  10.**(-0.4*(result-np.log10(3631.)))
+        #result[mask]  = 0.
+        return {'spec':result, 'wave':self.lsstEffWave}
+
+    def interpSpec(self, interpPoints, maxAM=2.5,
                      limits=[np.radians(-11.), np.radians(-20.)]):
         """
         interpPoints should have airmass, azRelSun, and sunAlt.
@@ -309,157 +383,74 @@ class MoonInterp(BaseSingleInterp):
 
         result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
-        for i,point in enumerate(interpPoints):
-            hpids, hweights = hp.get_neighbours(self.nside, np.pi/2.-point['alt'],
-                                            point['azRelMoon'] )
-            badhp = np.in1d(hpids, self.dimDict['hpid'], invert=True)
-            hweights[badhp] = 0.
-            norm = np.sum(hweights,axis=0)
-            if norm != 0:
-                hweights = hweights/norm
+        # Check that moonAltitude is in range, otherwise return zero array
+        if np.max(interpPoints['moonAltitude']) < np.min(self.dimDict['moonAltitude']):
+            return result
 
-                # Find the phase points
-                upperPhase = self.spec['moonSunSep'][np.where(self.spec['moonSunSep'] >=
-                                                              point['moonSunSep'])].min()
-                lowerPhase = self.spec['moonSunSep'][np.where(self.spec['moonSunSep'] <=
-                                                              point['moonSunSep'])].max()
-                if upperPhase == lowerPhase:
-                    phases = [upperPhase]
-                    phaseWeights = [1.]
-                else:
-                    phases = [upperPhase, lowerPhase]
-                    phaseWeights = np.abs(point['moonSunSep']-np.array(phases))/(upperPhase-lowerPhase)
+        # Find the neighboring healpixels
+        hpids, hweights =  hp.get_neighbours(self.nside, np.pi/2.-interpPoints['alt'],
+                                                interpPoints['azRelMoon'] )
 
-
-                upperMoonAlt = self.spec['moonAltitude'][np.where(self.spec['moonAltitude'] >=
-                                                                  point['moonAltitude'])]
-                lowerMoonAlt = self.spec['moonAltitude'][np.where(self.spec['moonAltitude'] <=
-                                                                  point['moonAltitude'])]
-                if (np.size(upperMoonAlt) == 0) | (np.size(lowerMoonAlt) == 0):
-                    pass
-                else:
-                    upperMoonAlt = upperMoonAlt.min()
-                    lowerMoonAlt = lowerMoonAlt.max()
-
-                    if upperMoonAlt == lowerMoonAlt:
-                        moonAlts = [upperMoonAlt]
-                        moonAltWeights = [1.]
-                    else:
-                        moonAlts = [upperMoonAlt,lowerMoonAlt]
-                        moonAltWeights = np.abs(point['moonAltitude']-np.array(moonAlts))/(upperMoonAlt-lowerMoonAlt)
-
-                    for hpid,hweight in zip(hpids, hweights):
-                        for phase,phasew in zip(phases,phaseWeights):
-                            for moonAlt,maw in zip(moonAlts,moonAltWeights):
-                                good = np.where( (self.spec['moonSunSep'] == phase)  &
-                                                 (self.spec['moonAltitude'] == moonAlt) &
-                                                 (self.spec['hpid'] == hpid))[0]
-                                if np.size(good) > 0:
-                                    result[i] += hweight*phasew*maw*values[good[0]]
-
-
-        return result
-
-    def New__call__(self, interpPoints):
-        """
-        interpPoints:  numpy array with dtypes of 'moonSunSep','moonAltitude', 'alt', and 'azRelMoon' where the
-        azimuth is the azimuth relative to the moon (with a range 0-pi).
-        """
-
-
-
-        # maybe I should just assume the moonSunSep and moonAlt are all the same?  That could make things a
-        # bit easier!
-
-        order = np.argsort(interpPoints, order=self.sortedOrder[:-1])
-
-
-        hpids, hweights = hp.get_neighbours(self.nside, np.pi/2.-interpPoints['alt'],
-                                            interpPoints['azRelMoon'] )
-
-        # Mask any neighbours that are not in the templates
-        badhp = np.in1d(hpids, self.dimDict['hpid'], invert=True)
-        badhp = badhp.reshape(hpids.shape)
-
+        badhp = np.in1d(hpids.ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
         hweights[badhp] = 0.
-        # Renormalize
+
         norm = np.sum(hweights,axis=0)
-        good = np.where(norm > 0.)
-
-        if norm.size == 1:
-            norm = np.array([norm])
-
+        good= np.where(norm != 0.)[0]
         hweights[:,good] = hweights[:,good]/norm[good]
 
-        # Need to convert hpid to an index
-        origShape = hpids.shape
-        hpids = hpids.ravel()
-        hporder = np.argsort(hpids)
+        # Find the neighboring moonAltitude points in the grid
+        order = np.argsort(interpPoints['moonAltitude'])
+        good = np.where( (interpPoints['moonAltitude'][order] >= np.min( self.dimDict['moonAltitude'])) &
+                         (interpPoints['moonAltitude'][order] <= np.max( self.dimDict['moonAltitude']))  )
+        rightMAs = np.searchsorted(self.dimDict['moonAltitude'], interpPoints[order]['moonAltitude'] )
+        leftMAs = rightMAs-1
 
-        hpind = np.searchsorted(self.dimDict['hpid'],hpids[hporder] )
-        hpind[hporder] = hpind
-        hpind = hpind.reshape(origShape)
+        # Set the indices that are out of the grid to 0.
+        #leftMAs[np.where(leftMAs) < 0] = 0
+        #rightMAs[np.where(rightMAs > self.dimDict['moonAltitude'].size-1)] = 0
+        maids = np.array([rightMAs,leftMAs] )
 
-        result = np.zeros( (interpPoints.size, self.spec['spectra'][0].size) ,dtype=float)
+        maWs= np.zeros((2,interpPoints.size), dtype=float)
+        fullRange = self.dimDict['moonAltitude'][rightMAs[good]]- self.dimDict['moonAltitude'][leftMAs[good]]
+        maWs[0,order[good]] = (self.dimDict['moonAltitude'][rightMAs[good]]-
+                               interpPoints['moonAltitude'][order[good]])/fullRange
+        maWs[1,order[good]] =(interpPoints['moonAltitude'][order[good]]-
+                              self.dimDict['moonAltitude'][leftMAs[good]])/fullRange
 
-        inRange = np.where( (norm > 0 ) &
-                            (interpPoints['moonSunSep'][order] <= np.max(self.dimDict['moonSunSep'])) &
-                            (interpPoints['moonSunSep'][order] >= np.min(self.dimDict['moonSunSep'])) &
-                            (interpPoints['moonAltitude'][order] <= np.max(self.dimDict['moonAltitude'])) &
-                            (interpPoints['moonAltitude'][order] >= np.min(self.dimDict['moonAltitude'])) )
+        # Find the neighboring moonSunSep points in the grid
+        order = np.argsort(interpPoints['moonSunSep'])
+        good = np.where( (interpPoints['moonSunSep'][order] >= np.min( self.dimDict['moonSunSep'])) &
+                         (interpPoints['moonSunSep'][order] <= np.max( self.dimDict['moonSunSep']))  )
+        rightMAs = np.searchsorted(self.dimDict['moonSunSep'], interpPoints[order]['moonSunSep'] )
+        leftMAs = rightMAs-1
 
+        # Set the indices that are out of the grid to 0.
+        #leftMAs[np.where(leftMAs) < 0] = 0
+        #rightMAs[np.where(rightMAs > self.dimDict['moonSunSep'].size-1)] = 0
+        mssids = np.array([rightMAs,leftMAs] )
 
-        # Compute moonSunSep weights
-        sepleft = np.searchsorted(self.dimDict['moonSunSep'], interpPoints['moonSunSep'][order])-1
-        sepright = np.searchsorted(self.dimDict['moonSunSep'], interpPoints['moonSunSep'][order])
-        fullRange = self.dimDict['moonSunSep'][sepright]-self.dimDict['moonSunSep'][sepleft]
-        sepWleft = (self.dimDict['moonSunSep'][sepright] - interpPoints['moonSunSep'][order])/fullRange
-        sepWright = (interpPoints['moonSunSep'][order] - self.dimDict['moonSunSep'][sepleft])/fullRange
+        mssWs= np.zeros((2,interpPoints.size), dtype=float)
+        fullRange = self.dimDict['moonSunSep'][rightMAs[good]]- self.dimDict['moonSunSep'][leftMAs[good]]
+        mssWs[0,order[good]] = (self.dimDict['moonSunSep'][rightMAs[good]]-
+                               interpPoints['moonSunSep'][order[good]])/fullRange
+        mssWs[1,order[good]] =(interpPoints['moonSunSep'][order[good]]-
+                              self.dimDict['moonSunSep'][leftMAs[good]])/fullRange
 
+        nhpid = self.dimDict['hpid'].size
+        nMA = self.dimDict['moonAltitude'].size
+        # Convert the hpid to an index.
+        tmp = intid2id(hpids.ravel(),  self.dimDict['hpid'],
+                          np.arange( self.dimDict['hpid'].size))
+        hpindx = tmp.reshape(hpids.shape)
+        # loop though the hweights and the moonAltitude weights
 
-        # Compute moonAltitude weights
-        altleft = np.searchsorted(self.dimDict['moonAltitude'], interpPoints['moonAltitude'][order])-1
-        altright = np.searchsorted(self.dimDict['moonAltitude'], interpPoints['moonAltitude'][order])
-        fullRange = self.dimDict['moonAltitude'][altright]-self.dimDict['moonAltitude'][altleft]
-        altWleft = (self.dimDict['moonAltitude'][altright] - interpPoints['moonAltitude'][order])/fullRange
-        altWright = (interpPoints['moonAltitude'][order] - self.dimDict['moonAltitude'][altleft])/fullRange
+        for hpid,hweight in zip(hpindx,hweights):
+            for maid,maW in zip(maids, maWs):
+                for mssid,mssW in zip(mssids, mssWs):
+                    weight = hweight*maW*mssW
+                    result += weight[:,np.newaxis]*values[mssid*nhpid*nMA+maid*nhpid+hpid]
 
-
-
-        w1 = hweights[:,inRange[0]]*sepWleft[inRange] * altWleft[inRange]
-        w2 = hweights[:,inRange[0]]*sepWright[inRange] * altWleft[inRange]
-        w3 = hweights[:,inRange[0]]*sepWleft[inRange] * altWright[inRange]
-        w4 = hweights[:,inRange[0]]*sepWright[inRange] * altWright[inRange]
-
-        if interpPoints.size == 1:
-            w1 = w1[:,np.newaxis]
-            w2 = w2[:,np.newaxis]
-            w3 = w3[:,np.newaxis]
-            w4 = w4[:,np.newaxis]
-        else:
-            w1 = w1[:,:,np.newaxis]
-            w2 = w2[:,:,np.newaxis]
-            w3 = w3[:,:,np.newaxis]
-            w4 = w4[:,:,np.newaxis]
-
-
-        import pdb ; pdb.set_trace()
-
-        result[order[inRange]] += np.sum(w1*self.spec['spectra'][hpind[:,inRange[0]]+altleft[inRange]*self.dimSizes['hpid']+
-                                                 sepleft[inRange]*self.dimSizes['hpid']*self.dimSizes['moonAltitude']],
-                         axis=0 )
-        result[order[inRange]] += np.sum(w2*self.spec['spectra'][hpind[:,inRange[0]]+altleft[inRange]*self.dimSizes['hpid']+
-                                                 sepright[inRange]*self.dimSizes['hpid']*self.dimSizes['moonAltitude']],
-                         axis=0 )
-        result[order[inRange]] += np.sum(w3*self.spec['spectra'][hpind[:,inRange[0]]+altright[inRange]*self.dimSizes['hpid']+
-                                                 sepleft[inRange]*self.dimSizes['hpid']*self.dimSizes['moonAltitude']],
-                         axis=0 )
-        result[order[inRange]] += np.sum(w4*self.spec['spectra'][hpind[:,inRange[0]]+altright[inRange]*self.dimSizes['hpid']+
-                                                 sepright[inRange]*self.dimSizes['hpid']*self.dimSizes['moonAltitude']],
-                         axis=0 )
-
-        return {'spec':result, 'wave':self.wave}
-
+        return result
 
 
 class ZodiacalInterp(BaseSingleInterp):
@@ -473,113 +464,50 @@ class ZodiacalInterp(BaseSingleInterp):
         self.nside = hp.npix2nside(np.size(np.where(self.spec['airmass'] ==
                                                     np.unique(self.spec['airmass'])[0])[0]))
 
-    def _weighting(self, interpPoints, values):
-        """
-        Use some np.where mojo to find the templates that surround each interpolation
-        point in parameter-space. Then, calculate a biliniear interpolation weight for each model spectrum.
-        """
 
+    def _weighting(self,interpPoints, values):
+        """
+        interpPoints is a numpy array where interpolation is desired
+        values are the model values.
+        """
         result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
-        for i,point in enumerate(interpPoints):
+        # Find the neighboring healpixels
+        hpids, hweights =  hp.get_neighbours(self.nside, np.pi/2.-interpPoints['altEclip'],
+                                                interpPoints['azEclipRelSun'] )
 
-            hpids, hweights = hp.get_neighbours(self.nside, np.pi/2.-point['altEclip'],
-                                                point['azEclipRelSun'] )
-
-            badhp = np.in1d(hpids, self.dimDict['hpid'], invert=True)
-            hweights[badhp] = 0.
-            norm = np.sum(hweights,axis=0)
-            if (norm != 0) & (point['airmass'] <= self.spec['airmass'].max()) & (point['airmass'] >= self.spec['airmass'].min()) :
-                for hpid,hweight in zip(hpids,hweights):
-                    hweights = hweights/norm
-
-                # Find the airmass points
-
-                upperAM = self.spec['airmass'][np.where(self.spec['airmass'] >= point['airmass'])].min()
-                lowerAM = self.spec['airmass'][np.where(self.spec['airmass'] <= point['airmass'])].max()
-                if upperAM == lowerAM:
-                    airmasses = [upperAM]
-                    amWeights = [1.]
-                else:
-                    airmasses = [upperAM, lowerAM]
-                    amWeights = np.abs(point['airmass']-np.array(airmasses))/(upperAM-lowerAM)
-
-                for hpid,hweight in zip(hpids, hweights):
-                    for airmass,amw in zip(airmasses,amWeights):
-                        good = np.where( (self.spec['airmass'] == airmass)  &
-                                         (self.spec['hpid'] == hpid))[0]
-                        if np.size(good) > 0:
-                            result[i] += hweight*amw*values[good[0]]
-
-        return result
-
-    def new__call__(self, interpPoints):
-        """
-        interpPoints should be a numpy array with dtypes of alt, az, and airmass.
-        Note the alt should be ecliptic declination, and az should be heliocentric ecliptic azimuth.
-        """
-
-        if interpPoints.size > 1:
-            order = np.argsort(interpPoints, order=self.sortedOrder[:-1])
-            interpPoints = interpPoints[order]
-
-        #should use np.in1d I think for the healpixels
-        hpids, hweights = hp.get_neighbours(self.nside, np.pi/2.-interpPoints['altEclip'],
-                                            interpPoints['azEclipRelSun'] )
-        # Mask any neighbours that are not in the templates
-        badhp = np.in1d(hpids, self.dimDict['hpid'], invert=True)
-        hpids[badhp] = 0
+        badhp = np.in1d(hpids.ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
         hweights[badhp] = 0.
-        # Renormalize
+
         norm = np.sum(hweights,axis=0)
-        good = np.where(norm > 0.)
-
-        if norm.size == 1:
-            norm = np.array([norm])
-
+        good= np.where(norm != 0.)[0]
         hweights[:,good] = hweights[:,good]/norm[good]
 
-        # Need to convert hpid to an index
-        origShape = hpids.shape
-        hpids = hpids.ravel()
-        hporder = np.argsort(hpids)
 
-        hpind = np.searchsorted(self.dimDict['hpid'],hpids[hporder] )
-        hpind[hporder] = hpind
-        hpind = hpind.reshape(origShape)
+        #norm = np.sum(hweights,axis=0)
+        #hweights = hweights/norm
 
-        result = np.zeros( (interpPoints.size, self.spec['spectra'][0].size) ,dtype=float)
+        # Find the neighboring airmass points in the grid
+        order = np.argsort(interpPoints['airmass'])
+        good = np.where( (interpPoints['airmass'][order] >= np.min( self.dimDict['airmass'])) &
+                         (interpPoints['airmass'][order] <= np.max( self.dimDict['airmass']))  )
+        rightAMs = np.searchsorted(self.dimDict['airmass'], interpPoints[order]['airmass'] )
+        leftAMs = rightAMs-1
 
-        inRange = np.where( (interpPoints['airmass'] >= self.dimDict['airmass'].min()) &
-                            (interpPoints['airmass'] <= self.dimDict['airmass'].max() ))
+        # Set the indices that are out of the grid to 0.
+        leftAMs[np.where(leftAMs) < 0] = 0
+        rightAMs[np.where(rightAMs > self.dimDict['airmass'].size-1)] = 0
+        amids = np.array([rightAMs,leftAMs] )
 
-        right = np.searchsorted(self.dimDict['airmass'], interpPoints['airmass'][inRange])
-        left = right-1
+        amWs= np.zeros((2,interpPoints.size), dtype=float)
+        amWs[0,order[good]] = (self.dimDict['airmass'][rightAMs[good]]-interpPoints['airmass'][order[good]])/(self.dimDict['airmass'][rightAMs[good]]- self.dimDict['airmass'][leftAMs[good]])
+        amWs[1,order[good]] =(interpPoints['airmass'][order[good]]-self.dimDict['airmass'][leftAMs[good]])/(self.dimDict['airmass'][rightAMs[good]]- self.dimDict['airmass'][leftAMs[good]])
 
-        # Compute the weights based on how close the airmass is
-        fullRange = self.dimDict['airmass'][right]-self.dimDict['airmass'][left]
-        wleft = (self.dimDict['airmass'][right] - interpPoints['airmass'][inRange])/fullRange
-        wright = (interpPoints['airmass'][inRange] - self.dimDict['airmass'][left])/fullRange
+        nhpid = self.dimDict['hpid'].size
+        # loop though the hweights and the airmass weights
+        for hpid,hweight in zip(hpids,hweights):
+            for amid,amW in zip(amids, amWs):
+                weight = hweight*amW
+                result += weight[:,np.newaxis]*values[amid*nhpid+hpid]
 
-        if np.size(wleft) == 1:
-            wleft = np.array([wleft])
-            wright = np.array([wright])
-
-        w1 = hweights[:,inRange[0]]*wleft
-        w2 = hweights[:,inRange[0]]*wright
-
-        if (np.size(wleft.shape) == 1) & (wleft.shape[0] == 1):
-            w1 = w1[:,np.newaxis]
-            w2 = w2[:,np.newaxis]
-        else:
-            w1 = w1[:,:,np.newaxis]
-            w2 = w2[:,:,np.newaxis]
-
-        result[inRange] += np.sum(w1*self.spec['spectra'][hpind[:,inRange[0]]+left*self.dimSizes['hpid']],
-                         axis=0 )
-        result[inRange] += np.sum(w2*self.spec['spectra'][hpind[:,inRange[0]]+right*self.dimSizes['hpid']],
-                         axis=0 )
-
-        if interpPoints.size > 1:
-            result[order] = result
-        return {'spec':result, 'wave':self.wave}
+        return result
