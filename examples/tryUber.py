@@ -58,23 +58,28 @@ starIDs=[]
 dateIDs = []
 hpIDs = []
 starMags= []
+starMags_err = []
 mjds = []
 
 altLimit = 10. # Degrees
 
 # get the max dateID
-maxID,mjd = sb.allSkyDB(0,'select max(ID) from dates ;', dtypes='int')
+maxID,mjd = sb.allSkyDB(0,'select max(ID) from dates;', dtypes='int')
 maxID = np.max(maxID)
 
-names = ['ra','dec','starID','starMag', 'sky', 'filter']
-types = [float,float,float, float,float,'|S1']
+minMJD = 56900
+minID,mjd = sb.allSkyDB(0,'select min(ID) from dates where mjd > %i;' % minMJD, dtypes='int')
+
+names = ['ra','dec','starID','starMag', 'starMag_err', 'sky', 'filter']
+types = [float,float,float, float,float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-#maxID = 1000
+maxID = 3000
 
-for dateID in np.arange(0,maxID+1):
-    sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i;' % (filt,dateID)
+
+for dateID in np.arange(minID.max(),minID.max()+maxID+1):
+    sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.starMag_err,obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0;' % (filt,dateID)
 
     # Note that RA,Dec are in degrees
     data,mjd = sb.allSkyDB(dateID, sqlQ=sqlQ, dtypes=dtypes)
@@ -90,6 +95,7 @@ for dateID in np.arange(0,maxID+1):
     dateIDs.extend([dateID]*np.size(data))
     hpIDs.extend(hpids.tolist())
     starMags.extend(data['starMag'].tolist() )
+    starMags_err.extend( data['starMag_err'].tolist())
     mjds.extend([mjd]* np.size(data))
 
 
@@ -98,6 +104,7 @@ starIDs = np.array(starIDs)
 dateIDs = np.array(dateIDs)
 hpIDs = np.array(hpIDs)
 starMags = np.array(starMags)
+starMags_err = np.array(starMags_err)
 mjds = np.array(mjds)
 
 # Need to construct the patch IDs.  Unique id for each mjd+hp combination
@@ -117,12 +124,15 @@ intStarIDs, ustarIDs,uintStarIDs = id2intid(starIDs)
 
 nObs = len(starMags)
 row = np.arange(nObs)
-row = np.append(row,row)
 
 col = np.append(intStarIDs, np.max(intStarIDs)+1 + intPatchIDs )
 data = np.ones(row.size, dtype=float)
+data = np.append(data/starMags_err, data/starMags_err )
+row = np.append(row,row)
 
-b = starMags
+
+
+b = starMags/starMags_err
 A = coo_matrix( (data,(row,col)), shape = (nObs,np.max(col)+1))
 A = A.tocsr()
 solution = lsqr(A,b,show=True)
@@ -150,8 +160,7 @@ skymap = np.zeros(hp.nside2npix(nside))
 skymap[resultHpIDs[good].astype(int)] = patchZP[good]
 
 skymap[np.where(skymap == 0)] = hp.UNSEEN
-hp.mollview(skymap, rot=(0,90))
-plt.show()
+#hp.mollview(skymap, rot=(0,90))
 
 
 ## XXX--Add a snippet of healpy to convert hpid to alt/az
@@ -160,3 +169,8 @@ resultAlt = np.pi/2.-lat
 
 # Convert resultDateIDs to mjd. I think this should work--presumably the dateIDs and mjds are both increasing?
 resultMjds = intid2id(resultDateIDs, np.unique(dateIDs), np.unique(mjds), dtype=float)
+
+
+good = np.where(resultHpIDs == 0)
+plt.plot(resultMjds[good], patchZP[good], 'ko')
+plt.show()
