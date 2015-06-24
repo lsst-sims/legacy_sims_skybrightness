@@ -7,3 +7,4 @@ ups/*.cfgc
 config.log
 python/lsst/sims/maf/version.py
 *.fits
+version.py
