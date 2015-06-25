@@ -50,7 +50,7 @@ def intid2id(intids, uintids, uids, dtype=int):
 # Load up the telescope properties, has .lat and .lon
 telescope = TelescopeInfo('LSST')
 
-nside = 4
+nside = 8
 
 filt = 'R'
 
@@ -131,7 +131,6 @@ data = np.append(data/starMags_err, data/starMags_err )
 row = np.append(row,row)
 
 
-
 b = starMags/starMags_err
 A = coo_matrix( (data,(row,col)), shape = (nObs,np.max(col)+1))
 A = A.tocsr()
@@ -147,6 +146,7 @@ resultHpIDs = resultPatchIDs - resultDateIDs*multFactor
 # Here's what the best fit came up with:
 resultObsMags = A.dot(solution[0])
 
+residuals = resultObsMags - starMags
 
 # so all the say, patches at helpix #44 should be
 hpwanted = 8
@@ -171,6 +171,33 @@ resultAlt = np.pi/2.-lat
 resultMjds = intid2id(resultDateIDs, np.unique(dateIDs), np.unique(mjds), dtype=float)
 
 
+
+
+# Let's figure out the number of stars per patch:
+bins = np.zeros(resultPatchIDs.size*2, dtype=float)
+bins[::2] = resultPatchIDs-0.5
+bins[1::2] = resultPatchIDs+0.5
+starsPerPatch,bins = np.histogram(patchIDs, bins=bins)
+starsPerPatch = starsPerPatch[::2]
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.plot(starsPerPatch, patchZP, 'ko', alpha=.1)
+ax.set_xlabel('Number of stars per patch')
+ax.set_ylabel('Patch zeropoint (mags)')
+fig.savefig('Uber/zpDist.png')
+plt.close(fig)
+
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
 good = np.where(resultHpIDs == 0)
-plt.plot(resultMjds[good], patchZP[good], 'ko')
-plt.show()
+sc = ax.scatter(resultMjds[good]-resultMjds[good].min(), patchZP[good], c=starsPerPatch[good], edgecolor='none')
+cb = fig.colorbar(sc, ax=ax)
+cb.set_label('Number of stars')
+ax.set_ylabel('Patch Zeropoint (mags)')
+ax.set_xlabel('MJD-min(MJD) (days)')
+ax.set_xlim([0,4])
+ax.set_ylim([-1,1])
+ax.set_title('nside = %i' % nside)
+fig.savefig('Uber/zpEvo.png')
+plt.close(fig)
