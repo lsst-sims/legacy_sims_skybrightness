@@ -50,7 +50,7 @@ def intid2id(intids, uintids, uids, dtype=int):
 # Load up the telescope properties, has .lat and .lon
 telescope = TelescopeInfo('LSST')
 
-nside = 8
+nside = 4
 
 filt = 'R'
 
@@ -60,6 +60,7 @@ hpIDs = []
 starMags= []
 starMags_err = []
 mjds = []
+airmasses = []
 
 altLimit = 10. # Degrees
 
@@ -75,8 +76,8 @@ types = [float,float,float, float,float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-maxID = 3000
-
+#maxID = 3000
+maxID= 300
 
 for dateID in np.arange(minID.max(),minID.max()+maxID+1):
     sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.starMag_err,obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0;' % (filt,dateID)
@@ -97,6 +98,7 @@ for dateID in np.arange(minID.max(),minID.max()+maxID+1):
     starMags.extend(data['starMag'].tolist() )
     starMags_err.extend( data['starMag_err'].tolist())
     mjds.extend([mjd]* np.size(data))
+    airmasses.extend((1./np.cos(np.pi/2-alt[good])).tolist() )
 
 
 # switch to arrays
@@ -106,6 +108,7 @@ hpIDs = np.array(hpIDs)
 starMags = np.array(starMags)
 starMags_err = np.array(starMags_err)
 mjds = np.array(mjds)
+airmasses = np.array(airmasses)
 
 # Need to construct the patch IDs.  Unique id for each mjd+hp combination
 multFactor = 10.**np.ceil(np.log10(np.max(hpIDs)))
@@ -117,18 +120,22 @@ intStarIDs, ustarIDs,uintStarIDs = id2intid(starIDs)
 
 # Construct and solve the sparse matrix
 # Using the simple equation:
-# m_ij = m_i + ZP_j
+# m_ij = m_i + ZP_j +kX
 # where m_ij is an observed magnitude
 # m_i is the true stellar magnitude
 # and ZP_j is the patch the id (a combination of time and alt-az)
 
 nObs = len(starMags)
-row = np.arange(nObs)
+row1 = np.arange(nObs)
 
-col = np.append(intStarIDs, np.max(intStarIDs)+1 + intPatchIDs )
-data = np.ones(row.size, dtype=float)
-data = np.append(data/starMags_err, data/starMags_err )
-row = np.append(row,row)
+col = np.append(intStarIDs, np.max(intStarIDs)+1 + intPatchIDs)
+col = np.append(col, np.zeros(intStarIDs.size)+ np.max(np.max(intStarIDs)+1 + intPatchIDs)+1 )
+data = np.ones(intStarIDs.size, dtype=float)
+data = np.append(data/starMags_err, data/starMags_err)
+data = np.append(data, airmasses/starMags_err)
+row = np.append(row1,row1)
+row = np.append(row,row1)
+
 
 
 b = starMags/starMags_err
@@ -136,7 +143,8 @@ A = coo_matrix( (data,(row,col)), shape = (nObs,np.max(col)+1))
 A = A.tocsr()
 solution = lsqr(A,b,show=True)
 
-patchZP = solution[0][np.max(intStarIDs)+1:]
+patchZP = solution[0][np.max(intStarIDs)+1:-1]
+airmassK = solution[0][-1]
 # Need to back out the resulting patchID and dateID, hpid...
 
 resultPatchIDs = intid2id(uintPatchids, uintPatchids, upatchIDs)
