@@ -76,8 +76,8 @@ types = [float,float,float, float,float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-#maxID = 3000
-maxID= 300
+maxID = 3000
+#maxID= 300
 
 for dateID in np.arange(minID.max(),minID.max()+maxID+1):
     sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.starMag_err,obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0;' % (filt,dateID)

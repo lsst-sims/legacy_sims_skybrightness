@@ -95,8 +95,8 @@ fig = plt.figure()
 for i,filterName in enumerate(filterNames):
     good = np.where( diode[filterName] < 480. )
     ax = fig.add_subplot(3,1,i+1)
-    ax.semilogy(np.degrees(diode['sunAlt'][good][::10]),
-                diode[filterName][good][::10], 'ko', alpha=.01 )
+    ax.semilogy(np.degrees(diode['sunAlt'][good][::100]),
+                diode[filterName][good][::100], 'ko', alpha=.01 )
     ax.set_xlabel('Sun Altitude (degrees)')
     ax.set_ylabel('Flux (arbitrary) ')
     ax.set_title(filterName)
@@ -122,6 +122,8 @@ for i,filterName in enumerate(filterNames):
 
 fig.tight_layout()
 fig.savefig('Plots/diode.png')
+fig.savefig('Plots/diode.pdf')
+
 plt.close(fig)
 
 print 'Best fit exponential = constant, normalized to ESO dark zenith'

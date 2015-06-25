@@ -1,0 +1,109 @@
+%\documentclass[12pt,preprint]{aastex}
+\documentclass{emulateapj}  %to switch to 2-column, comment out first line and uncomment 2nd line
+\usepackage{url}
+%\usepackage{natbib}
+%\usepackage{xspace}
+\def\arcsec{$^{\prime\prime}$}
+\bibliographystyle{apj}
+\newcommand\degree{{^\circ}}
+\newcommand\surfb{$\mathrm{mag}/\square$\arcsec}
+\newcommand\Gyr{\rm{~Gyr}}
+\newcommand\msun{\rm{M}_\odot}
+\newcommand\kms{km s$^{-1}$}
+\newcommand\al{$\alpha$}
+\newcommand\ha{$\rm{H}\alpha$}
+\newcommand\hb{$\rm{H}\beta$}
+
+
+
+\shorttitle{LSST Sky Model}
+\shortauthors{Yoachim et al.}
+
+\begin{document}
+
+\title{A Sky Brightness Model for LSST}
+
+
+\author{Peter Yoachim\altaffilmark{1}, author 2, author 3}
+
+\altaffiltext{1}{Department of Astronomy, University of Washington, Box 351580,
+Seattle WA, 98195; {yoachim@uw.edu} }
+
+\begin{abstract}
+
+\end{abstract}
+
+
+\section{Introduction}
+
+As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC}}.  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  
+
+
+
+
+\section{The ESO Model}
+
+
+\subsection{Zodiacal Light}
+
+\subsection{Scattered Moonlight}
+
+\citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal.
+
+\citet{Noll12}
+
+\subsection{Structure of the ESO Templates}
+
+We save the ESO template spectra as numpy zip files.  The specta run from 300 nm to 2 microns, with 0.1 nm stepsize.
+
+In addition to the spectra, we also pre-compute the 6 LSST magnitudes from the spectrum at each model point.
+
+\section{Interpolating the Templates}
+
+We combine the three components that only depend on airmass (xxx,xxx,xxx).
+
+For all the interpolations, we weight and average the log of the template spectra.
+
+For the Zodiacal and Lunar components, since we have placed the templates at healpix gridpoints, we can use fast healpy routines to find the 4 nearest healpixel points, along with their weights.  
+
+
+\section{Additional Components}
+
+\subsection{Twilight}
+
+The ESO sky model does not include a component for scattered sunlight.  The twilight sky brightness is difficult to compute analytically.  While scattered moonlight can be computed via a single or double scattering model, the solar twilight comes from multiple scatterings, thus there is no simple analytic model for computing the solar twilight from first principles and models must instead rely on Monte Carlo radiative transfer simulations \citep{Patat06}.
+
+Rather than run a lot of radiative transfer, looking at the data from the all-sky camera as well as other sites shows that after the sun's altitude is less that $\sim-10\degree$ the zenith twilight flux decays exponentially with solar altitude.
+
+\begin{figure*}
+  \plotone{../../examples/Plots/diode.pdf}
+  \caption{The photodiode data.  All three photodiodes are pointed to zenith. The light gray points show individual measurements, while the yellow points are the median-binned data. The solid blue line shows the best fit exponetial decay plus constant. The green vertical line marks 12 degree twilight, and the dashed vertical blue line shows where the data was not used because the detector was often saturated at that point. \label{diodePlot}}
+\end{figure*}
+
+
+\begin{figure*}
+  \epsscale{1}
+  \plottwo{../../examples/Plots/altDecay.pdf}{../../examples/Plots/altDecayHA.pdf}
+  \epsscale{1}
+  \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (top panel), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses, the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
+\end{figure*}
+
+
+\section{Speed Testing}
+
+
+\section{What's Not Included}
+
+There are several things that, in theory, could be used to better refine the returned sky spectrum.
+
+blahblah, solar activity can boost emission lines.
+
+blahblah, the IR sky is known to be variable on short timescales.
+
+blahblah, emission lines are brighter right after sunset and before sunrise.
+
+Clouds are complicated since they block some sources of sky background while also reflecting other components.  
+
+
+\bibliography{skyModel.bib}
+\end{document}
