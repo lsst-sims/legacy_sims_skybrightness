@@ -65,6 +65,8 @@ airmasses = []
 altLimit = 10. # Degrees
 sunAltLimit = np.radians(-20.)
 
+starBrightLimit = -9.
+
 # get the max dateID
 maxID,mjd = sb.allSkyDB(0,'select max(ID) from dates;', dtypes='int')
 maxID = np.max(maxID)
@@ -77,11 +79,11 @@ types = [float,float,float, float,float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-#maxID = 10000
+maxID = 10000
 #maxID= 300
 
 for dateID in np.arange(minID.max(),minID.max()+maxID+1):
-    sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.starMag_err,obs.sky, obs.filter from obs, stars, dates where obs.starID = stars.ID and obs.dateID = dates.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0 and dates.sunAlt < %f;' % (filt,dateID,sunAltLimit)
+    sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.starMag_err,obs.sky, obs.filter from obs, stars, dates where obs.starID = stars.ID and obs.dateID = dates.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0 and dates.sunAlt < %f and obs.starMag > %f;' % (filt,dateID,sunAltLimit, starBrightLimit)
 
     # Note that RA,Dec are in degrees
     data,mjd = sb.allSkyDB(dateID, sqlQ=sqlQ, dtypes=dtypes)
@@ -127,7 +129,7 @@ intStarIDs, ustarIDs,uintStarIDs = id2intid(starIDs)
 
 # Construct and solve the sparse matrix
 # Using the simple equation:
-# m_ij = m_i + ZP_j +kX
+# m_ij = m_i + ZP_j
 # where m_ij is an observed magnitude
 # m_i is the true stellar magnitude
 # and ZP_j is the patch the id (a combination of time and alt-az)
@@ -161,7 +163,7 @@ resultHpIDs = resultPatchIDs - resultDateIDs*multFactor
 # Here's what the best fit came up with:
 resultObsMags = A.dot(solution[0])
 
-residuals = resultObsMags - starMags
+residuals = resultObsMags*starMags_err - starMags
 
 # so all the say, patches at helpix #44 should be
 hpwanted = 8
@@ -213,8 +215,8 @@ cb = fig.colorbar(sc, ax=ax)
 cb.set_label('Number of stars')
 ax.set_ylabel('Patch Zeropoint (mags)')
 ax.set_xlabel('MJD-min(MJD) (days)')
-ax.set_xlim([0,4])
-ax.set_ylim([-1,1])
+#ax.set_xlim([0,4])
+#ax.set_ylim([-1,1])
 ax.set_title('nside = %i' % nside)
 fig.savefig('Uber/zpEvo.png')
 plt.close(fig)
@@ -223,8 +225,29 @@ nearZ = np.where(resultAlt > np.radians(75.))
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
-ax.scatter(resultMjds[nearZ]-resultMjds[nearZ].min(), patchZP[nearZ]-floatzp,
+sc = ax.scatter(resultMjds[nearZ]-resultMjds[nearZ].min(), patchZP[nearZ]-floatzp,
            c=starsPerPatch[nearZ], edgecolor='none')
+cb = fig.colorbar(sc, ax=ax)
+cb.set_label('Stars Per Patch')
+ax.set_title('Near Zenith Points')
+ax.set_ylabel('Patch Zeropoint (mags)')
+ax.set_xlabel('MJD-min(MJD) (days)')
+fig.savefig('Uber/zpEvo_Zenith.png')
+plt.close(fig)
+
+
+# Check the residual distribution
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.hist(residuals, bins=80, log=True)
+ax.set_xlabel('Model-Observed (mags)')
+ax.set_ylabel('#')
+fig.savefig('Uber/residualHist.png')
+plt.close(fig)
+
+
+
+
 
 # Hmm, I'm still getting wacky negative outliers (and a negative airmass correction)
 # Some possible solutions:
