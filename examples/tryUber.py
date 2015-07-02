@@ -63,6 +63,7 @@ mjds = []
 airmasses = []
 
 altLimit = 10. # Degrees
+sunAltLimit = np.radians(-20.)
 
 # get the max dateID
 maxID,mjd = sb.allSkyDB(0,'select max(ID) from dates;', dtypes='int')
@@ -76,29 +77,30 @@ types = [float,float,float, float,float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-maxID = 3000
+#maxID = 10000
 #maxID= 300
 
 for dateID in np.arange(minID.max(),minID.max()+maxID+1):
-    sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.starMag_err,obs.sky, obs.filter from obs, stars where obs.starID = stars.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0;' % (filt,dateID)
+    sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.starMag_err,obs.sky, obs.filter from obs, stars, dates where obs.starID = stars.ID and obs.dateID = dates.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0 and dates.sunAlt < %f;' % (filt,dateID,sunAltLimit)
 
     # Note that RA,Dec are in degrees
     data,mjd = sb.allSkyDB(dateID, sqlQ=sqlQ, dtypes=dtypes)
-    alt,az,pa = altAzPaFromRaDec(np.radians(data['ra']), np.radians(data['dec']),
-                               telescope.lon, telescope.lat, mjd)
+    if data.size > 0:
+        alt,az,pa = altAzPaFromRaDec(np.radians(data['ra']), np.radians(data['dec']),
+                                     telescope.lon, telescope.lat, mjd)
 
-    # Let's trim off any overly high airmass values
-    good = np.where(alt > np.radians(altLimit))
-    data = data[good]
-    hpids = hp.ang2pix(nside, np.pi/2.-alt[good], az[good])
-    # Extend the lists
-    starIDs.extend(data['starID'].tolist())
-    dateIDs.extend([dateID]*np.size(data))
-    hpIDs.extend(hpids.tolist())
-    starMags.extend(data['starMag'].tolist() )
-    starMags_err.extend( data['starMag_err'].tolist())
-    mjds.extend([mjd]* np.size(data))
-    airmasses.extend((1./np.cos(np.pi/2-alt[good])).tolist() )
+        # Let's trim off any overly high airmass values
+        good = np.where(alt > np.radians(altLimit))
+        data = data[good]
+        hpids = hp.ang2pix(nside, np.pi/2.-alt[good], az[good])
+        # Extend the lists
+        starIDs.extend(data['starID'].tolist())
+        dateIDs.extend([dateID]*np.size(data))
+        hpIDs.extend(hpids.tolist())
+        starMags.extend(data['starMag'].tolist() )
+        starMags_err.extend( data['starMag_err'].tolist())
+        mjds.extend([mjd]* np.size(data))
+        airmasses.extend((1./np.cos(np.pi/2-alt[good])).tolist() )
 
 
 # switch to arrays
@@ -109,6 +111,11 @@ starMags = np.array(starMags)
 starMags_err = np.array(starMags_err)
 mjds = np.array(mjds)
 airmasses = np.array(airmasses)
+
+# Clobber the dateID and replace it with mjd's rounded to some timestep
+timestep = 15. # minutes
+dateIDs = np.round(mjds*24.*60./timestep)
+mjds = np.round(mjds*24.*60./timestep)*timestep/24./60.
 
 # Need to construct the patch IDs.  Unique id for each mjd+hp combination
 multFactor = 10.**np.ceil(np.log10(np.max(hpIDs)))
@@ -129,12 +136,12 @@ nObs = len(starMags)
 row1 = np.arange(nObs)
 
 col = np.append(intStarIDs, np.max(intStarIDs)+1 + intPatchIDs)
-col = np.append(col, np.zeros(intStarIDs.size)+ np.max(np.max(intStarIDs)+1 + intPatchIDs)+1 )
+#col = np.append(col, np.zeros(intStarIDs.size)+ np.max(np.max(intStarIDs)+1 + intPatchIDs)+1 )
 data = np.ones(intStarIDs.size, dtype=float)
 data = np.append(data/starMags_err, data/starMags_err)
-data = np.append(data, airmasses/starMags_err)
+#data = np.append(data, airmasses/starMags_err)
 row = np.append(row1,row1)
-row = np.append(row,row1)
+#row = np.append(row,row1)
 
 
 
@@ -143,8 +150,8 @@ A = coo_matrix( (data,(row,col)), shape = (nObs,np.max(col)+1))
 A = A.tocsr()
 solution = lsqr(A,b,show=True)
 
-patchZP = solution[0][np.max(intStarIDs)+1:-1]
-airmassK = solution[0][-1]
+patchZP = solution[0][np.max(intStarIDs)+1:]
+#airmassK = solution[0][-1]
 # Need to back out the resulting patchID and dateID, hpid...
 
 resultPatchIDs = intid2id(uintPatchids, uintPatchids, upatchIDs)
@@ -199,7 +206,9 @@ plt.close(fig)
 fig = plt.figure()
 ax = fig.add_subplot(111)
 good = np.where(resultHpIDs == 0)
-sc = ax.scatter(resultMjds[good]-resultMjds[good].min(), patchZP[good], c=starsPerPatch[good], edgecolor='none')
+floatzp = np.median(patchZP[good])
+sc = ax.scatter(resultMjds[good]-resultMjds[good].min(), patchZP[good]-floatzp,
+                c=starsPerPatch[good], edgecolor='none')
 cb = fig.colorbar(sc, ax=ax)
 cb.set_label('Number of stars')
 ax.set_ylabel('Patch Zeropoint (mags)')
@@ -209,3 +218,16 @@ ax.set_ylim([-1,1])
 ax.set_title('nside = %i' % nside)
 fig.savefig('Uber/zpEvo.png')
 plt.close(fig)
+
+nearZ = np.where(resultAlt > np.radians(75.))
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.scatter(resultMjds[nearZ]-resultMjds[nearZ].min(), patchZP[nearZ]-floatzp,
+           c=starsPerPatch[nearZ], edgecolor='none')
+
+# Hmm, I'm still getting wacky negative outliers (and a negative airmass correction)
+# Some possible solutions:
+# 1) Run a larger stretch of time and hope that connects things
+# 2) combine patches that are near in time!  Looks like they are 71s gaps now.
+# Could combine every 20-30 min together.

@@ -29,8 +29,12 @@ def allSkyDB(dateID, sqlQ=None, dtypes=None, dbAddress=None, filt='R' ):
 
     q2 = 'select mjd from dates where ID = %i'%dateID
     cursor.execute(q2)
-    mjd = cursor.fetchall()[0][0]
 
+    mjd = cursor.fetchall()
+    if len(mjd) == 0:
+        mjd = None
+    else:
+        mjd = mjd[0][0]
     return data, mjd
 
 
