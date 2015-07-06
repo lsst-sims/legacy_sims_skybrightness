@@ -83,7 +83,7 @@ maxID = 10000
 #maxID= 300
 
 for dateID in np.arange(minID.max(),minID.max()+maxID+1):
-    sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag, obs.starMag_err,obs.sky, obs.filter from obs, stars, dates where obs.starID = stars.ID and obs.dateID = dates.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0 and dates.sunAlt < %f and obs.starMag > %f;' % (filt,dateID,sunAltLimit, starBrightLimit)
+    sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag_inst, obs.starMag_err,obs.sky, obs.filter from obs, stars, dates where obs.starID = stars.ID and obs.dateID = dates.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0 and dates.sunAlt < %f and obs.starMag_inst > %f;' % (filt,dateID,sunAltLimit, starBrightLimit)
 
     # Note that RA,Dec are in degrees
     data,mjd = sb.allSkyDB(dateID, sqlQ=sqlQ, dtypes=dtypes)
@@ -246,6 +246,13 @@ fig.savefig('Uber/residualHist.png')
 plt.close(fig)
 
 
+# Now to trim off the nights where the zeropoints go very negative
+clipLimit = -0.2
+tooLow = np.where( (patchZP-floatzp) < clipLimit)
+# Reject nieghbor points
+tooLow = np.unique(np.array([tooLow-1, tooLow, tooLow+1]).ravel())
+allpts = np.arange(patchZP.size)
+good = np.setdiff1d(allpts,tooLow)
 
 
 
