@@ -9,6 +9,9 @@ from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import lsqr
 import matplotlib.pylab as plt
 
+#######
+# This uses the all sky camera database, available at:
+# http://lsst-web.ncsa.illinois.edu/~coughlin/git-repo/catalognight/
 
 def id2intid(ids):
     """
@@ -79,8 +82,8 @@ types = [float,float,float, float,float,float,'|S1']
 dtypes = zip(names,types)
 
 # Temp to speed things up
-#maxID = 10000
-maxID= 300
+maxID = 10000
+#maxID= 300
 
 for dateID in np.arange(minID.max(),minID.max()+maxID+1):
     sqlQ = 'select stars.ra, stars.dec, stars.ID, obs.starMag_inst, obs.starMag_err,obs.sky, obs.filter from obs, stars, dates where obs.starID = stars.ID and obs.dateID = dates.ID and obs.filter = "%s" and obs.dateID = %i and obs.starMag_err != 0 and dates.sunAlt < %f and obs.starMag_inst > %f;' % (filt,dateID,sunAltLimit, starBrightLimit)
@@ -146,7 +149,6 @@ row = np.append(row1,row1)
 #row = np.append(row,row1)
 
 
-
 b = starMags/starMags_err
 A = coo_matrix( (data,(row,col)), shape = (nObs,np.max(col)+1))
 A = A.tocsr()
@@ -156,7 +158,7 @@ patchZP = solution[0][np.max(intStarIDs)+1:]
 #airmassK = solution[0][-1]
 # Need to back out the resulting patchID and dateID, hpid...
 
-resultPatchIDs = intid2id(uintPatchids, uintPatchids, upatchIDs)
+resultPatchIDs = intid2id(np.arange(patchZP.size), uintPatchids, upatchIDs)
 resultDateIDs = np.floor(resultPatchIDs/multFactor)
 resultHpIDs = resultPatchIDs - resultDateIDs*multFactor
 
@@ -248,11 +250,14 @@ plt.close(fig)
 
 # Now to trim off the nights where the zeropoints go very negative
 clipLimit = -0.2
-tooLow = np.where( (patchZP-floatzp) < clipLimit)
+tooLow = np.where( (patchZP-floatzp) < clipLimit)[0]
 # Reject nieghbor points
 tooLow = np.unique(np.array([tooLow-1, tooLow, tooLow+1]).ravel())
 allpts = np.arange(patchZP.size)
 good = np.setdiff1d(allpts,tooLow)
+
+clippedPoints = np.in1d(patchIDs,resultPatchIDs[good])
+
 
 
 

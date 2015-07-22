@@ -44,13 +44,13 @@ XXX-describe the Cannon all-sky camera and photometry pipeline. Desceibe the pho
 
 
 \section{The ESO Model}
-
-
+Here, we briefly descibe the sky components included in the ESO model and how we have created model grids with them.
 \subsection{Zodiacal Light}
+
 
 \subsection{Scattered Moonlight}
 
-\citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal.
+\citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal. \citet{Jones13} claim their model is accurate to XXX\%.  
 
 \citet{Noll12}
 
@@ -89,6 +89,13 @@ Rather than run a lot of radiative transfer, looking at the data from the all-sk
   \epsscale{1}
   \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (top panel), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses, the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
 \end{figure*}
+
+To model the broadband twilight flux, we use a simple model of the form
+\begin{equation}
+  f = 
+\end{equation}
+
+
 
 \section{Validation}
 

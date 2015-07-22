@@ -7,7 +7,7 @@ import sqlalchemy as sqla
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
 from lsst.sims.skybrightness.utils import wrapRA, mjd2djd, robustRMS #raDecToAltAz, altAzToRaDec
 from lsst.sims.selfcal.analysis.healplots import healbin
-from lsst.sims.utils import  raDecToAltAzPa
+from lsst.sims.utils import  altAzPaFromRaDec
 
 
 # Set up the telescope:
@@ -77,8 +77,8 @@ for filterName in filterNames:
         for j, (le, ri, mjd) in enumerate(zip(left,right,umjd)):
             Observatory.date = mjd2djd(mjd)
             sun.compute(Observatory)
-            alt, az, pa = raDecToAltAzPa(data['ra'][le:ri], data['dec'][le:ri],
-                                         telescope.lon, telescope.lat, mjd)
+            alt, az, pa = altAzPaFromRaDec(data['ra'][le:ri], data['dec'][le:ri],
+                                           telescope.lon, telescope.lat, mjd)
             az = wrapRA(az - sun.az)
             altaz['alt'][le:ri] += alt
             altaz['az'][le:ri] += az

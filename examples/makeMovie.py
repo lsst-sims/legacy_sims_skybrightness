@@ -72,10 +72,11 @@ for i,dateID in enumerate(dateIDs):
 
     skydata, mjd = sb.allSkyDB(dateID , filt=band)#2744
     airmass = 1./np.cos(np.radians(90.-skydata['alt']))
-    skydata = skydata[np.where(airmass < 2.1)]
+    skydata = skydata[np.where((airmass < 2.1) & (airmass >= 1.))]
 
     alt,az,pa =  altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
                                   telescope.lon, telescope.lat, mjd)
+
     skyhp = healplots.healbin(az, alt, skydata['sky'], nside=nside)
 
     sm.setRaDecMjd(np.radians(skydata['ra']), np.radians(skydata['dec']), mjd, degrees=False)
@@ -89,9 +90,11 @@ for i,dateID in enumerate(dateIDs):
             zp = np.median(mags[good] - skydata['sky'][good])
             #zps.append(zp)
             fig = plt.figure(num=1)
-            hp.mollview(skyhp+zp, rot=(0,90), sub=(1,2,1), fig=1, title='Cannon '+band+' mjd=%0.2f'%sm.mjd,
+            hp.mollview(skyhp+zp, rot=(0,90), sub=(2,1,1), fig=1, title='Cannon '+band+' mjd=%0.2f'%sm.mjd,
                         min=cmin, max=cmax)
-            hp.mollview(modelhp, rot=(0,90), sub=(1,2,2), fig=1, title='Model', min=cmin, max=cmax)
+            hp.mollview(modelhp, rot=(0,90), sub=(2,1,2), fig=1,
+                        title='Model. Sun Alt = %0.1f, moon alt = %0.1f' % (np.degrees(sm.sunAlt), np.degrees(sm.moonAlt)),
+                        min=cmin, max=cmax)
 
             fig.savefig(os.path.join(outDir,'skymovie_%04d' % counter + '.png'))
             plt.close(1)
