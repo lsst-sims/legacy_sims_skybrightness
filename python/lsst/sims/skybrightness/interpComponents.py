@@ -185,9 +185,10 @@ class Airglow(BaseSingleInterp):
     """
     def __init__(self, compName='Airglow', sortedOrder=['airmass','solarFlux'], mags=False):
         super(Airglow,self).__init__(compName=compName, mags=mags, sortedOrder=sortedOrder)
+        self.nSolarFlux = np.size(self.dimDict['solarFlux'])
 
 
-    def indxAndWeights(points, grid):
+    def indxAndWeights(self, points, grid):
         """
         for given 1-D points, find the grid points on either side and return the weights
         assume grid is sorted
@@ -195,15 +196,22 @@ class Airglow(BaseSingleInterp):
 
         order = np.argsort(points)
 
-        indxL = np.array(points.size, dtype=int)
-        indxR = np.array(points.size, dtype=int)
-
-        weightL = np.array(points.size, dtype=float)
-        weightR = np.array(points.size, dtype=float)
+        indxL = np.empty(points.size, dtype=int)
+        indxR = np.empty(points.size, dtype=int)
 
         indxR[order] = np.searchsorted(grid, points[order])
         indxL = indxR-1
 
+        fullRange = grid[indxR]-grid[indxL]
+        wL = (grid[indxR] - points)/fullRange
+        wR = (points - grid[indxL])/fullRange
+
+        # Catch points that land on a model point
+        onPoint = np.where(fullRange == 0)
+        wR[onPoint] = 1.
+        wL[onPoint] = 0.
+
+        return indxR,indxL,wR,wL
 
 
     def _weighting(self, interpPoints, values):
@@ -215,10 +223,15 @@ class Airglow(BaseSingleInterp):
                             (interpPoints['solarFlux'] >= np.min(self.dimDict['solarFlux'])) &
                             (interpPoints['solarFlux'] <= np.max(self.dimDict['solarFlux'])) )
         usePoints = interpPoints[inRange]
+        amRightIndex, amLeftIndex, amRightW, amLeftW = self.indxAndWeights(usePoints['airmass'],
+                                                                           self.dimDict['airmass'])
 
+        sfRightIndex, sfLeftIndex, sfRightW, sfLeftW = self.indxAndWeights(usePoints['solarFlux'],
+                                                                           self.dimDict['solarFlux'])
 
-
-
+        for amIndex, amW in zip([amRightIndex,amLeftIndex], [amRightW,amLeftW] ):
+            for sfIndex, sfW in zip([sfRightIndex, sfLeftIndex],[sfRightW, sfLeftW] ):
+                results[inRange] += amW[:,np.newaxis]*sfW[:,np.newaxis]*values[amIndex*self.nSolarFlux+sfIndex ]
 
         return results
 

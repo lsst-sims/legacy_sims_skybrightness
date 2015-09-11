@@ -84,12 +84,13 @@ class SkyModel(object):
             self.Observatory = observatory
 
 
-    def setRaDecMjd(self, ra,dec,mjd, degrees=False, azAlt=False):
+    def setRaDecMjd(self, ra,dec,mjd, degrees=False, azAlt=False, solarFlux=130.):
         """
         Set the sky parameters by computing the sky conditions on a given MJD and sky location.
 
         Ra and Dec in raidans or degrees.
         input ra, dec or az,alt w/ altAz=True
+        solarFlux: solar flux in s.f.u.
         """
         # Wrap in array just in case single points were passed
         if not type(ra).__module__ == np.__name__ :
@@ -118,10 +119,11 @@ class SkyModel(object):
         self.npts = self.ra.size
 
         names = ['airmass', 'nightTimes', 'alt', 'az', 'azRelMoon', 'moonSunSep', 'moonAltitude',
-                 'altEclip', 'azEclipRelSun', 'sunAlt', 'azRelSun']
+                 'altEclip', 'azEclipRelSun', 'sunAlt', 'azRelSun', 'solarFlux']
         types = [float]*len(names)
         self.points = np.zeros(self.npts, zip(names,types))
 
+        self.points['solarFlux'] = solarFlux
 
         # Switch to Dublin Julian Date for pyephem
         self.Observatory.date = mjd2djd(self.mjd)
@@ -174,7 +176,7 @@ class SkyModel(object):
 
     def setParams(self, airmass=1.,azs=90., alts=None, moonPhase=31.67, moonAlt=45.,
                   moonAz=0., sunAlt=-12., sunEclipLon=0.,
-                  eclipLon=135., eclipLat=90., degrees=True):
+                  eclipLon=135., eclipLat=90., degrees=True, solarFlux=130.):
         """
         Set paramters manually. Note, you can put in unphysical combinations of paramters if you want
         to (e.g., put a full moon at zenith at sunset).
@@ -188,6 +190,7 @@ class SkyModel(object):
         else:
             convertFunc = justReturn
 
+        self.solarFlux=solarFlux
         self.sunAlt = convertFunc(sunAlt)
         self.moonPhase = moonPhase
         self.moonAlt = convertFunc(moonAlt)
@@ -204,6 +207,7 @@ class SkyModel(object):
             alts = np.pi/2.-np.arccos(1./airmass)
         self.moonTargSep = haversine(azs, alts, moonAz, self.moonAlt)
         self.npts = np.size(airmass)
+        # XXX I don't think this is setting self.points like it should!
 
     def computeSpec(self):
         """
