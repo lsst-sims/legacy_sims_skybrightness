@@ -18,18 +18,18 @@ class SkyModel(object):
 
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True,  moon=True,
-                 lowerAtm=False, upperAtm=False, airglow=False, scatteredStar=False,
+                 airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
                  mergedSpec=True, mags=False):
         """By default, assume this is for LSST site, otherwise expect an observatory object
         with attributes lat,lon.elev
         twilight
         zodiacal
         moon
+        airglow
         lowerAtm
         upperAtm
-        airglow
         scatteredStar
-        mergedSpec: Since the lowerAtm, upperAtm, airglow, and scatteredStar components are
+        mergedSpec: Since the lowerAtm, upperAtm, and scatteredStar components are
             all functions of only airmass, they can be combined into a single interpolation.
         mags: By default, the sky model computes a 17,001 element spectrum. If mags is true,
               the model will return the LSST ugrizy magnitudes.
@@ -55,7 +55,7 @@ class SkyModel(object):
                            'scatteredStar':self.scatteredStar, 'mergedSpec':self.mergedSpec}
 
         # Check that the merged component isn't being run with other components
-        mergedComps = [self.lowerAtm, self.upperAtm, self.airglow, self.scatteredStar]
+        mergedComps = [self.lowerAtm, self.upperAtm, self.scatteredStar]
         for comp in mergedComps:
             if comp & self.mergedSpec:
                 warnings.warn("Adding component multiple times to the final output spectra.")

@@ -15,7 +15,7 @@ temp = pyfits.open(files[0])
 wave = temp[1].data['lam'].copy()*1e3
 
 airmasses = []
-nightTimes = []
+solarFlux = []
 specs = []
 
 for i,filename in enumerate(files):
@@ -26,22 +26,22 @@ for i,filename in enumerate(files):
         for card in header:
             if 'SKYMODEL.TARGET.AIRMASS' in card:
                 airmasses.append(float(card.split('=')[-1]))
-            elif 'SKYMODEL.TIME' in card:
-                nightTimes.append(float(card.split('=')[-1]))
+            elif 'SKYMODEL.MSOLFLUX' in card:
+                solarFlux.append(float(card.split('=')[-1]))
 
 
 airmasses = np.array(airmasses)
-nigtTimes = np.array(nightTimes)
+solarFlux = np.array(solarFlux)
 
 nrec = airmasses.size
 nwave = wave.size
 
 dtype = [('airmass', 'float'),
-         ('nightTimes', 'float'),
+         ('solarFlux', 'float'),
          ('spectra', 'float', (nwave)), ('mags', 'float', (6))]
 Spectra = np.zeros(nrec, dtype=dtype)
 Spectra['airmass'] = airmasses
-Spectra['nightTimes'] = nightTimes
+Spectra['solarFlux'] = solarFlux
 Spectra['spectra'] = specs
 
 
@@ -52,7 +52,7 @@ cLight = 2.99792458e10 # cm/s
 Spectra['spectra'] = Spectra['spectra']/(100.**2)*hPlank*cLight/(wave*1e-7)/1e3
 
 # Sort things since this might be helpful later
-Spectra.sort(order=['airmass','nightTimes'])
+Spectra.sort(order=['airmass','solarFlux'])
 
 # Load LSST filters
 throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')

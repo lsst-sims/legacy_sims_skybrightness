@@ -156,12 +156,6 @@ class ScatteredStar(BaseSingleInterp):
     def __init__(self, compName='ScatteredStarLight', mags=False):
         super(ScatteredStar,self).__init__(compName=compName, mags=mags)
 
-class Airglow(BaseSingleInterp):
-    """
-    Interpolate the spectra caused by airglow.
-    """
-    def __init__(self, compName='Airglow', mags=False):
-        super(Airglow,self).__init__(compName=compName, mags=mags)
 
 class LowerAtm(BaseSingleInterp):
     """
@@ -184,6 +178,49 @@ class MergedSpec(BaseSingleInterp):
     def __init__(self, compName='MergedSpec', mags=False):
         super(MergedSpec,self).__init__(compName=compName, mags=mags)
 
+
+class Airglow(BaseSingleInterp):
+    """
+    Interpolate the spectra caused by airglow.
+    """
+    def __init__(self, compName='Airglow', sortedOrder=['airmass','solarFlux'], mags=False):
+        super(Airglow,self).__init__(compName=compName, mags=mags, sortedOrder=sortedOrder)
+
+
+    def indxAndWeights(points, grid):
+        """
+        for given 1-D points, find the grid points on either side and return the weights
+        assume grid is sorted
+        """
+
+        order = np.argsort(points)
+
+        indxL = np.array(points.size, dtype=int)
+        indxR = np.array(points.size, dtype=int)
+
+        weightL = np.array(points.size, dtype=float)
+        weightR = np.array(points.size, dtype=float)
+
+        indxR[order] = np.searchsorted(grid, points[order])
+        indxL = indxR-1
+
+
+
+    def _weighting(self, interpPoints, values):
+
+        results = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
+        # Only interpolate point that lie in the model grid
+        inRange = np.where( (interpPoints['airmass'] <= np.max(self.dimDict['airmass'])) &
+                            (interpPoints['airmass'] >= np.min(self.dimDict['airmass'])) &
+                            (interpPoints['solarFlux'] >= np.min(self.dimDict['solarFlux'])) &
+                            (interpPoints['solarFlux'] <= np.max(self.dimDict['solarFlux'])) )
+        usePoints = interpPoints[inRange]
+
+
+
+
+
+        return results
 
 
 class TwilightInterp(object):
