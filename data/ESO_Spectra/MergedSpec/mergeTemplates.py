@@ -6,7 +6,7 @@ outDir = os.path.join(dataDir, 'ESO_Spectra/MergedSpec')
 
 # A large number of the background components only depend on Airmass, so we can merge those together
 
-npzs = ['Airglow/airglowSpectra.npz', 'LowerAtm/Spectra.npz',
+npzs = ['LowerAtm/Spectra.npz',
         'ScatteredStarLight/scatteredStarLight.npz',
         'UpperAtm/Spectra.npz']
 files = [os.path.join(dataDir, 'ESO_Spectra', npz) for npz in npzs]
