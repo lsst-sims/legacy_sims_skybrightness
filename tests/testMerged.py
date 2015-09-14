@@ -19,7 +19,7 @@ class TestMerged(unittest.TestCase):
 
         sky2 = sb.SkyModel(twilight=False, zodiacal=False,  moon=False,
                          lowerAtm=True, upperAtm=True,
-                         airglow=True, scatteredStar=True,
+                         airglow=False, scatteredStar=True,
                          mergedSpec=False)
         sky2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
 
