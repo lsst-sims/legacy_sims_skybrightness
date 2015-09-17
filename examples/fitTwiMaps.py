@@ -44,6 +44,9 @@ def twilightFunc(xdata, *args):
     flux = args[0]*args[4]*10.**(args[1]*(sunAlt+np.radians(12.))+args[2]*(airmass-1.))
     flux[towards] *= 10.**(args[3]*np.cos(az[towards])*(airmass[towards]-1.))
 
+    # Adding in an X^2 term seems to help, but now I might just be fitting the zodiacal light?
+    # But maybe the zodical is getting mostly absobed in the constant term.
+
     flux[towards] *= 10.**(args[5]*np.cos(az[towards])*(airmass[towards]-1.)**2 )
     # Adding cos^2 term didn't do much
     #flux[towards] *= 10.**(args[5]*np.cos(az[towards])**2.*(airmass[towards]-1.) )
