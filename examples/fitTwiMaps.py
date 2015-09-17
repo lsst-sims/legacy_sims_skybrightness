@@ -44,12 +44,17 @@ def twilightFunc(xdata, *args):
     flux = args[0]*args[4]*10.**(args[1]*(sunAlt+np.radians(12.))+args[2]*(airmass-1.))
     flux[towards] *= 10.**(args[3]*np.cos(az[towards])*(airmass[towards]-1.))
 
+    flux[towards] *= 10.**(args[5]*np.cos(az[towards])*(airmass[towards]-1.)**2 )
+    # Adding cos^2 term didn't do much
+    #flux[towards] *= 10.**(args[5]*np.cos(az[towards])**2.*(airmass[towards]-1.) )
+
     # This let's one fit the dark sky background simultaneously.
     # It assumes the dark sky is a function of airmass only. Forced to be args[4] at zenith.
     if np.size(args) >=6:
-        flux += args[4]*np.exp( args[5]*(airmass-1.))
-        #flux[away] += args[4]*np.exp( args[5:][xdata['hpid'][away]]*(airmass[away]-1.))
-        #flux[towards] += args[4]*np.exp(args[5:][xdata['hpid'][towards]]*(airmass[towards]-1.))
+        #flux += args[4]*np.exp( args[5]*(airmass-1.))
+        # Formulate it this way so that it's like adding a constant magnitude
+        flux[away] += args[4]*np.exp( args[6:][xdata['hpid'][away]]*(airmass[away]-1.))
+        flux[towards] += args[4]*np.exp(args[6:][xdata['hpid'][towards]]*(airmass[towards]-1.))
 
     return flux
 
@@ -141,11 +146,11 @@ for filterName in filters:
     fluxerr = 10.**(-0.4*(ydata)) - 10.**(-0.4*(ydata+err ))
     trueMags = -2.5*np.log10(flux)
 
-    p0=[2.,20., 0.3, 0.3, 3.0e-4, .3]
+    p0=[2.,20., 0.3, 0.3, 3.0e-4, .3, .1]
 
     # Need to also fit and remove the dark sky component
-    #constants = np.zeros(npix)+.05
-    #p0.extend(constants)
+    constants = np.zeros(npix)+.05
+    p0.extend(constants)
     p0 = np.array(p0)
 
     fitParams, fitCov = curve_fit(twilightFunc, xdata,flux,sigma=fluxerr, p0=p0)
@@ -156,3 +161,21 @@ for filterName in filters:
 
 
     # Right--I have that bright spot that I think might actually be zodiacal light.  May want to try masking that for now.
+
+    nmaps = 9.
+    uAlt = np.unique(xdata['sunAlt'])
+    indices = np.arange(0,uAlt.size,np.ceil(uAlt.size/nmaps) )
+
+    for i,indx in enumerate(indices):
+        residMap = np.zeros(npix, dtype=float)+hp.UNSEEN
+        good = np.where(xdata['sunAlt'] == uAlt[indx])
+        residMap[xdata['hpid'][good]] = resids[good]
+        hp.mollview(residMap, rot=(0,90), fig=5, sub=(3,3,i+1),
+                    title='sunAlt = %.2f' % np.degrees(uAlt[indx]),
+                    max=0.2,min=-0.2)
+
+    plt.show()
+
+    plt.figure()
+    plt.scatter(np.degrees(xdata['sunAlt']), resids, c=xdata['airmass'], alpha=.1)
+    plt.title('rms = %f' % resids.std())
