@@ -39,7 +39,8 @@ def medFilt(x,y,bins=30):
 # Note this is an old npz I have lying around
 if 'diode' not in globals():
     print 'Loading diode data'
-    data = np.load('/Users/yoachim/gitRepos/stash_skybrigtness/data/photodiode/photodiode.npz')
+    #data = np.load('/Users/yoachim/gitRepos/stash_skybrigtness/data/photodiode/photodiode.npz')
+    data = np.load('/Users/yoachim/gitRepos/sims_skybrightness/data/photodiode/photodiode.npz')
     diode = data['photodiode'].copy()
     data.close()
 
