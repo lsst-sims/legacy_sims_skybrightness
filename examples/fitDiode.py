@@ -109,7 +109,7 @@ for i,filterName in enumerate(filterNames):
     ax.axvline(x=-12, color='g', linestyle='-')
 
     goodBinned = np.where(xbinned < altLimits[filterName])
-    p0 = np.array([1.,20.,-1,-1,100.] )
+    p0 = np.array([1.,20.,20, 10.] )
     fitParams, fitCovariances = curve_fit(zenithTwilight, np.radians(xbinned[goodBinned]),
                                           ybinned[goodBinned],
                                           sigma=yrms[goodBinned], p0=p0)

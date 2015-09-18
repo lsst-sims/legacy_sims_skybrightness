@@ -287,24 +287,28 @@ class TwilightInterp(object):
         # Code to generate values in fitTwiSlopesSimul.py
         # values are of the form:
         # 0: ratio of f^z_12 to f_dark^z
-        # 1: slope of curve wrt sun alt
-        # 2: airmass term (10^(arg[2]*(X-1)))
-        # 3: azimuth term.
-        # 4: zenith dark sky flux (erg/s/cm^2)
+        # 1: zenith dark sky flux (erg/s/cm^2)
+        # 2: slope of mag curve wrt sun alt
+        # 3: airmass term (10^(arg[2]*(X-1)))
+        # 4: azimuth*airmass term.
+        # 5: az*airmass^2 term.
 
         # r, z, and y are based on fitting the zenith decay in:
         # fitDiode.py
         # Just assuming the shape parameter fits are similar to the other bands.
-        # XXX-- I don't understand why R and r are so different. Or why z is so bright.
-        self.fitResults = {'B': [ 6.65202455e+00,   2.31066560e+01,   2.83706875e-01,
-                                  3.01164450e-01,   3.02304747e-04 ],
-                           'G': [4.05196324e+00,   2.27492146e+01,   3.02730529e-01,
-                                 3.13501976e-01,   4.20257609e-04],
-                           'R': [1.77783956e+00,   2.17505591e+01,   3.01964448e-01,
-                                 3.33575403e-01,   2.98583706e-04],
-                           #'r': [ 0.52247301,  22.51393345, 0.3, 0.3,  54.8812249],
-                           'z': [0.74072461,  23.37634241, 0.3, 0.3,  12.88718065],
-                           'y': [0.13894689,  23.41098193, 0.3, 0.3,  29.46852266]}
+        # XXX-- I don't understand why R and r are so different.
+
+        # Note the dark sky flux values get replaced by the kwarg values later
+        self.fitResults = {'B': [  5.55867797e+00,   3.37715363e-04,   2.28874305e+01,   3.04298839e-01,
+                                   6.20407834e-01,  -2.92889313e-01],
+                           'G': [ 1.91817272e+01,   8.64374212e-05,   2.28866413e+01,
+                                  3.19559508e-01, 6.48114961e-01,  -3.01436214e-01],
+                           'R': [ 1.81959458e+00,   2.94722553e-04,   2.21777849e+01,
+                                  3.24721518e-01,  7.02500744e-01,  -3.21430656e-01],
+                           #'r': [ 1.10340869,  25.9866985 ,  22.5139326],
+                           'z': [0.51422049,  18.56371824,  23.37634743, 0.3, 0.3],
+                           'y': [0.23166532,  17.6744584 ,  23.41098199, 0.3, 0.3]
+                           }
 
 
         # Take out any filters that don't have fit results
@@ -351,7 +355,7 @@ class TwilightInterp(object):
                 self.lsstEquations[:,i] = interp(self.lsstEffWave)
             # Set the dark sky flux
             for i,filterName in enumerate(self.lsstFilterNames):
-                self.lsstEquations[i,-1] = 10.**(-0.4*(darkSkyMags[filterName]-np.log10(3631.)))
+                self.lsstEquations[i,1] = 10.**(-0.4*(darkSkyMags[filterName]-np.log10(3631.)))
 
     def __call__(self, intepPoints):
         if self.mags:
