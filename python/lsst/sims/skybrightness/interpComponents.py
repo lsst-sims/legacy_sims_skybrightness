@@ -299,15 +299,17 @@ class TwilightInterp(object):
         # XXX-- I don't understand why R and r are so different.
 
         # Note the dark sky flux values get replaced by the kwarg values later
-        self.fitResults = {'B': [  5.55867797e+00,   3.37715363e-04,   2.28874305e+01,   3.04298839e-01,
-                                   6.20407834e-01,  -2.92889313e-01],
+        self.fitResults = {'B': [  5.55867797e+00,   3.37715363e-04,   2.28874305e+01,
+                                   3.04298839e-01, 6.20407834e-01,  -2.92889313e-01],
                            'G': [ 1.91817272e+01,   8.64374212e-05,   2.28866413e+01,
                                   3.19559508e-01, 6.48114961e-01,  -3.01436214e-01],
                            'R': [ 1.81959458e+00,   2.94722553e-04,   2.21777849e+01,
                                   3.24721518e-01,  7.02500744e-01,  -3.21430656e-01],
                            #'r': [ 1.10340869,  25.9866985 ,  22.5139326],
-                           'z': [0.51422049,  18.56371824,  23.37634743, 0.3, 0.3],
-                           'y': [0.23166532,  17.6744584 ,  23.41098199, 0.3, 0.3]
+                           'z': [0.51422049,  18.56371824,  23.37634743,
+                                 0.3, 0.7, -0.3],
+                           'y': [0.23166532,  17.6744584 ,  23.41098199,
+                                 0.3, 0.7 , -0.3]
                            }
 
 
@@ -325,7 +327,7 @@ class TwilightInterp(object):
         # update the fit results to be zeropointed properly
         for key in self.fitResults:
             f0 = 10.**(-0.4*(darkSkyMags[key]-np.log10(3631.)))
-            self.fitResults[key][-1] = f0
+            self.fitResults[key][1] = f0
 
         self.solarWave = self.solarSpec.wavelen
         self.solarFlux = self.solarSpec.flambda
