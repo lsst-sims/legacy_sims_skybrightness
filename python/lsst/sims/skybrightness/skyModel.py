@@ -1,7 +1,7 @@
 import numpy as np
 import ephem
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
-from lsst.sims.utils import haversine, raDecFromAltAz, altAzPaFromRaDec
+from lsst.sims.utils import haversine, _raDecFromAltAz, _altAzPaFromRaDec
 import warnings
 from lsst.sims.skybrightness.utils import wrapRA,  mjd2djd
 from .interpComponents import ScatteredStar,Airglow,LowerAtm,UpperAtm,MergedSpec,TwilightInterp,MoonInterp,ZodiacalInterp
@@ -110,10 +110,10 @@ class SkyModel(object):
         if azAlt:
             self.azs = ra.copy()
             self.alts = dec.copy()
-            self.ra,self.dec = raDecFromAltAz(self.alts,self.azs, self.Observatory.lon,
+            self.ra,self.dec = _raDecFromAltAz(self.alts,self.azs, self.Observatory.lon,
                                             self.Observatory.lat, self.mjd)
         else:
-            self.alts,self.azs,pa = altAzPaFromRaDec(self.ra, self.dec, self.Observatory.lon,
+            self.alts,self.azs,pa = _altAzPaFromRaDec(self.ra, self.dec, self.Observatory.lon,
                                                    self.Observatory.lat, self.mjd)
 
         self.npts = self.ra.size
