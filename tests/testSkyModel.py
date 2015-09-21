@@ -2,6 +2,7 @@ import numpy as np
 import lsst.sims.skybrightness as sb
 import unittest
 import lsst.sims.photUtils.Bandpass as Bandpass
+from lsst.utils import getPackageDir
 import os
 
 class TestSkyModel(unittest.TestCase):
@@ -28,9 +29,6 @@ class TestSkyModel(unittest.TestCase):
         sky2.computeSpec()
 
         np.testing.assert_almost_equal(sky1.spec, sky2.spec)
-
-
-
 
 
     def testSetups(self):
@@ -80,14 +78,12 @@ class TestSkyModel(unittest.TestCase):
         # Check the final output spectra
         np.testing.assert_allclose(sm1.spec, sm2.spec)
 
-
-
     def testMags(self):
         """
         Test that the interpolated mags are similar to mags computed from interpolated spectra
         """
 
-        throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+        throughPath = os.path.join(getPackageDir('throughputs'),'baseline')
         filters = ['u','g','r','i','z','y']
 
         bps = []
@@ -97,7 +93,6 @@ class TestSkyModel(unittest.TestCase):
             lsst_bp = Bandpass()
             lsst_bp.setBandpass(bp['wave'], bp['trans'])
             bps.append(lsst_bp)
-
 
         sm1 = sb.SkyModel()
         sm1.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
@@ -111,7 +106,6 @@ class TestSkyModel(unittest.TestCase):
         sm2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
         sm2.computeSpec()
         mag2 = sm2.computeMags()
-
 
         np.testing.assert_allclose(mags1,mag2.T, rtol=1e-4)
 

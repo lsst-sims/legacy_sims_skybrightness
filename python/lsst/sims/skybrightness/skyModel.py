@@ -96,32 +96,32 @@ class SkyModel(object):
         self.points = np.zeros(self.npts, zip(names,types))
 
 
-    def setRaDecMjd(self, ra,dec,mjd, degrees=False, azAlt=False, solarFlux=130.):
+    def setRaDecMjd(self,lon,lat,mjd,degrees=False,azAlt=False,solarFlux=130.):
         """
         Set the sky parameters by computing the sky conditions on a given MJD and sky location.
 
         Ra and Dec in raidans or degrees.
         input ra, dec or az,alt w/ altAz=True
-        solarFlux: solar flux in s.f.u.
+        solarFlux: solar flux in s.f.u. Between 50 and 310.
         """
         # Wrap in array just in case single points were passed
-        if not type(ra).__module__ == np.__name__ :
-            if np.size(ra) == 1:
-                ra = np.array([ra])
-                dec = np.array([dec])
+        if not type(lon).__module__ == np.__name__ :
+            if np.size(lon) == 1:
+                lon = np.array([lon])
+                lat = np.array([lat])
             else:
-                ra = np.array(ra)
-                dec = np.array(dec)
+                lon = np.array(lon)
+                lat = np.array(lat)
         if degrees:
-            self.ra = np.radians(ra)
-            self.dec = np.radians(dec)
+            self.ra = np.radians(lon)
+            self.dec = np.radians(lat)
         else:
-            self.ra = ra
-            self.dec = dec
+            self.ra = lon
+            self.dec = lat
         self.mjd = mjd
         if azAlt:
-            self.azs = ra.copy()
-            self.alts = dec.copy()
+            self.azs = self.ra.copy()
+            self.alts = self.dec.copy()
             self.ra,self.dec = _raDecFromAltAz(self.alts,self.azs, self.Observatory.lon,
                                                self.Observatory.lat, self.mjd)
         else:

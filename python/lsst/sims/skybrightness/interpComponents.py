@@ -6,6 +6,7 @@ from lsst.sims.photUtils import Sed,Bandpass
 from lsst.sims.skybrightness.twilightFunc import twilightFunc
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d, RegularGridInterpolator
 import os
+from lsst.utils import getPackageDir
 
 
 def id2intid(ids):
@@ -56,7 +57,7 @@ class BaseSingleInterp(object):
 
         self.mags = mags
 
-        dataDir =  os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'ESO_Spectra/'+compName)
+        dataDir = os.path.join(getPackageDir('sims_skybrightness_data'), 'ESO_Spectra/'+compName)
 
         filenames = glob.glob(dataDir+'/*.npz')
         if len(filenames) == 1:
@@ -252,7 +253,7 @@ class TwilightInterp(object):
 
         self.mags = mags
 
-        dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
+        dataDir = getPackageDir('sims_skybrightness_data')
 
         solarSaved = np.load(os.path.join(dataDir,'solarSpec/solarSpec.npz'))
         self.solarSpec = Sed(wavelen=solarSaved['wave'], flambda=solarSaved['spec'])
@@ -272,7 +273,7 @@ class TwilightInterp(object):
             canonFilters[filterName] = bpTemp
 
         # Tack on the LSST r z and y filter
-        throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+        throughPath =  os.path.join(getPackageDir('throughputs'), 'baseline')
         lsstKeys = ['r', 'z','y']
         for key in lsstKeys:
             bp = np.loadtxt(os.path.join(throughPath, 'filter_'+key+'.dat'),
@@ -329,7 +330,7 @@ class TwilightInterp(object):
         # in the __call__ each time.
         if mags:
             # Load up the LSST filters and convert the solarSpec.flabda and solarSpec.wavelen to fluxes
-            throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
+            throughPath = os.path.join(getPackageDir('throughputs'),'baseline')
             self.lsstFilterNames = ['u','g','r','i','z','y']
             self.lsstEquations = np.zeros((np.size(self.lsstFilterNames),
                                            np.size(self.fitResults['B'])), dtype=float)
