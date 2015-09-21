@@ -84,6 +84,18 @@ class SkyModel(object):
             self.Observatory = observatory
 
 
+
+    def _initPoints(self):
+        """
+        Set up an array for all the interpolation points
+        """
+
+        names = ['airmass', 'nightTimes', 'alt', 'az', 'azRelMoon', 'moonSunSep', 'moonAltitude',
+                 'altEclip', 'azEclipRelSun', 'sunAlt', 'azRelSun', 'solarFlux']
+        types = [float]*len(names)
+        self.points = np.zeros(self.npts, zip(names,types))
+
+
     def setRaDecMjd(self, ra,dec,mjd, degrees=False, azAlt=False, solarFlux=130.):
         """
         Set the sky parameters by computing the sky conditions on a given MJD and sky location.
@@ -117,13 +129,10 @@ class SkyModel(object):
                                                       self.Observatory.lat, self.mjd)
 
         self.npts = self.ra.size
+        self._initPoints()
 
-        names = ['airmass', 'nightTimes', 'alt', 'az', 'azRelMoon', 'moonSunSep', 'moonAltitude',
-                 'altEclip', 'azEclipRelSun', 'sunAlt', 'azRelSun', 'solarFlux']
-        types = [float]*len(names)
-        self.points = np.zeros(self.npts, zip(names,types))
-
-        self.points['solarFlux'] = solarFlux
+        self.solarFlux = solarFlux
+        self.points['solarFlux'] = self.solarFlux
 
         # Switch to Dublin Julian Date for pyephem
         self.Observatory.date = mjd2djd(self.mjd)
@@ -175,7 +184,7 @@ class SkyModel(object):
             self.points['azEclipRelSun'] += wrapRA(self.eclipLon - self.sunEclipLon)
 
     def setParams(self, airmass=1.,azs=90., alts=None, moonPhase=31.67, moonAlt=45.,
-                  moonAz=0., sunAlt=-12., sunEclipLon=0.,
+                  moonAz=0., sunAlt=-12., sunAz=0., sunEclipLon=0.,
                   eclipLon=135., eclipLat=90., degrees=True, solarFlux=130.):
         """
         Set paramters manually. Note, you can put in unphysical combinations of paramters if you want
@@ -194,20 +203,43 @@ class SkyModel(object):
         self.sunAlt = convertFunc(sunAlt)
         self.moonPhase = moonPhase
         self.moonAlt = convertFunc(moonAlt)
-        moonAz = convertFunc(moonAz)
+        self.moonAz = convertFunc(moonAz)
         self.eclipLon = convertFunc(eclipLon)
         self.eclipLat = convertFunc(eclipLat)
         self.sunEclipLon = convertFunc(sunEclipLon)
-        azs = convertFunc(azs)
+        self.azs = convertFunc(azs)
         if alts is not None:
             self.airmass = 1./np.cos(np.pi/2.-convertFunc(alts))
-            alts = convertFunc(alts)
+            self.alts = convertFunc(alts)
         else:
             self.airmass = airmass
-            alts = np.pi/2.-np.arccos(1./airmass)
+            self.alts = np.pi/2.-np.arccos(1./airmass)
         self.moonTargSep = haversine(azs, alts, moonAz, self.moonAlt)
         self.npts = np.size(airmass)
-        # XXX I don't think this is setting self.points like it should!
+        self._initPoints()
+
+        self.points['airmass'] = self.airmass
+        self.points['nightTimes'] = 2
+        self.points['alt'] = self.alts
+        self.points['az'] = self.azs
+        self.azRelMoon = wrapRA(self.azs - self.moonAz)
+        over = np.where(self.azRelMoon > np.pi)
+        self.azRelMoon[over] = 2.*np.pi - self.azRelMoon[over]
+        self.points['moonAltitude'] += np.degrees(self.moonAlt)
+        self.points['azRelMoon'] = self.azRelMoon
+        self.points['moonSunSep'] += self.moonPhase/100.*180.
+
+        self.eclipLon = convertFunc(eclipLon)
+        self.eclipLat = convertFunc(eclipLat)
+
+        self.sunEclipLon = convertFunc(sunEclipLon)
+        self.points['altEclip'] += self.eclipLat
+        self.points['azEclipRelSun'] += wrapRA(self.eclipLon - self.sunEclipLon)
+
+        self.sunAz = convertFunc(sunAz)
+        self.points['sunAlt'] = self.sunAlt
+        self.points['azRelSun'] = wrapRA(self.azs - self.sunAz)
+        self.points['solarFlux'] = solarFlux
 
     def computeSpec(self):
         """
