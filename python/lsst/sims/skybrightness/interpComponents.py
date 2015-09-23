@@ -272,9 +272,9 @@ class TwilightInterp(object):
             bpTemp.setBandpass(bpdata['wave'], bpdata['through'])
             canonFilters[filterName] = bpTemp
 
-        # Tack on the LSST r z and y filter
+        # Tack on the LSST filters
         throughPath =  os.path.join(getPackageDir('throughputs'), 'baseline')
-        lsstKeys = ['r', 'z','y']
+        lsstKeys = ['u', 'g', 'r', 'i', 'z','y']
         for key in lsstKeys:
             bp = np.loadtxt(os.path.join(throughPath, 'filter_'+key+'.dat'),
                             dtype=zip(['wave','trans'],[float]*2 ))
@@ -308,6 +308,11 @@ class TwilightInterp(object):
                            'y': [0.13894689,  23.41098193, 0.3, 0.3,  29.46852266]}
 
 
+        # XXX-completely arbitrary fudge factor to make things brighter in the blue
+        # Just copy the blue and say it's brighter.
+        self.fitResults['u'] = [16.,   2.29622121e+01,   2.85862729e-01,
+                                2.99902574e-01,   2.32325117e-04 ]
+
         # Take out any filters that don't have fit results
         self.filterNames = [ key for key in self.filterNames if key in self.fitResults.keys() ]
 
@@ -317,7 +322,10 @@ class TwilightInterp(object):
             self.effWave.append(canonFilters[filterName].calcEffWavelen()[0])
             self.solarMag.append(self.solarSpec.calcMag(canonFilters[filterName]))
 
-        self.solarMag = np.array(self.solarMag)
+        ord = np.argsort(self.effWave)
+        self.filterNames = np.array(self.filterNames)[ord]
+        self.effWave = np.array(self.effWave)[ord]
+        self.solarMag = np.array(self.solarMag)[ord]
 
         # update the fit results to be zeropointed properly
         for key in self.fitResults:
@@ -353,6 +361,7 @@ class TwilightInterp(object):
             # Set the dark sky flux
             for i,filterName in enumerate(self.lsstFilterNames):
                 self.lsstEquations[i,-1] = 10.**(-0.4*(darkSkyMags[filterName]-np.log10(3631.)))
+
 
     def __call__(self, intepPoints):
         if self.mags:
@@ -404,6 +413,7 @@ class TwilightInterp(object):
 
         # Find wavelengths bluer than cutoff
         blueRegion = np.where(self.solarWave < np.min(self.effWave))
+
 
         for i,yval in enumerate(yvals):
             interpF = interp1d(self.effWave, yval, bounds_error=False, fill_value=yval[-1])

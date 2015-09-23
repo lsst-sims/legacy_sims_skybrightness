@@ -34,7 +34,7 @@ class TestSkyModel(unittest.TestCase):
     def testSetups(self):
         """
         Check that things are the same if the model is set up with
-        redecmjd or all the parameters
+        radecmjd or all the parameters independently
         """
 
         sm1 = sb.SkyModel()
