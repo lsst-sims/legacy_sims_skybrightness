@@ -467,8 +467,8 @@ class MoonInterp(BaseSingleInterp):
         leftMAs = rightMAs-1
 
         # Set the indices that are out of the grid to 0.
-        #leftMAs[np.where(leftMAs) < 0] = 0
-        #rightMAs[np.where(rightMAs > self.dimDict['moonAltitude'].size-1)] = 0
+        leftMAs[np.where(leftMAs) < 0] = 0
+        rightMAs[np.where(rightMAs > self.dimDict['moonAltitude'].size-1)] = self.dimDict['moonAltitude'].size-1
         maids = np.array([rightMAs,leftMAs] )
 
         maWs= np.zeros((2,interpPoints.size), dtype=float)
@@ -486,8 +486,8 @@ class MoonInterp(BaseSingleInterp):
         leftMAs = rightMAs-1
 
         # Set the indices that are out of the grid to 0.
-        #leftMAs[np.where(leftMAs) < 0] = 0
-        #rightMAs[np.where(rightMAs > self.dimDict['moonSunSep'].size-1)] = 0
+        leftMAs[np.where(leftMAs) < 0] = 0
+        rightMAs[np.where(rightMAs > self.dimDict['moonSunSep'].size-1)] = self.dimDict['moonSunSep'].size-1
         mssids = np.array([rightMAs,leftMAs] )
 
         mssWs= np.zeros((2,interpPoints.size), dtype=float)

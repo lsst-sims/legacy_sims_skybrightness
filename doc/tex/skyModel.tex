@@ -38,10 +38,6 @@ Seattle WA, 98195; {yoachim@uw.edu} }
 
 As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC}}.  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  
 
-\section{Observations}
-
-XXX-describe the Cannon all-sky camera and photometry pipeline. Desceibe the photodiode data.  
-
 
 \section{The ESO Model}
 Here, we briefly descibe the sky components included in the ESO model and how we have created model grids with them.
@@ -50,9 +46,29 @@ Here, we briefly descibe the sky components included in the ESO model and how we
 
 \subsection{Scattered Moonlight}
 
-\citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal. \citet{Jones13} claim their model is accurate to XXX\%.  
+\citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal. \citet{Jones13} claim their model uncertainty is $<20$\% in the optical.  Unlike the \citet{Krisciunas91} model that is a fit to observed broadband sky brightnesses, the \citet{Jones13} model uses fully 3D single scattering calculations and provides an entire spectrum.
 
 \citet{Noll12}
+
+
+\subsection{Airglow}
+
+
+
+\subsection{Stattered Star Light}
+
+
+
+\subsection{Atmospheric Emission Lines}
+
+The Airglow and emission lines vary through the night and by season, but \citet{Noll12} show the variation is at the 10-20\% level.  Since LSST is a broad band survey, such mild changes in narrow emission features should not strongly effect the integrated sky background.
+
+The airglow also correlates strongly with the solar radio flux level.  This variation results in a factor of $\sim4$ change in the flux from the minimum to maximum solar activity.  
+
+%XXX--looking at fig 14 in  \citet{Noll12}, it looks like the emission lines should be varying with the solar flux ratio--but I thought I didn't see any variation when I plugged it into the ESO calculator.  OK, just double checked and they don't vary. Might want to check with ESO about that.
+
+
+
 
 \subsection{Structure of the ESO Templates}
 
@@ -69,8 +85,13 @@ For all the interpolations, we weight and average the log of the template spectr
 For the Zodiacal and Lunar components, since we have placed the templates at healpix gridpoints, we can use fast healpy routines to find the 4 nearest healpixel points, along with their weights.  
 
 
-\section{Additional Components}
 
+\section{Observations}
+
+XXX-describe the Cannon all-sky camera and photometry pipeline. Desceibe the photodiode data.  
+
+
+\section{Additional Components}
 \subsection{Twilight}
 
 The ESO sky model does not include a component for scattered sunlight.  The twilight sky brightness is difficult to compute analytically.  While scattered moonlight can be computed via a single or double scattering model, the solar twilight comes from multiple scatterings, thus there is no simple analytic model for computing the solar twilight from first principles and models must instead rely on Monte Carlo radiative transfer simulations \citep{Patat06}.
@@ -90,16 +111,36 @@ Rather than run a lot of radiative transfer, looking at the data from the all-sk
   \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (top panel), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses, the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
 \end{figure*}
 
-To model the broadband twilight flux, we use a simple model of the form
+To model the broadband flux from only the scattered twilight, we use a simple model of the form
 \begin{equation}
-  f = 
+  f^{away} = f_{z} r_{12/z} 10^{a(\alpha-12^{\circ})+b(X-1)}
 \end{equation}
+where $\alpha$ is the altitude of the sun, $X$ is the airmass, $f_{z}$ is the flux at zenith during dark time, and $r_{12/z}$ is the ratio of the 12-degree twilight zenith flux to the dark time zenith flux.
+for the direction of the sun and airmass greater than 1.1:
+\begin{equation}
+  f^{toward} = f^{away}10^{c \cos{\phi}(X-1)}
+\end{equation}
+Where $\phi$ is the azimuthal relative to the sun. When the moon is down and the zodiacal light is negligable, we expect the total zenith flux to be %f^{tot} = f^{away} + f_{z}$.  
 
+or in magnitudes:
+\begin{eqnarray}
+  m^{away} = m_0 -2.5a(\alpha-12^{\circ})-2.5b(X-1) \\
+  m^{toward} = m^{away} -2.5c\cos{\phi}(X-1)
+\end{eqnarray}
+By default, we only apply the twilight component for solar altitudes between -11 and -20 degrees.
 
 
 \section{Validation}
 
-XXX--make some plots of residuals vs different conditions.  Maybe the zenith sky brightness for the Cannon in all the bands--dark time, moon up, twilight.  For each one, show a histogram of the raw variation, and then the variation of raw-model.  Note that much of the residual variation could be 
+XXX--make some plots of residuals vs different conditions.  Maybe the zenith sky brightness for the Cannon in all the bands--dark time, moon up, twilight.  For each one, show a histogram of the raw variation, and then the variation of raw-model.  
+
+plan for validation:
+select all the observations with alt $>85$ degrees. Median bin for observations with same mjd, I guess take a mean of the ra and dec? Then compute the RGB mags from the model.  Then plot various subsets of the residuals--all residuals, no moon or twilight, moon no twilight, twilight.
+
+Maybe another good verification metric would be angular distance between darkest observed spot in the sky and the model darkest spot.  Could plot as contour map of moon Alt vs sun Alt.  Ooh, could scipy binned\_stat it with a median and robust RMS.
+
+
+Note that we have not verified the off-zenith IR performance of the model.  
 
 \section{Speed Testing}
 
@@ -109,13 +150,11 @@ XXX--make some plots of residuals vs different conditions.  Maybe the zenith sky
 
 There are several things that, in theory, could be used to better refine the returned sky spectrum.
 
-blahblah, solar activity can boost emission lines.
-
 blahblah, the IR sky is known to be variable on short timescales.
 
 blahblah, emission lines are brighter right after sunset and before sunrise.
 
-Clouds are complicated since they block some sources of sky background while also reflecting other components.  
+Clouds are complicated since they can block some sources of sky background while also reflecting other components.  
 
 
 \bibliography{skyModel.bib}
