@@ -363,6 +363,16 @@ class TwilightInterp(object):
                 self.lsstEquations[i,-1] = 10.**(-0.4*(darkSkyMags[filterName]-np.log10(3631.)))
 
 
+    def printFitsUsed(self):
+        """
+        Print out the fit parameters being used
+        """
+        print 'Filter, r_{12/z}, a (1/radians), b (1/airmass), c (az term/airmass), f_z_dark (erg/s/cm^2), m_z_dark'
+        for key in self.fitResults.keys():
+            print key, self.fitResults[key], ', ', -2.5*np.log10(self.fitResults[key][-1])+np.log10(3631.)
+
+
+
     def __call__(self, intepPoints):
         if self.mags:
             return self.interpMag(intepPoints)

@@ -39,7 +39,7 @@ dateData,mjd = sb.allSkyDB(2744 , sqlQ=sqlQ, filt=None,dtypes=zip(['dateID', 'mj
                                                                   [int,float,float,float]))
 
 
-skipsize = 100
+skipsize = 10000
 indices = np.arange(0,dateData.size, skipsize)
 
 # Maybe bin things on 15-min timescales to cut down the number of calls I need to make to the model
@@ -68,7 +68,6 @@ types = [float]*len(names)
 validationArr = np.zeros(indices.size, dtype=zip(names,types) )
 
 
-
 for filterName in filters:
 
     for i,indx in enumerate(indices):
@@ -80,14 +79,15 @@ for filterName in filters:
             alt,az,pa =  _altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
                                            telescope.lon, telescope.lat, mjd)
             skyhp = healplots.healbin(az,alt, skydata['sky'], nside=nside)
+            skyhp[np.isnan(skyhp)] = hp.UNSEEN
 
             sm.setRaDecMjd(np.radians(skydata['ra']), np.radians(skydata['dec']), mjd, degrees=False)
             sm.computeSpec()
             mags = sm.computeMags(canonDict[filterName])
             good = np.where(mags > 0)
-            modelhp,azHP,altHP = healplots.healbin(az[good], alt[good], mags[good],
-                                                   nside=nside, returnPixAng=True)
+            modelhp = healplots.healbin(az[good], alt[good], mags[good], nside=nside)
 
+            modelhp[np.isnan(modelhp)] = hp.UNSEEN
 
             # ok, now to find the darkest spots and compute angular distance.
             # save data and model zenith sky brightnesses
@@ -99,3 +99,10 @@ for filterName in filters:
             validationArr['obsDarkestHP'][i] = np.where(skyhp == skyhp[notnan].max() )[0].min()
             notnan = ~np.isnan(modelhp)
             validationArr['modelDarkestHP'][i]  = np.where(modelhp == modelhp[notnan].max() )[0]
+
+            good = np.where(skyhp[0:4] != hp.UNSEEN)[0]
+            if good.size > 1:
+                validationArr['obsZenith'][i] = skyhp[0:4][good].mean()
+            good = np.where(modelhp[0:4] != hp.UNSEEN)[0]
+            if good.size > 1:
+                validationArr['modelZenith'][i] = modelhp[0:4][good].mean()

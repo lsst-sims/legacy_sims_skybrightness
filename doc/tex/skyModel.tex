@@ -41,6 +41,9 @@ As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{h
 
 \section{The ESO Model}
 Here, we briefly descibe the sky components included in the ESO model and how we have created model grids with them.
+
+
+
 \subsection{Zodiacal Light}
 
 
@@ -120,7 +123,7 @@ for the direction of the sun and airmass greater than 1.1:
 \begin{equation}
   f^{toward} = f^{away}10^{c \cos{\phi}(X-1)}
 \end{equation}
-Where $\phi$ is the azimuthal relative to the sun. When the moon is down and the zodiacal light is negligable, we expect the total zenith flux to be %f^{tot} = f^{away} + f_{z}$.  
+Where $\phi$ is the azimuthal relative to the sun. When the moon is down and the zodiacal light is negligable, we expect the total zenith flux to be $f^{tot} = f^{away} + f_{z}$.  
 
 or in magnitudes:
 \begin{eqnarray}
@@ -128,6 +131,26 @@ or in magnitudes:
   m^{toward} = m^{away} -2.5c\cos{\phi}(X-1)
 \end{eqnarray}
 By default, we only apply the twilight component for solar altitudes between -11 and -20 degrees.
+
+
+The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Canon filters are listed in Table~\ref{table:canonFits}
+
+%>>> import lsst.sims.skybrightness as sb
+%>>> twi = sb.TwilightInterp()
+%>>> twi.printFitsUsed()
+
+
+Filter, r_{12/z}, a (1/radians), b (1/airmass), c (az term/airmass), f_z_dark (erg/s/cm^2), m_z_dark
+B [8.42181815, 22.9622121, 0.285862729, 0.299902574, 3.0479686768614231e-08] 22.35
+G [4.13747072, 22.9416735, 0.297229615, 0.315696066, 5.4955415979654161e-08] 21.71
+R [2.73450774, 22.2015053, 0.297825187, 0.328865935, 8.0169744510483352e-08] 21.3
+
+u [16.0, 22.9622121, 0.285862729, 0.299902574, 2.0137729345347255e-08] 22.8
+y [0.13894689, 23.41098193, 0.3, 0.3, 1.6749833701731019e-06] 18.0
+z [0.74072461, 23.37634241, 0.3, 0.3, 5.0583689103990211e-07] 19.3
+
+
+The paramters in Table~\ref{} do a reasonable job reproducing the observed magnitudes, we are also interested in generating the full spectrum of the sky.  For this, we assume the twilight is a modified solar spectrum.  We multiply a solar spectrum\footnote{cite source} by a low order polynomial such that it reproduces the expected broad band magnitudes.  One obvious shortcomming of this approach is that we have not included the effects of atmosphiric transmission on the twilight sky spectrum.  
 
 
 \section{Validation}
