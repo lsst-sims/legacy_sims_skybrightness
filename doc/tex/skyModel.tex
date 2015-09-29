@@ -111,19 +111,19 @@ Rather than run a lot of radiative transfer, looking at the data from the all-sk
   \epsscale{1}
   \plottwo{../../examples/Plots/altDecay.pdf}{../../examples/Plots/altDecayHA.pdf}
   \epsscale{1}
-  \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (top panel), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses, the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
+  \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (right panel), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses (left panels), the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
 \end{figure*}
 
 To model the broadband flux from only the scattered twilight, we use a simple model of the form
-\begin{equation}
+\begin{equation}\label{eqn:twi1}
   f^{away} = f_{z} r_{12/z} 10^{a(\alpha-12^{\circ})+b(X-1)}
 \end{equation}
 where $\alpha$ is the altitude of the sun, $X$ is the airmass, $f_{z}$ is the flux at zenith during dark time, and $r_{12/z}$ is the ratio of the 12-degree twilight zenith flux to the dark time zenith flux.
 for the direction of the sun and airmass greater than 1.1:
-\begin{equation}
+\begin{equation}\label{eqn:twi2}
   f^{toward} = f^{away}10^{c \cos{\phi}(X-1)}
 \end{equation}
-Where $\phi$ is the azimuthal relative to the sun. When the moon is down and the zodiacal light is negligable, we expect the total zenith flux to be $f^{tot} = f^{away} + f_{z}$.  
+Where $\phi$ is the azimuth relative to the sun. When the moon is down and the zodiacal light is negligable, we expect the total zenith flux to be $f^{tot} = f^{away} + f_{z}$.  
 
 or in magnitudes:
 \begin{eqnarray}
@@ -138,19 +138,29 @@ The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Ca
 %>>> import lsst.sims.skybrightness as sb
 %>>> twi = sb.TwilightInterp()
 %>>> twi.printFitsUsed()
+\begin{deluxetable*}{c c c c c c c}
+  \tabletypesize{\small }
+  %\rotate
+  \tablewidth{0pt}
+  \tablecaption{Final parameters for equations~\ref{eqn:twi1} and~\ref{eqn:twi2} used by the skybrighntess twilight component. \label{table:canonFits}}
+  
+  \tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ (1/radians)} & \colhead{$b$ (1/airmass)} & \colhead{$c$ (az term/airmass)} & \colhead{$f_z,dark$ (erg/s/cm$^2$)$\times 10^8$} & \colhead{m$_z,dark$}}
+  \startdata
+  B  & 8.42 & 22.96 & 0.29 & 0.30 & 3.05  &  22.35 \\
+  G  & 4.14 & 22.94 & 0.30 & 0.32 & 5.50  &  21.71 \\
+  R  & 2.73 & 22.20 & 0.30 & 0.33 & 8.02  &  21.30 \\
+  \hline
+  $z$\tablenotemark{a}  & 0.74 & 23.38 & 0.30 & 0.30 & 50.58  &  19.30 \\
+  $y$\tablenotemark{a}  & 0.14 & 23.41 & 0.30 & 0.30 & 167.50  &  18.00 \\
+ \hline 
+ $u$\tablenotemark{b}  & 16.00 & 22.96 & 0.29 & 0.30 & 2.01  &  22.80
+ \enddata
+ \tablenotetext{a}{The $z$ and $y$ fits are based on zenith-pointing photodiode measurements. The $b$ and $c$ terms are assumed to be similar to the other optical filters.}
+ \tablenotetext{b}{The $u$ filter is assumed to be identical to $B$, but with a brighter $r_{12/z}$ value.}
+ \end{deluxetable*}
 
 
-Filter, r_{12/z}, a (1/radians), b (1/airmass), c (az term/airmass), f_z_dark (erg/s/cm^2), m_z_dark
-B [8.42181815, 22.9622121, 0.285862729, 0.299902574, 3.0479686768614231e-08] 22.35
-G [4.13747072, 22.9416735, 0.297229615, 0.315696066, 5.4955415979654161e-08] 21.71
-R [2.73450774, 22.2015053, 0.297825187, 0.328865935, 8.0169744510483352e-08] 21.3
-
-u [16.0, 22.9622121, 0.285862729, 0.299902574, 2.0137729345347255e-08] 22.8
-y [0.13894689, 23.41098193, 0.3, 0.3, 1.6749833701731019e-06] 18.0
-z [0.74072461, 23.37634241, 0.3, 0.3, 5.0583689103990211e-07] 19.3
-
-
-The paramters in Table~\ref{} do a reasonable job reproducing the observed magnitudes, we are also interested in generating the full spectrum of the sky.  For this, we assume the twilight is a modified solar spectrum.  We multiply a solar spectrum\footnote{cite source} by a low order polynomial such that it reproduces the expected broad band magnitudes.  One obvious shortcomming of this approach is that we have not included the effects of atmosphiric transmission on the twilight sky spectrum.  
+The paramters in Table~\ref{table:canonFits} do a reasonable job reproducing the observed magnitudes, we are also interested in generating the full spectrum of the sky.  For this, we assume the twilight is a modified solar spectrum.  We multiply a solar spectrum\footnote{cite source} by a low order polynomial such that it reproduces the expected broad band magnitudes.  One obvious shortcomming of this approach is that we have not included the effects of atmosphiric transmission on the twilight sky spectrum.  
 
 
 \section{Validation}
@@ -182,3 +192,5 @@ Clouds are complicated since they can block some sources of sky background while
 
 \bibliography{skyModel.bib}
 \end{document}
+
+

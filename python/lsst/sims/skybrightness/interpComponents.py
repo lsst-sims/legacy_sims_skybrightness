@@ -367,9 +367,15 @@ class TwilightInterp(object):
         """
         Print out the fit parameters being used
         """
-        print 'Filter, r_{12/z}, a (1/radians), b (1/airmass), c (az term/airmass), f_z_dark (erg/s/cm^2), m_z_dark'
+        print '\\tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ (1/radians)} & \colhead{$b$ (1/airmass)} & \colhead{$c$ (az term/airmass)} & \colhead{$f_z_dark$ (erg/s/cm$^2$)$\\times 10^8$} & \colhead{m$_z_dark$}}'
         for key in self.fitResults.keys():
-            print key, self.fitResults[key], ', ', -2.5*np.log10(self.fitResults[key][-1])+np.log10(3631.)
+            numbers = ''
+            for num in  self.fitResults[key]:
+                if num > .001:
+                    numbers += ' & %.2f' % num
+                else:
+                    numbers += ' & %.2f' % (num*1e8)
+            print key, numbers, ' & ', '%.2f' % (-2.5*np.log10(self.fitResults[key][-1])+np.log10(3631.))
 
 
 
