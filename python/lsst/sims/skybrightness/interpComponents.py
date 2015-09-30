@@ -91,6 +91,33 @@ class BaseSingleInterp(object):
         else:
             return self.interpSpec(intepPoints)
 
+
+    def indxAndWeights(self, points, grid):
+        """
+        for given 1-D points, find the grid points on either side and return the weights
+        assume grid is sorted
+        """
+
+        order = np.argsort(points)
+
+        indxL = np.empty(points.size, dtype=int)
+        indxR = np.empty(points.size, dtype=int)
+
+        indxR[order] = np.searchsorted(grid, points[order])
+        indxL = indxR-1
+
+        fullRange = grid[indxR]-grid[indxL]
+        wL = (grid[indxR] - points)/fullRange
+        wR = (points - grid[indxL])/fullRange
+
+        # Catch points that land on a model point
+        onPoint = np.where(fullRange == 0)
+        wR[onPoint] = 1.
+        wL[onPoint] = 0.
+
+        return indxR,indxL,wR,wL
+
+
     def _weighting(self, interpPoints, values):
         """
         given a list/array of airmass values, return a dict with the interpolated
@@ -187,32 +214,6 @@ class Airglow(BaseSingleInterp):
     def __init__(self, compName='Airglow', sortedOrder=['airmass','solarFlux'], mags=False):
         super(Airglow,self).__init__(compName=compName, mags=mags, sortedOrder=sortedOrder)
         self.nSolarFlux = np.size(self.dimDict['solarFlux'])
-
-
-    def indxAndWeights(self, points, grid):
-        """
-        for given 1-D points, find the grid points on either side and return the weights
-        assume grid is sorted
-        """
-
-        order = np.argsort(points)
-
-        indxL = np.empty(points.size, dtype=int)
-        indxR = np.empty(points.size, dtype=int)
-
-        indxR[order] = np.searchsorted(grid, points[order])
-        indxL = indxR-1
-
-        fullRange = grid[indxR]-grid[indxL]
-        wL = (grid[indxR] - points)/fullRange
-        wR = (points - grid[indxL])/fullRange
-
-        # Catch points that land on a model point
-        onPoint = np.where(fullRange == 0)
-        wR[onPoint] = 1.
-        wL[onPoint] = 0.
-
-        return indxR,indxL,wR,wL
 
 
     def _weighting(self, interpPoints, values):
@@ -454,8 +455,7 @@ class MoonInterp(BaseSingleInterp):
 
     def _weighting(self, interpPoints, values):
         """
-        A temporary method that does a stupid loop until I can figure out how to do the proper
-        all numpy array slicing
+
         """
 
         result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
@@ -476,42 +476,12 @@ class MoonInterp(BaseSingleInterp):
         hweights[:,good] = hweights[:,good]/norm[good]
 
         # Find the neighboring moonAltitude points in the grid
-        order = np.argsort(interpPoints['moonAltitude'])
-        good = np.where( (interpPoints['moonAltitude'][order] >= np.min( self.dimDict['moonAltitude'])) &
-                         (interpPoints['moonAltitude'][order] <= np.max( self.dimDict['moonAltitude']))  )
-        rightMAs = np.searchsorted(self.dimDict['moonAltitude'], interpPoints[order]['moonAltitude'] )
-        leftMAs = rightMAs-1
-
-        # Set the indices that are out of the grid to 0.
-        leftMAs[np.where(leftMAs) < 0] = 0
-        rightMAs[np.where(rightMAs > self.dimDict['moonAltitude'].size-1)] = self.dimDict['moonAltitude'].size-1
-        maids = np.array([rightMAs,leftMAs] )
-
-        maWs= np.zeros((2,interpPoints.size), dtype=float)
-        fullRange = self.dimDict['moonAltitude'][rightMAs[good]]- self.dimDict['moonAltitude'][leftMAs[good]]
-        maWs[0,order[good]] = (self.dimDict['moonAltitude'][rightMAs[good]]-
-                               interpPoints['moonAltitude'][order[good]])/fullRange
-        maWs[1,order[good]] =(interpPoints['moonAltitude'][order[good]]-
-                              self.dimDict['moonAltitude'][leftMAs[good]])/fullRange
+        rightMAs, leftMAs, maRightW, maLeftW = self.indxAndWeights(interpPoints['moonAltitude'],
+                                                                   self.dimDict['moonAltitude'])
 
         # Find the neighboring moonSunSep points in the grid
-        order = np.argsort(interpPoints['moonSunSep'])
-        good = np.where( (interpPoints['moonSunSep'][order] >= np.min( self.dimDict['moonSunSep'])) &
-                         (interpPoints['moonSunSep'][order] <= np.max( self.dimDict['moonSunSep']))  )
-        rightMAs = np.searchsorted(self.dimDict['moonSunSep'], interpPoints[order]['moonSunSep'] )
-        leftMAs = rightMAs-1
-
-        # Set the indices that are out of the grid to 0.
-        leftMAs[np.where(leftMAs) < 0] = 0
-        rightMAs[np.where(rightMAs > self.dimDict['moonSunSep'].size-1)] = self.dimDict['moonSunSep'].size-1
-        mssids = np.array([rightMAs,leftMAs] )
-
-        mssWs= np.zeros((2,interpPoints.size), dtype=float)
-        fullRange = self.dimDict['moonSunSep'][rightMAs[good]]- self.dimDict['moonSunSep'][leftMAs[good]]
-        mssWs[0,order[good]] = (self.dimDict['moonSunSep'][rightMAs[good]]-
-                               interpPoints['moonSunSep'][order[good]])/fullRange
-        mssWs[1,order[good]] =(interpPoints['moonSunSep'][order[good]]-
-                              self.dimDict['moonSunSep'][leftMAs[good]])/fullRange
+        rightMss, leftMss, mssRightW, mssLeftW = self.indxAndWeights(interpPoints['moonSunSep'],
+                                                                   self.dimDict['moonSunSep'])
 
         nhpid = self.dimDict['hpid'].size
         nMA = self.dimDict['moonAltitude'].size
@@ -522,8 +492,8 @@ class MoonInterp(BaseSingleInterp):
         # loop though the hweights and the moonAltitude weights
 
         for hpid,hweight in zip(hpindx,hweights):
-            for maid,maW in zip(maids, maWs):
-                for mssid,mssW in zip(mssids, mssWs):
+            for maid,maW in zip([rightMAs,leftMAs],[maRightW,maLeftW] ):
+                for mssid,mssW in zip([rightMss,leftMss], [mssRightW,mssLeftW]):
                     weight = hweight*maW*mssW
                     result += weight[:,np.newaxis]*values[mssid*nhpid*nMA+maid*nhpid+hpid]
 

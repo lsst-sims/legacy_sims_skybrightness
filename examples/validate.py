@@ -54,7 +54,7 @@ dateData,mjd = sb.allSkyDB(2744 , sqlQ=sqlQ, filt=None,dtypes=zip(['dateID', 'mj
                                                                   [int,float,float,float]))
 
 
-skipsize = 10000
+skipsize = 1000
 indices = np.arange(0,dateData.size, skipsize)
 
 # Maybe bin things on 15-min timescales to cut down the number of calls I need to make to the model
@@ -78,9 +78,23 @@ starLimit = 200
 
 # Create array to hold the results of
 names = ['moonAlt', 'sunAlt', 'obsZenith', 'modelZenith', 'obsDarkestHP',
-         'modelDarkestHP', 'obsPointing', 'modelPointing']
-types = [float, float,float,float,int,int,float,float]
+         'modelDarkestHP', 'obsPointing', 'modelPointing', 'angDistances']
+
+# I guess I might as well add the brightest points in the sky as well...
+
+types = [float, float,float,float,int,int,float,float, float]
 validationArr = np.zeros(indices.size, dtype=zip(names,types) )
+
+# Don't look at Canon above this limit.
+amMax = 1.6
+
+
+npix = hp.nside2npix(nside)
+hpid = np.arange(npix)
+lat,lon = hp.pix2ang(nside,hpid)
+hpra = lon
+hpdec = np.pi/2.-lat
+
 
 
 for filterName in filters:
@@ -88,25 +102,24 @@ for filterName in filters:
         skydata,mjd = sb.allSkyDB(dateData[indx]['dateID'], filt=filterName)
         if skydata.size > starLimit:
             airmass = 1./np.cos(np.radians(90.-skydata['alt']))
-            skydata = skydata[np.where(airmass < 2.1)]
+            skydata = skydata[np.where((airmass < amMax) & (airmass >= 1.))]
             alt,az,pa =  _altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
                                            telescope.lon, telescope.lat, mjd)
             skyhp = healplots.healbin(az,alt, skydata['sky'], nside=nside)
             skyhp[np.isnan(skyhp)] = hp.UNSEEN
 
-            sm.setRaDecMjd(np.radians(skydata['ra']), np.radians(skydata['dec']), mjd, degrees=False)
+            good = np.where(skyhp != hp.UNSEEN)
+            sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
             sm.computeSpec()
-            mags = sm.computeMags(canonDict[filterName])
-            good = np.where(mags > 0)
-            modelhp = healplots.healbin(az[good], alt[good], mags[good], nside=nside)
+            modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
+            modelhp[good] = sm.computeMags(canonDict[filterName])
+            #sm.setRaDecMjd(np.radians(skydata['ra']), np.radians(skydata['dec']), mjd, degrees=False)
+            #sm.computeSpec()
+            #mags = sm.computeMags(canonDict[filterName])
+            #good = np.where(mags > 0)
+            #modelhp = healplots.healbin(az[good], alt[good], mags[good], nside=nside)
 
-            modelhp[np.isnan(modelhp)] = hp.UNSEEN
-
-            # ok, now to find the darkest spots and compute angular distance.
-            # save data and model zenith sky brightnesses
-            # save at some other alt/az combo?
-            #validationArr['modelZenith'][i] = modelhp[0]
-            #validationArr['obsZenith'][i] = skyhp[0]
+            #modelhp[np.isnan(modelhp)] = hp.UNSEEN
 
             notnan = np.where(skyhp != hp.UNSEEN)
             validationArr['obsDarkestHP'][i] = np.where(skyhp == skyhp[notnan].max() )[0].min()
@@ -122,4 +135,12 @@ for filterName in filters:
             validationArr['moonAlt'][i] = np.degrees(sm.moonAlt)
             validationArr['sunAlt'][i] = np.degrees(sm.sunAlt)
 
-angDistances = healpixels2dist(nside,validationArr['obsDarkestHP'], validationArr['modelDarkestHP'])
+            if np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'][i],validationArr['modelDarkestHP'][i])) > 40.:
+                print 'breaking out of loop'
+                break
+
+
+        else:
+            validationArr['moonAlt'][i] = -666
+validationArr['angDistances'] = np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'],
+                                                           validationArr['modelDarkestHP']))
