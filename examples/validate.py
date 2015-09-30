@@ -78,15 +78,16 @@ starLimit = 200
 
 # Create array to hold the results of
 names = ['moonAlt', 'sunAlt', 'obsZenith', 'modelZenith', 'obsDarkestHP',
-         'modelDarkestHP', 'obsPointing', 'modelPointing', 'angDistances']
+         'modelDarkestHP', 'obsBrightestHP',
+         'modelBrightestHP', 'obsPointing', 'modelPointing', 'angDistancesFaint', 'angDistancesBright']
 
 # I guess I might as well add the brightest points in the sky as well...
 
-types = [float, float,float,float,int,int,float,float, float]
+types = [float, float,float,float,int,int,int,int, float,float, float, float, float]
 validationArr = np.zeros(indices.size, dtype=zip(names,types) )
 
 # Don't look at Canon above this limit.
-amMax = 1.6
+amMax = 2.1
 
 
 npix = hp.nside2npix(nside)
@@ -123,8 +124,10 @@ for filterName in filters:
 
             notnan = np.where(skyhp != hp.UNSEEN)
             validationArr['obsDarkestHP'][i] = np.where(skyhp == skyhp[notnan].max() )[0].min()
+            validationArr['obsBrightestHP'][i] = np.where(skyhp == skyhp[notnan].min() )[0].min()
             notnan =np.where(modelhp != hp.UNSEEN)
             validationArr['modelDarkestHP'][i]  = np.where(modelhp == modelhp[notnan].max() )[0]
+            validationArr['modelBrightestHP'][i]  = np.where(modelhp == modelhp[notnan].min() )[0]
 
             good = np.where(skyhp[0:4] != hp.UNSEEN)[0]
             if good.size >= 1:
@@ -135,12 +138,17 @@ for filterName in filters:
             validationArr['moonAlt'][i] = np.degrees(sm.moonAlt)
             validationArr['sunAlt'][i] = np.degrees(sm.sunAlt)
 
-            if np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'][i],validationArr['modelDarkestHP'][i])) > 40.:
-                print 'breaking out of loop'
-                break
+            #if np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'][i],validationArr['modelDarkestHP'][i])) > 30.:
+            #    print 'breaking out of loop'
+            #    break
+            #if np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'][i],validationArr['modelBrightestHP'][i])) > 50:
+            #    print 'breaking out of loop'
+            #    break
 
 
         else:
             validationArr['moonAlt'][i] = -666
-validationArr['angDistances'] = np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'],
-                                                           validationArr['modelDarkestHP']))
+validationArr['angDistancesFaint'] = np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'],
+                                                                validationArr['modelDarkestHP']))
+validationArr['angDistancesBright'] = np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'],
+                                                                validationArr['modelBrightestHP']))
