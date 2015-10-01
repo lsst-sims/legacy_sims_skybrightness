@@ -46,17 +46,28 @@ Here, we briefly descibe the sky components included in the ESO model and how we
 
 \subsection{Zodiacal Light}
 
+We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5. And a healpixel grid of 192 elements (nside=4, resolution of $\sim15\degree$).  The healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  
 
 \subsection{Scattered Moonlight}
 
 \citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal. \citet{Jones13} claim their model uncertainty is $<20$\% in the optical.  Unlike the \citet{Krisciunas91} model that is a fit to observed broadband sky brightnesses, the \citet{Jones13} model uses fully 3D single scattering calculations and provides an entire spectrum.
+
+We build a template library of scattered moonlight by considering moon-sun separations of 0$\degree$to 180$\degree$ in 15 degree steps, and moon altitudes from 15$\degree$to 90$\degree$.  We then compute the expected spectrum on a grid of 29 positions across the sky. This is a healpixel grid (with nside=4, resolution of $\sim15\degree$), based on altitude and azimuth (relative to the moon), where we ignore poistions with an airmass greater than 2.6. This results in a total of 2,262 template spectra for the scattered moonlight.
+
+(The very observant might notice that since the azimuth is defined relative to the moon, the sky is symetric and we should be able to drop half of the healpixels.)
+
 
 \citet{Noll12}
 
 
 \subsection{Airglow}
 
+The airglow is assumed to be a function of airmass and solar activity.  We compute the spectra on a grid of airmass of 1 to 2 with steps of 0.1 and an airmass of 2.5.  For the solar activity, we span 50 to 310 sfu with a step size of 20, resulting in a total of 168 airglow spectra.
 
+
+Technically, the airglow is also varies with the time of year and time of night.  This variation is quite small relative to the solar activity, so we have not included it.
+
+xxx--should note that in addition to the sun and moon alt I should look at residuals versus time of night.
 
 \subsection{Stattered Star Light}
 
@@ -83,7 +94,7 @@ In addition to the spectra, we also pre-compute the 6 LSST magnitudes from the s
 
 We combine the three components that only depend on airmass (xxx,xxx,xxx).
 
-For all the interpolations, we weight and average the log of the template spectra.
+For all the interpolations, we weight and average the base-10 log of the template spectra.
 
 For the Zodiacal and Lunar components, since we have placed the templates at healpix gridpoints, we can use fast healpy routines to find the 4 nearest healpixel points, along with their weights.  
 
