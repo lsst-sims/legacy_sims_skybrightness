@@ -107,13 +107,12 @@ class BaseSingleInterp(object):
         indxL = indxR-1
 
         fullRange = grid[indxR]-grid[indxL]
-        wL = (grid[indxR] - points)/fullRange
-        wR = (points - grid[indxL])/fullRange
+        wL = np.zeros(fullRange.size, dtype=float)
+        wR = np.ones(fullRange.size, dtype=float)
 
-        # Catch points that land on a model point
-        onPoint = np.where(fullRange == 0)
-        wR[onPoint] = 1.
-        wL[onPoint] = 0.
+        good = np.where(fullRange != 0)
+        wL[good] = (grid[indxR][good] - points[good])/fullRange[good]
+        wR[good] = (points[good] - grid[indxL[good]])/fullRange[good]
 
         return indxR,indxL,wR,wL
 

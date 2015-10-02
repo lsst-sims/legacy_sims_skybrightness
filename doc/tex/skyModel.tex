@@ -48,6 +48,12 @@ Here, we briefly descibe the sky components included in the ESO model and how we
 
 We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5. And a healpixel grid of 192 elements (nside=4, resolution of $\sim15\degree$).  The healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  
 
+\begin{figure}
+  \plotone{../Plots/zodiacal.pdf}
+  \caption{Example of zodiacal light \label{fig:zodiacal}}
+\end{figure}
+
+
 \subsection{Scattered Moonlight}
 
 \citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal. \citet{Jones13} claim their model uncertainty is $<20$\% in the optical.  Unlike the \citet{Krisciunas91} model that is a fit to observed broadband sky brightnesses, the \citet{Jones13} model uses fully 3D single scattering calculations and provides an entire spectrum.
@@ -60,6 +66,12 @@ We build a template library of scattered moonlight by considering moon-sun separ
 \citet{Noll12}
 
 
+\begin{figure}
+  \plotone{../Plots/moon.pdf}
+  \caption{Example of the moon spectra. \label{fig:moon}}
+\end{figure}
+
+
 \subsection{Airglow}
 
 The airglow is assumed to be a function of airmass and solar activity.  We compute the spectra on a grid of airmass of 1 to 2 with steps of 0.1 and an airmass of 2.5.  For the solar activity, we span 50 to 310 sfu with a step size of 20, resulting in a total of 168 airglow spectra.
@@ -69,7 +81,14 @@ Technically, the airglow is also varies with the time of year and time of night.
 
 xxx--should note that in addition to the sun and moon alt I should look at residuals versus time of night.
 
-\subsection{Stattered Star Light}
+\begin{figure}
+  \plotone{../Plots/airglow.pdf}
+  \caption{Example of airglow spectra. \label{fig:airglow}}
+\end{figure}
+
+  
+
+\subsection{Scattered Star Light}
 
 
 
@@ -81,6 +100,10 @@ The airglow also correlates strongly with the solar radio flux level.  This vari
 
 %XXX--looking at fig 14 in  \citet{Noll12}, it looks like the emission lines should be varying with the solar flux ratio--but I thought I didn't see any variation when I plugged it into the ESO calculator.  OK, just double checked and they don't vary. Might want to check with ESO about that.
 
+\begin{figure}
+  \plotone{../Plots/merged.pdf}
+  \caption{Example of the sky brightness components that are only dependent on airmass.  \label{fig:merged}}
+\end{figure}
 
 
 
@@ -125,21 +148,27 @@ Rather than run a lot of radiative transfer, looking at the data from the all-sk
   \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (right panel), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses (left panels), the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
 \end{figure*}
 
+
+
 To model the broadband flux from only the scattered twilight, we use a simple model of the form
 \begin{equation}\label{eqn:twi1}
   f^{away} = f_{z} r_{12/z} 10^{a(\alpha-12^{\circ})+b(X-1)}
 \end{equation}
-where $\alpha$ is the altitude of the sun, $X$ is the airmass, $f_{z}$ is the flux at zenith during dark time, and $r_{12/z}$ is the ratio of the 12-degree twilight zenith flux to the dark time zenith flux.
-for the direction of the sun and airmass greater than 1.1:
-\begin{equation}\label{eqn:twi2}
-  f^{toward} = f^{away}10^{c \cos{\phi}(X-1)}
+where $\alpha$ is the altitude of the sun, $X$ is the airmass, $f_{z}$ is the flux at zenith during dark time, and $r_{12/z}$ is the ratio of the 12-degree twilight zenith flux to the dark time zenith flux. The full twilight flux in any direction is then given by
+\begin{equation}
+  \label{eqn:twi}
+  f^{twi}  = \left\{
+  \begin{array}{@{}ll@{}}
+        f^{away}, & \text{if}\  \pi/2 < \phi < -\pi/2   \\
+        f^{away} 10^{c (X-1) \cos{\phi}}, &  \text{if}\   \pi/2 > \phi >  -\pi/2
+        \end{array} \right.
 \end{equation}
-Where $\phi$ is the azimuth relative to the sun. When the moon is down and the zodiacal light is negligable, we expect the total zenith flux to be $f^{tot} = f^{away} + f_{z}$.  
+where $\phi$ is the azimuthal angle relative to the sun. The total sky background flux at zenith is then given by $f = f^{twi} + f_{z}$.
 
-or in magnitudes:
+
 \begin{eqnarray}
   m^{away} = m_0 -2.5a(\alpha-12^{\circ})-2.5b(X-1) \\
-  m^{toward} = m^{away} -2.5c\cos{\phi}(X-1)
+  m^{toward} = m^{away} -2.5c(X-1)\cos{\phi}
 \end{eqnarray}
 By default, we only apply the twilight component for solar altitudes between -11 and -20 degrees.
 
@@ -153,7 +182,7 @@ The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Ca
   \tabletypesize{\small }
   %\rotate
   \tablewidth{0pt}
-  \tablecaption{Final parameters for equations~\ref{eqn:twi1} and~\ref{eqn:twi2} used by the skybrighntess twilight component. \label{table:canonFits}}
+  \tablecaption{Final parameters for equation~\ref{eqn:twi} used by the skybrighntess twilight component. \label{table:canonFits}}
   
   \tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ (1/radians)} & \colhead{$b$ (1/airmass)} & \colhead{$c$ (az term/airmass)} & \colhead{$f_z,dark$ (erg/s/cm$^2$)$\times 10^8$} & \colhead{m$_z,dark$}}
   \startdata
