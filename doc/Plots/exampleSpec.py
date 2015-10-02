@@ -21,7 +21,7 @@ for comp in comps:
     setattr(sm,comp,False)
 sm.zodiacal = True
 sm.computeSpec()
-
+#import pdb ; pdb.set_trace()
 fig, ax = plt.subplots()
 ax.semilogy(sm.wave, sm.spec[0], label='airmass = %.1f, $l=$%.1f, $b$=%.1f' % (sm.airmass[0],np.degrees(sm.points['azEclipRelSun'][0]), np.degrees(sm.points['altEclip'][0]) ), alpha=.5)
 ax.semilogy(sm.wave, sm.spec[100], label='airmass = %.1f, $l=$%.1f, $b$=%.1f' % (sm.airmass[100], np.degrees(sm.points['azEclipRelSun'][100]), np.degrees(sm.points['altEclip'][100])), alpha=.5)
