@@ -125,39 +125,18 @@ class BaseSingleInterp(object):
         Input interpPoints should be sorted
         """
 
-        order = np.argsort(interpPoints, order=self.sortedOrder)
-
         results = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
-        # The model values for the left and right side.
-        right = np.searchsorted(self.dimDict['airmass'], interpPoints['airmass'][order])
-        left = right-1
+        inRange = np.where( (interpPoints['airmass'] <= np.max(self.dimDict['airmass'])) &
+                            (interpPoints['airmass'] >= np.min(self.dimDict['airmass'])))
+        indxR,indxL,wR,wL = self.indxAndWeights(interpPoints['airmass'][inRange],
+                                                self.dimDict['airmass'])
 
-        # catch it somewhere if the interp point is outside the model range?
-        #inRange = np.where((left >= 0) & (right <= self.dimDict['airmass'].size)  & (left < right) )
-        inRange = np.where( (interpPoints['airmass'][order] <= np.max(self.dimDict['airmass'])) &
-                            (interpPoints['airmass'][order] >= np.min(self.dimDict['airmass'])))
-
-        left[np.where(left < 0)] = 0
-        right[np.where(right >= self.dimDict['airmass'].size)] = self.dimDict['airmass']-1
-
-        # Calc the weights associated with each of those corners
-        fullRange = self.dimDict['airmass'][right]-self.dimDict['airmass'][left]
-        w1 = (self.dimDict['airmass'][right] - interpPoints['airmass'][order])/fullRange
-        w2 = (interpPoints['airmass'][order] - self.dimDict['airmass'][left])/fullRange
-
-        # Catch points that land on a model point
-        onPoint = np.where(fullRange == 0)
-        w1[onPoint] = 1.
-        w2[onPoint] = 0.
-
-        # Little kludge to make up for the fact that each airmass
-        # has 3 "time of night" values that we're ignoring.
         nextra = 3
 
         # XXX--should I use the log spectra?  Make a check and switch back and forth?
-        results[order[inRange]] = w1[inRange,np.newaxis]*values[left[inRange]*nextra] + \
-                                  w2[inRange,np.newaxis]*values[right[inRange]*nextra]
+        results[inRange] = wR[:,np.newaxis]*values[indxR*nextra] + \
+                           wL[:,np.newaxis]*values[indxL*nextra]
 
         return results
 
