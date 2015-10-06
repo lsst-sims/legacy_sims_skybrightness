@@ -36,17 +36,17 @@ Seattle WA, 98195; {yoachim@uw.edu} }
 
 \section{Introduction}
 
-As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC}}.  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  
+As a starting point, we use the ESO SkyCalc Sky Model Calculator ({\url{http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC}).  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  
 
+The general idea is that the ESO model computes the expected sky background from different sources from first principles. Because LSST will want to compute the sky background for the full sky millions of times throughout the survey, we can speed things up by pre-computing the ESO model on various parameter grids and inerpolating the results to our specific situations. Also, the ESO source code is not available, limiting our ability to run it directly at scale.
 
 \section{The ESO Model}
-Here, we briefly descibe the sky components included in the ESO model and how we have created model grids with them.
-
-
+Here, we briefly descibe the sky components included in the ESO model and how we have created model grids with them. The ESO model is described in detail in \citec{Noll12} and \citet{Jones13}.
 
 \subsection{Zodiacal Light}
+Zodiacal light is caused by sunlight scattered by dust grains in the plane of the ecliptic.  
 
-We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5. And a healpixel grid of 192 elements (nside=4, resolution of $\sim15\degree$).  The healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  
+We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5. And a healpixel grid of 192 elements (nside=4, resolution of $\sim15\degree$).  The healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  Some example zodiacal light spectra are shown in Figure~\ref{fig:zodiacal}.
 
 \begin{figure}
   \plotone{../Plots/zodiacal.pdf}
@@ -58,13 +58,7 @@ We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5. And a healpixel grid of 192
 
 \citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal. \citet{Jones13} claim their model uncertainty is $<20$\% in the optical.  Unlike the \citet{Krisciunas91} model that is a fit to observed broadband sky brightnesses, the \citet{Jones13} model uses fully 3D single scattering calculations and provides an entire spectrum.
 
-We build a template library of scattered moonlight by considering moon-sun separations of 0$\degree$to 180$\degree$ in 15 degree steps, and moon altitudes from 15$\degree$to 90$\degree$.  We then compute the expected spectrum on a grid of 29 positions across the sky. This is a healpixel grid (with nside=4, resolution of $\sim15\degree$), based on altitude and azimuth (relative to the moon), where we ignore poistions with an airmass greater than 2.6. This results in a total of 2,262 template spectra for the scattered moonlight.
-
-(The very observant might notice that since the azimuth is defined relative to the moon, the sky is symetric and we should be able to drop half of the healpixels.)
-
-
-\citet{Noll12}
-
+We build a template library of scattered moonlight by considering moon-sun separations of 0$\degree$to 180$\degree$ in 15 degree steps, and moon altitudes from 15$\degree$to 90$\degree$.  We then compute the expected spectrum on a grid of 29 positions across the sky. This is a healpixel grid (with nside=4, resolution of $\sim15\degree$), based on altitude and azimuth (relative to the moon), where we ignore poistions with an airmass greater than 2.6. This results in a total of 2,262 template spectra for the scattered moonlight\footnote{The very observant might notice that since the azimuth is defined relative to the moon, the sky is symetric and we should be able to drop half of the healpixels}.
 
 \begin{figure}
   \plotone{../Plots/moon.pdf}
@@ -74,10 +68,9 @@ We build a template library of scattered moonlight by considering moon-sun separ
 
 \subsection{Airglow}
 
-The airglow is assumed to be a function of airmass and solar activity.  We compute the spectra on a grid of airmass of 1 to 2 with steps of 0.1 and an airmass of 2.5.  For the solar activity, we span 50 to 310 sfu with a step size of 20, resulting in a total of 168 airglow spectra.
+The airglow is assumed to be a function of airmass and solar activity.  We compute the spectra on a grid of airmass of 1 to 2 with steps of 0.1 and additionally an airmass of 2.5.  For the solar activity, we span 50 to 310 sfu with a step size of 20, resulting in a total of 168 airglow spectra. 
 
-
-Technically, the airglow is also varies with the time of year and time of night.  This variation is quite small relative to the solar activity, so we have not included it.
+Technically, the airglow is also varies with the time of year and time of night.  This variation is quite small relative to the solar activity\citet{Noll12}, so we have not included it.
 
 xxx--should note that in addition to the sun and moon alt I should look at residuals versus time of night.
 
@@ -90,6 +83,7 @@ xxx--should note that in addition to the sun and moon alt I should look at resid
 
 \subsection{Scattered Star Light}
 
+The scattered star light is a very minor component in the sky background. Thus the ESO model uses a mean spectrum.  An example of the scattered star light is show in Figure\ref{fig:merged}.
 
 
 \subsection{Atmospheric Emission Lines}
@@ -117,10 +111,9 @@ In addition to the spectra, we also pre-compute the 6 LSST magnitudes from the s
 
 We combine the three components that only depend on airmass (xxx,xxx,xxx).
 
-For all the interpolations, we weight and average the base-10 log of the template spectra.
+For all the interpolations, we weight and average the base-10 log of the template spectra.  In the future, we could experiment with switching between interpolating the spectra and the log of the spectra based on how much variation there is between interpolation points.
 
 For the Zodiacal and Lunar components, since we have placed the templates at healpix gridpoints, we can use fast healpy routines to find the 4 nearest healpixel points, along with their weights.  
-
 
 
 \section{Observations}
@@ -150,7 +143,7 @@ Rather than run a lot of radiative transfer, looking at the data from the all-sk
 
 
 
-To model the broadband flux from only the scattered twilight, we use a simple model of the form
+To model the broadband flux from only the scattered twilight, we use a model of the form
 \begin{equation}\label{eqn:twi1}
   f^{away} = f_{z} r_{12/z} 10^{a(\alpha-12^{\circ})+b(X-1)}
 \end{equation}
@@ -173,7 +166,7 @@ where $\phi$ is the azimuthal angle relative to the sun. The total sky backgroun
 By default, we only apply the twilight component for solar altitudes between -11 and -20 degrees.
 
 
-The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Canon filters are listed in Table~\ref{table:canonFits}
+The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Canon filters and the photodiode data are listed in Table~\ref{table:canonFits}
 
 %>>> import lsst.sims.skybrightness as sb
 %>>> twi = sb.TwilightInterp()

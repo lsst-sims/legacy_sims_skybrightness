@@ -74,7 +74,9 @@ class BaseSingleInterp(object):
                 temp = np.load(filename)
                 self.spec = np.append(self.spec, temp['spec'])
         # Take the log of the spectra in case we want to interp in log space.
-        self.logSpec = np.log10(self.spec['spectra'])
+        self.logSpec = np.zeros(self.spec['spectra'].shape, dtype=float)
+        good = np.where( self.spec['spectra'] != 0)
+        self.logSpec[good] = np.log10(self.spec['spectra'][good])
         self.specSize = self.spec['spectra'][0].size
 
         # What order are the dimesions sorted by (from how the .npz was packaged)

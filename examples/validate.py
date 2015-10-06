@@ -1,6 +1,6 @@
 import numpy as np
 import lsst.sims.skybrightness as sb
-from scipy.stats import binned_statistic
+from scipy.stats import binned_statistic_2d
 
 from lsst.sims.selfcal.analysis import healplots
 from lsst.sims.utils import _altAzPaFromRaDec
@@ -9,6 +9,13 @@ import healpy as hp
 import os
 import lsst.sims.photUtils.Bandpass as Bandpass
 from lsst.sims.utils import haversine
+import matplotlib.pylab as plt
+
+def robustRMS(data):
+    iqr = np.percentile(data,75)-np.percentile(data,25)
+    rms = iqr/1.349 #approximation
+    return rms
+
 
 def healpixels2dist(nside, hp1,hp2):
     """
@@ -50,11 +57,11 @@ for key in canonFiles.keys():
 
 
 sqlQ = 'select id,mjd,sunAlt,moonAlt from dates'
-dateData,mjd = sb.allSkyDB(2744 , sqlQ=sqlQ, filt=None,dtypes=zip(['dateID', 'mjd', 'moonAlt','sunAlt'],
+dateData,mjd = sb.allSkyDB(2744 , sqlQ=sqlQ, filt=None,dtypes=zip(['dateID', 'mjd','sunAlt', 'moonAlt'],
                                                                   [int,float,float,float]))
 
 
-skipsize = 1000
+skipsize = 10
 indices = np.arange(0,dateData.size, skipsize)
 
 # Maybe bin things on 15-min timescales to cut down the number of calls I need to make to the model
@@ -62,19 +69,12 @@ indices = np.arange(0,dateData.size, skipsize)
 #edges = np.arange(skydata['mjd'].min(),skydata['mjd'].max()+binsize*2, binsize)
 
 filters = ['R','G','B']
-filters = ['R']
-
 sm = sb.SkyModel(mags=False)
 telescope = TelescopeInfo('LSST')
 
 nside = 16
 # Demand this many stars before trying to fit. This should reject the very cloudy frames
 starLimit = 200
-
-# XXX---OK, I'm getting NaNs this way.  Maybe a better way would be to just pull every Nth mjd
-# that fits the sun alt limits, and then I can check the number of stars, demand there be over XXX,
-# and then make a map, then I can compare the zenith model, and find the model and observation faintest directions.
-
 
 # Create array to hold the results of
 names = ['moonAlt', 'sunAlt', 'obsZenith', 'modelZenith', 'obsDarkestHP',
@@ -114,13 +114,6 @@ for filterName in filters:
             sm.computeSpec()
             modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
             modelhp[good] = sm.computeMags(canonDict[filterName])
-            #sm.setRaDecMjd(np.radians(skydata['ra']), np.radians(skydata['dec']), mjd, degrees=False)
-            #sm.computeSpec()
-            #mags = sm.computeMags(canonDict[filterName])
-            #good = np.where(mags > 0)
-            #modelhp = healplots.healbin(az[good], alt[good], mags[good], nside=nside)
-
-            #modelhp[np.isnan(modelhp)] = hp.UNSEEN
 
             notnan = np.where(skyhp != hp.UNSEEN)
             validationArr['obsDarkestHP'][i] = np.where(skyhp == skyhp[notnan].max() )[0].min()
@@ -138,17 +131,84 @@ for filterName in filters:
             validationArr['moonAlt'][i] = np.degrees(sm.moonAlt)
             validationArr['sunAlt'][i] = np.degrees(sm.sunAlt)
 
-            #if np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'][i],validationArr['modelDarkestHP'][i])) > 30.:
-            #    print 'breaking out of loop'
-            #    break
-            #if np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'][i],validationArr['modelBrightestHP'][i])) > 50:
-            #    print 'breaking out of loop'
-            #    break
-
-
         else:
             validationArr['moonAlt'][i] = -666
-validationArr['angDistancesFaint'] = np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'],
-                                                                validationArr['modelDarkestHP']))
-validationArr['angDistancesBright'] = np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'],
-                                                                validationArr['modelBrightestHP']))
+
+    validationArr['angDistancesFaint'] = np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'],
+                                                                    validationArr['modelDarkestHP']))
+    validationArr['angDistancesBright'] = np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'],
+                                                                    validationArr['modelBrightestHP']))
+
+    fig,ax = plt.subplots()
+
+    good = np.where(validationArr['moonAlt'] != -666)
+    moonAltBins = np.arange(-90,90+5, 5)
+    sunAltBins = np.arange(-90,90+5, 5)
+
+    #medianResid, x_edge,y_edge, bn = binned_statistic_2d(validationArr['moonAlt'][good],
+    #                                                     validationArr['sunAlt'][good],
+    #                                                     validationArr['angDistancesFaint'][good],
+    #                                                     statistic=np.median, bins=20)
+
+
+    #xx,yy = np.meshgrid(xx,yy)
+    #good = ~np.isnan(medianResid)
+    #im = ax.imshow(medianResid, extent=[x_edge.min(),x_edge.max(),y_edge.min(),y_edge.max()],
+    #               origin='lower', interpolation='nearest')
+    im = ax.hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
+                   C=validationArr['angDistancesFaint'][good], reduce_C_function=np.median,
+                   gridsize=20)
+
+    ax.set_ylabel('Sun Altitude (degrees)')
+    ax.set_xlabel('Moon Altitude (degrees)')
+    ax.set_title('filter %s' % filterName)
+    ax.axhline(-22, linestyle='--')
+    ax.axvline(0, linestyle='--')
+    cb = plt.colorbar(im)
+    cb.set_label('Median Offset (degrees)')
+    fig.savefig('Plots/medianAngDiff_%s_.pdf' % filterName)
+    plt.close(fig)
+
+
+    fig,ax = plt.subplots()
+
+    im = ax.hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
+                   C=validationArr['angDistancesFaint'][good], reduce_C_function=robustRMS,
+                   gridsize=20)
+
+    ax.set_ylabel('Sun Altitude (degrees)')
+    ax.set_xlabel('Moon Altitude (degrees)')
+    ax.set_title('filter %s' % filterName)
+    ax.axhline(-22, linestyle='--')
+    ax.axvline(0, linestyle='--')
+
+    cb = plt.colorbar(im)
+    cb.set_label('Robust-RMS Offset (degrees)')
+    fig.savefig('Plots/rmsAngDiff_%s_.pdf' % filterName)
+    plt.close(fig)
+
+    fig,ax = plt.subplots()
+
+
+    im = ax.hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
+                   gridsize=20)
+    ax.set_ylabel('Sun Altitude (degrees)')
+    ax.set_xlabel('Moon Altitude (degrees)')
+    ax.set_title('filter %s, %i total frames ' % (filterName, good[0].size))
+    ax.axhline(-22, linestyle='--')
+    ax.axvline(0, linestyle='--')
+
+    cb = plt.colorbar(im)
+    cb.set_label('Count')
+    fig.savefig('Plots/countObs_%s_.pdf' % filterName)
+    plt.close(fig)
+
+
+
+
+# Do I need to use the origin='lower' ? YES
+#x = np.arange(10)
+#y=np.arange(10)
+#xx,yy = np.meshgrid(x,y)
+#z = xx+yy
+#plt.imshow(z,extent=[xx.min(),xx.max(),yy.min(),yy.max()])
