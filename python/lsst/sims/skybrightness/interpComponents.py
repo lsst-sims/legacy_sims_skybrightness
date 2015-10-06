@@ -108,6 +108,10 @@ class BaseSingleInterp(object):
         indxR[order] = np.searchsorted(grid, points[order])
         indxL = indxR-1
 
+        # If points off the grid were requested, just use the edge grid point
+        offGrid = np.where(indxR == indxR.size)
+        indxR[offGrid] = indxR.size-1
+
         fullRange = grid[indxR]-grid[indxL]
         wL = np.zeros(fullRange.size, dtype=float)
         wR = np.ones(fullRange.size, dtype=float)

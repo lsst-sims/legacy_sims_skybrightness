@@ -203,6 +203,7 @@ for filterName in filters:
     fig.savefig('Plots/countObs_%s_.pdf' % filterName)
     plt.close(fig)
 
+    np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
 
 
 

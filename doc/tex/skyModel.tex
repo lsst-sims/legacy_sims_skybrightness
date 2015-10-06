@@ -29,22 +29,23 @@
 \altaffiltext{1}{Department of Astronomy, University of Washington, Box 351580,
 Seattle WA, 98195; {yoachim@uw.edu} }
 
-\begin{abstract}
-
-\end{abstract}
+%\begin{abstract}
+%\end{abstract}
 
 
 \section{Introduction}
 
-As a starting point, we use the ESO SkyCalc Sky Model Calculator ({\url{http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC}).  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  
+An accurate model of the background sky emission is needed to accuratly model and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator ({\url{http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC}).  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  
 
 The general idea is that the ESO model computes the expected sky background from different sources from first principles. Because LSST will want to compute the sky background for the full sky millions of times throughout the survey, we can speed things up by pre-computing the ESO model on various parameter grids and inerpolating the results to our specific situations. Also, the ESO source code is not available, limiting our ability to run it directly at scale.
 
 \section{The ESO Model}
-Here, we briefly descibe the sky components included in the ESO model and how we have created model grids with them. The ESO model is described in detail in \citec{Noll12} and \citet{Jones13}.
+Here, we briefly descibe the sky components included in the ESO model and how we have created model grids with them. The ESO model is described in detail in \citet{Noll12} and \citet{Jones13}.
+
+For all of the ESO models, we save the template spectra as numpy zip files.  The model specta run from 300 nm to 2 microns, with 0.1 nm stepsize.  In addition to the spectra, we also pre-compute the 6 LSST magnitudes from the spectrum at each interpolation point.
 
 \subsection{Zodiacal Light}
-Zodiacal light is caused by sunlight scattered by dust grains in the plane of the ecliptic.  
+Zodiacal light is caused by sunlight scattered by dust grains in the plane of the ecliptic.  The ESO model varies the Zodiacal light as a function of ecliptic coordinates and airmass.  
 
 We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5. And a healpixel grid of 192 elements (nside=4, resolution of $\sim15\degree$).  The healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  Some example zodiacal light spectra are shown in Figure~\ref{fig:zodiacal}.
 
@@ -99,13 +100,6 @@ The airglow also correlates strongly with the solar radio flux level.  This vari
   \caption{Example of the sky brightness components that are only dependent on airmass.  \label{fig:merged}}
 \end{figure}
 
-
-
-\subsection{Structure of the ESO Templates}
-
-We save the ESO template spectra as numpy zip files.  The specta run from 300 nm to 2 microns, with 0.1 nm stepsize.
-
-In addition to the spectra, we also pre-compute the 6 LSST magnitudes from the spectrum at each model point.
 
 \section{Interpolating the Templates}
 
