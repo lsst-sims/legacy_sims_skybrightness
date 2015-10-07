@@ -109,10 +109,10 @@ class BaseSingleInterp(object):
         indxL = indxR-1
 
         # If points off the grid were requested, just use the edge grid point
-        offGrid = np.where(indxR == indxR.size)
-        indxR[offGrid] = indxR.size-1
-
+        offGrid = np.where(indxR == grid.size)
+        indxR[offGrid] = grid.size-1
         fullRange = grid[indxR]-grid[indxL]
+
         wL = np.zeros(fullRange.size, dtype=float)
         wR = np.ones(fullRange.size, dtype=float)
 

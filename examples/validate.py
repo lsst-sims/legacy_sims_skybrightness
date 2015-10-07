@@ -68,6 +68,7 @@ indices = np.arange(0,dateData.size, skipsize)
 #binsize = 15./60./24.
 #edges = np.arange(skydata['mjd'].min(),skydata['mjd'].max()+binsize*2, binsize)
 
+read = True
 filters = ['R','G','B']
 sm = sb.SkyModel(mags=False)
 telescope = TelescopeInfo('LSST')
@@ -99,46 +100,52 @@ hpdec = np.pi/2.-lat
 
 
 for filterName in filters:
-    for i,indx in enumerate(indices):
-        skydata,mjd = sb.allSkyDB(dateData[indx]['dateID'], filt=filterName)
-        if skydata.size > starLimit:
-            airmass = 1./np.cos(np.radians(90.-skydata['alt']))
-            skydata = skydata[np.where((airmass < amMax) & (airmass >= 1.))]
-            alt,az,pa =  _altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
-                                           telescope.lon, telescope.lat, mjd)
-            skyhp = healplots.healbin(az,alt, skydata['sky'], nside=nside)
-            skyhp[np.isnan(skyhp)] = hp.UNSEEN
+    if read:
+        data = np.load('Plots/valAr_%s.npz' % filterName)
+        validationArr = data['validationArr'].copy()
+    else:
+        for i,indx in enumerate(indices):
+            skydata,mjd = sb.allSkyDB(dateData[indx]['dateID'], filt=filterName)
+            if skydata.size > starLimit:
+                airmass = 1./np.cos(np.radians(90.-skydata['alt']))
+                skydata = skydata[np.where((airmass < amMax) & (airmass >= 1.))]
+                alt,az,pa =  _altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
+                                               telescope.lon, telescope.lat, mjd)
+                skyhp = healplots.healbin(az,alt, skydata['sky'], nside=nside)
+                skyhp[np.isnan(skyhp)] = hp.UNSEEN
 
-            good = np.where(skyhp != hp.UNSEEN)
-            sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
-            sm.computeSpec()
-            modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
-            modelhp[good] = sm.computeMags(canonDict[filterName])
+                good = np.where(skyhp != hp.UNSEEN)
+                sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
+                sm.computeSpec()
+                modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
+                modelhp[good] = sm.computeMags(canonDict[filterName])
 
-            notnan = np.where(skyhp != hp.UNSEEN)
-            validationArr['obsDarkestHP'][i] = np.where(skyhp == skyhp[notnan].max() )[0].min()
-            validationArr['obsBrightestHP'][i] = np.where(skyhp == skyhp[notnan].min() )[0].min()
-            notnan =np.where(modelhp != hp.UNSEEN)
-            validationArr['modelDarkestHP'][i]  = np.where(modelhp == modelhp[notnan].max() )[0]
-            validationArr['modelBrightestHP'][i]  = np.where(modelhp == modelhp[notnan].min() )[0]
+                notnan = np.where(skyhp != hp.UNSEEN)
+                validationArr['obsDarkestHP'][i] = np.where(skyhp == skyhp[notnan].max() )[0].min()
+                validationArr['obsBrightestHP'][i] = np.where(skyhp == skyhp[notnan].min() )[0].min()
+                notnan =np.where(modelhp != hp.UNSEEN)
+                validationArr['modelDarkestHP'][i]  = np.where(modelhp == modelhp[notnan].max() )[0]
+                validationArr['modelBrightestHP'][i]  = np.where(modelhp == modelhp[notnan].min() )[0]
 
-            good = np.where(skyhp[0:4] != hp.UNSEEN)[0]
-            if good.size >= 1:
-                validationArr['obsZenith'][i] = skyhp[0:4][good].mean()
-            good = np.where(modelhp[0:4] != hp.UNSEEN)[0]
-            if good.size >= 1:
-                validationArr['modelZenith'][i] = modelhp[0:4][good].mean()
-            validationArr['moonAlt'][i] = np.degrees(sm.moonAlt)
-            validationArr['sunAlt'][i] = np.degrees(sm.sunAlt)
+                good = np.where(skyhp[0:4] != hp.UNSEEN)[0]
+                if good.size >= 1:
+                    validationArr['obsZenith'][i] = skyhp[0:4][good].mean()
+                good = np.where(modelhp[0:4] != hp.UNSEEN)[0]
+                if good.size >= 1:
+                    validationArr['modelZenith'][i] = modelhp[0:4][good].mean()
+                validationArr['moonAlt'][i] = np.degrees(sm.moonAlt)
+                validationArr['sunAlt'][i] = np.degrees(sm.sunAlt)
 
-        else:
-            validationArr['moonAlt'][i] = -666
+            else:
+                validationArr['moonAlt'][i] = -666
 
-    validationArr['angDistancesFaint'] = np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'],
-                                                                    validationArr['modelDarkestHP']))
-    validationArr['angDistancesBright'] = np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'],
-                                                                    validationArr['modelBrightestHP']))
+        validationArr['angDistancesFaint'] = np.degrees(healpixels2dist(nside,validationArr['obsDarkestHP'],
+                                                                        validationArr['modelDarkestHP']))
+        validationArr['angDistancesBright'] = np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'],
+                                                                         validationArr['modelBrightestHP']))
 
+
+################
     fig,ax = plt.subplots()
 
     good = np.where(validationArr['moonAlt'] != -666)
@@ -157,15 +164,17 @@ for filterName in filters:
     #               origin='lower', interpolation='nearest')
     im = ax.hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
                    C=validationArr['angDistancesFaint'][good], reduce_C_function=np.median,
-                   gridsize=20)
+                   gridsize=20, vmin=0.,vmax=40.)
 
     ax.set_ylabel('Sun Altitude (degrees)')
     ax.set_xlabel('Moon Altitude (degrees)')
     ax.set_title('filter %s' % filterName)
+    ax.set_ylim([-50,-10])
     ax.axhline(-22, linestyle='--')
     ax.axvline(0, linestyle='--')
     cb = plt.colorbar(im)
     cb.set_label('Median Offset (degrees)')
+    cb.solids.set_edgecolor("face")
     fig.savefig('Plots/medianAngDiff_%s_.pdf' % filterName)
     plt.close(fig)
 
@@ -179,11 +188,13 @@ for filterName in filters:
     ax.set_ylabel('Sun Altitude (degrees)')
     ax.set_xlabel('Moon Altitude (degrees)')
     ax.set_title('filter %s' % filterName)
+    ax.set_ylim([-50,-10])
     ax.axhline(-22, linestyle='--')
     ax.axvline(0, linestyle='--')
 
     cb = plt.colorbar(im)
     cb.set_label('Robust-RMS Offset (degrees)')
+    cb.solids.set_edgecolor("face")
     fig.savefig('Plots/rmsAngDiff_%s_.pdf' % filterName)
     plt.close(fig)
 
@@ -195,15 +206,18 @@ for filterName in filters:
     ax.set_ylabel('Sun Altitude (degrees)')
     ax.set_xlabel('Moon Altitude (degrees)')
     ax.set_title('filter %s, %i total frames ' % (filterName, good[0].size))
+    ax.set_ylim([-50,-10])
     ax.axhline(-22, linestyle='--')
     ax.axvline(0, linestyle='--')
 
     cb = plt.colorbar(im)
     cb.set_label('Count')
+    cb.solids.set_edgecolor("face")
     fig.savefig('Plots/countObs_%s_.pdf' % filterName)
     plt.close(fig)
 
-    np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
+    if not read:
+        np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
 
 
 

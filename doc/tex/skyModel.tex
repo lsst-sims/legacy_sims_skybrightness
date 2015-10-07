@@ -35,7 +35,8 @@ Seattle WA, 98195; {yoachim@uw.edu} }
 
 \section{Introduction}
 
-An accurate model of the background sky emission is needed to accuratly model and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator ({\url{http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC}).  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  
+An accurate model of the background sky emission is needed to accuratly model and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?} \url{INS.MODE=swspectr+INS.NAME=SKYCALC}}.
+  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  
 
 The general idea is that the ESO model computes the expected sky background from different sources from first principles. Because LSST will want to compute the sky background for the full sky millions of times throughout the survey, we can speed things up by pre-computing the ESO model on various parameter grids and inerpolating the results to our specific situations. Also, the ESO source code is not available, limiting our ability to run it directly at scale.
 
@@ -73,8 +74,6 @@ The airglow is assumed to be a function of airmass and solar activity.  We compu
 
 Technically, the airglow is also varies with the time of year and time of night.  This variation is quite small relative to the solar activity\citet{Noll12}, so we have not included it.
 
-xxx--should note that in addition to the sun and moon alt I should look at residuals versus time of night.
-
 \begin{figure}
   \plotone{../Plots/airglow.pdf}
   \caption{Example of airglow spectra. \label{fig:airglow}}
@@ -84,14 +83,18 @@ xxx--should note that in addition to the sun and moon alt I should look at resid
 
 \subsection{Scattered Star Light}
 
-The scattered star light is a very minor component in the sky background. Thus the ESO model uses a mean spectrum.  An example of the scattered star light is show in Figure\ref{fig:merged}.
+The scattered star light is a very minor component in the sky background, thus the ESO model uses a mean spectrum for the scattered starlight.  An example of the scattered star light is show in Figure\ref{fig:merged}. This component in only a function of airmass.
 
 
 \subsection{Atmospheric Emission Lines}
 
-The Airglow and emission lines vary through the night and by season, but \citet{Noll12} show the variation is at the 10-20\% level.  Since LSST is a broad band survey, such mild changes in narrow emission features should not strongly effect the integrated sky background.
+The Airglow and emission lines vary through the night and by season, but \citet{Noll12} show the variation is at the 10-20\% level.  Since LSST is a broad band survey, such mild changes in narrow emission features should not strongly effect the integrated sky background.  For scheduling observations, the variation in background caused by changing airmass should swamp any effects from the skylines fading during the night.
 
-The airglow also correlates strongly with the solar radio flux level.  This variation results in a factor of $\sim4$ change in the flux from the minimum to maximum solar activity.  
+The lower atmosphere only contains emission in the IR, but we have included it for completeness.  We assume the atmosphere emission is a function of only airmass and take template spectra at with airmass of 1 to 2 with steps of 0.1 and additionally an airmass of 2.5.
+
+
+
+%The airglow also correlates strongly with the solar radio flux level.  This variation results in a factor of $\sim4$ change in the flux from the minimum to maximum solar activity.  
 
 %XXX--looking at fig 14 in  \citet{Noll12}, it looks like the emission lines should be varying with the solar flux ratio--but I thought I didn't see any variation when I plugged it into the ESO calculator.  OK, just double checked and they don't vary. Might want to check with ESO about that.
 
@@ -103,9 +106,9 @@ The airglow also correlates strongly with the solar radio flux level.  This vari
 
 \section{Interpolating the Templates}
 
-We combine the three components that only depend on airmass (xxx,xxx,xxx).
+Because the upper atmosphere, lower atmosphere, and scattered starlight are all only functions of airmass, by default we interpolate the sum of these three components rather than each one individually.
 
-For all the interpolations, we weight and average the base-10 log of the template spectra.  In the future, we could experiment with switching between interpolating the spectra and the log of the spectra based on how much variation there is between interpolation points.
+For all the interpolations, we weight and average the base-10 log of the template spectra.  In the future, we could experiment with switching between interpolating the spectra and the log of the spectra based on how much variation there is between interpolation points.  We use simple linear interpolation (e.g., the spectrum of an observation at an airamss of 1.02 will be the sum of 0.8 times the airmass 1.0 template and 0.2 times the airmass 1.1 template). 
 
 For the Zodiacal and Lunar components, since we have placed the templates at healpix gridpoints, we can use fast healpy routines to find the 4 nearest healpixel points, along with their weights.  
 
@@ -129,17 +132,24 @@ Rather than run a lot of radiative transfer, looking at the data from the all-sk
 
 
 \begin{figure*}
+  \plotone{../../examples/Plots/twiExamples.pdf}
+  \caption{Sky brightess values measured from the Canon all-sky camera after binning spatially by healpixels and combining similar sun altitudes. Only frames with the moon below the horizon were used. Zenith is at the center of each image, and the sun is below the horizon at an azimuth of zero (bottom of the frame.)}
+\end{figure*}
+
+
+
+\begin{figure*}
   \epsscale{1}
   \plottwo{../../examples/Plots/altDecay.pdf}{../../examples/Plots/altDecayHA.pdf}
   \epsscale{1}
-  \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (right panel), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses (left panels), the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
+  \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (left panels), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses (right panels), the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
 \end{figure*}
 
 
 
 To model the broadband flux from only the scattered twilight, we use a model of the form
 \begin{equation}\label{eqn:twi1}
-  f^{away} = f_{z} r_{12/z} 10^{a(\alpha-12^{\circ})+b(X-1)}
+  f^{away} = f_{z} r_{12/z} 10^{a(\alpha+12^{\circ})+b(X-1)}
 \end{equation}
 where $\alpha$ is the altitude of the sun, $X$ is the airmass, $f_{z}$ is the flux at zenith during dark time, and $r_{12/z}$ is the ratio of the 12-degree twilight zenith flux to the dark time zenith flux. The full twilight flux in any direction is then given by
 \begin{equation}
@@ -154,7 +164,7 @@ where $\phi$ is the azimuthal angle relative to the sun. The total sky backgroun
 
 
 \begin{eqnarray}
-  m^{away} = m_0 -2.5a(\alpha-12^{\circ})-2.5b(X-1) \\
+  m^{away} = m_0 -2.5a(\alpha+12^{\circ})-2.5b(X-1) \\
   m^{toward} = m^{away} -2.5c(X-1)\cos{\phi}
 \end{eqnarray}
 By default, we only apply the twilight component for solar altitudes between -11 and -20 degrees.
@@ -171,7 +181,8 @@ The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Ca
   \tablewidth{0pt}
   \tablecaption{Final parameters for equation~\ref{eqn:twi} used by the skybrighntess twilight component. \label{table:canonFits}}
   
-  \tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ (1/radians)} & \colhead{$b$ (1/airmass)} & \colhead{$c$ (az term/airmass)} & \colhead{$f_z,dark$ (erg/s/cm$^2$)$\times 10^8$} & \colhead{m$_z,dark$}}
+  \tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ } & \colhead{$b$ } & \colhead{$c$ } & \colhead{$f_z,dark$} & \colhead{m$_z,dark$} \\
+  & & \colhead{(1/radians)} & \colhead{(1/airmass)} & \colhead{(az term/airmass)} & \colhead{(erg/s/cm$^2$)$\times 10^8$}}
   \startdata
   B  & 8.42 & 22.96 & 0.29 & 0.30 & 3.05  &  22.35 \\
   G  & 4.14 & 22.94 & 0.30 & 0.32 & 5.50  &  21.71 \\
@@ -197,10 +208,21 @@ XXX--make some plots of residuals vs different conditions.  Maybe the zenith sky
 plan for validation:
 select all the observations with alt $>85$ degrees. Median bin for observations with same mjd, I guess take a mean of the ra and dec? Then compute the RGB mags from the model.  Then plot various subsets of the residuals--all residuals, no moon or twilight, moon no twilight, twilight.
 
-Maybe another good verification metric would be angular distance between darkest observed spot in the sky and the model darkest spot.  Could plot as contour map of moon Alt vs sun Alt.  Ooh, could scipy binned\_stat it with a median and robust RMS.
+Maybe another good verification metric would be angular distance between darkest observed spot in the sky and the model darkest spot.  Could plot as contour map of moon Alt vs sun Alt.  
 
+Note that we have not verified the off-zenith IR performance of the model.
 
-Note that we have not verified the off-zenith IR performance of the model.  
+Figure~\ref{fig:darkDir} shows how well the sky model does at predicting the direction of the darkest region of the sky.  For the observations from the all-sky camera, we select those that have at least 200 stars detected to select those without extreme cloud coverage. To speed things up, we use every 10th frame from the sky camera, resulting in around 3400 unique observations.  We then bin the sky brightness observations onto a healpixel grid of nside=16 and compute the model sky brightness at each healpixel and find the distance between the predicted brightness minimum and the observed minimum.  The results, binned by moon and sun altitude are shown in Figure~\ref{fig:darkDir}.  The results are promissing, with the median offsets tending to be around 15$\degree$.  Note we have not done any significant screening for sparse clouds in the observations, which would probably reduce the differences even more. 
+
+\begin{figure*}
+  \epsscale{.8}
+  \plottwo{../../examples/Plots/medianAngDiff_R_.pdf}{../../examples/Plots/rmsAngDiff_R_.pdf}
+  \plottwo{../../examples/Plots/medianAngDiff_G_.pdf}{../../examples/Plots/rmsAngDiff_G_.pdf}
+  \plottwo{../../examples/Plots/medianAngDiff_B_.pdf}{../../examples/Plots/rmsAngDiff_B_.pdf}
+  \epsscale{1}
+  \caption{Comparing the angular distance between the predicted model darkest spot on the sky and the darkest spot as observed by the Canon all-sky camera \label{fig:darkDir}}
+\end{figure*}
+
 
 \section{Speed Testing}
 
