@@ -68,7 +68,7 @@ indices = np.arange(0,dateData.size, skipsize)
 #binsize = 15./60./24.
 #edges = np.arange(skydata['mjd'].min(),skydata['mjd'].max()+binsize*2, binsize)
 
-read = True
+read = False
 filters = ['R','G','B']
 sm = sb.SkyModel(mags=False)
 telescope = TelescopeInfo('LSST')
@@ -80,11 +80,12 @@ starLimit = 200
 # Create array to hold the results of
 names = ['moonAlt', 'sunAlt', 'obsZenith', 'modelZenith', 'obsDarkestHP',
          'modelDarkestHP', 'obsBrightestHP',
-         'modelBrightestHP', 'obsPointing', 'modelPointing', 'angDistancesFaint', 'angDistancesBright']
+         'modelBrightestHP', 'obsPointing', 'modelPointing', 'angDistancesFaint',
+         'angDistancesBright', 'frameZP', 'mjd']
 
 # I guess I might as well add the brightest points in the sky as well...
 
-types = [float, float,float,float,int,int,int,int, float,float, float, float, float]
+types = [float, float,float,float,int,int,int,int, float,float, float, float, float,float,float]
 validationArr = np.zeros(indices.size, dtype=zip(names,types) )
 
 # Don't look at Canon above this limit.
@@ -119,6 +120,7 @@ for filterName in filters:
                 sm.computeSpec()
                 modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
                 modelhp[good] = sm.computeMags(canonDict[filterName])
+                validationArr['frameZP'][i] = np.median(modelhp[good]-skyhp[good] )
 
                 notnan = np.where(skyhp != hp.UNSEEN)
                 validationArr['obsDarkestHP'][i] = np.where(skyhp == skyhp[notnan].max() )[0].min()
@@ -135,6 +137,7 @@ for filterName in filters:
                     validationArr['modelZenith'][i] = modelhp[0:4][good].mean()
                 validationArr['moonAlt'][i] = np.degrees(sm.moonAlt)
                 validationArr['sunAlt'][i] = np.degrees(sm.sunAlt)
+                validationArr['mjd'][i] = mjd
 
             else:
                 validationArr['moonAlt'][i] = -666
@@ -216,8 +219,33 @@ for filterName in filters:
     fig.savefig('Plots/countObs_%s_.pdf' % filterName)
     plt.close(fig)
 
+
+    fig,ax = plt.subplots()
+
+    resid = validationArr['modelZenith'] - validationArr['obsZenith']
+    good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666))
+    #resid = resid - np.median(resid[good])
+    #good =  np.where((resid != 0.) & (validationArr['moonAlt'] != -666) & (np.abs(resid) < 0.5))
+    im = ax.hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
+                   C=resid[good], reduce_C_function=np.std , gridsize=20,
+                   vmin=0.,vmax=1.)
+    ax.set_ylabel('Sun Altitude (degrees)')
+    ax.set_xlabel('Moon Altitude (degrees)')
+    ax.set_title('filter %s,  Model - Observations' % (filterName))
+    ax.set_ylim([-50,-10])
+    ax.axhline(-22, linestyle='--')
+    ax.axvline(0, linestyle='--')
+    cb = plt.colorbar(im)
+    cb.set_label('RMS (mags)')
+    cb.solids.set_edgecolor("face")
+    fig.savefig('Plots/zenithRMS_%s_.pdf' % filterName)
+    plt.close(fig)
+
+
     if not read:
         np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
+
+
 
 
 
