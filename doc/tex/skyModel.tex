@@ -35,20 +35,19 @@ Seattle WA, 98195; {yoachim@uw.edu} }
 
 \section{Introduction}
 
-An accurate model of the background sky emission is needed to accuratly model and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?} \url{INS.MODE=swspectr+INS.NAME=SKYCALC}}.
-  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  
+An accurate model of the background sky emission is needed to accurately simulate and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?} \url{INS.MODE=swspectr+INS.NAME=SKYCALC}}.  This model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  
 
-The general idea is that the ESO model computes the expected sky background from different sources from first principles. Because LSST will want to compute the sky background for the full sky millions of times throughout the survey, we can speed things up by pre-computing the ESO model on various parameter grids and inerpolating the results to our specific situations. Also, the ESO source code is not available, limiting our ability to run it directly at scale.
+The general idea is that the ESO model computes the expected sky background from different sources from first principles. Because LSST will want to compute the sky background for the full sky millions of times throughout the survey, we can speed things up by pre-computing the ESO model on relevant parameter grids and interpolating the results to our specific observations. Also, the ESO source code is not available, limiting our ability to run it directly at scale.
 
 \section{The ESO Model}
-Here, we briefly descibe the sky components included in the ESO model and how we have created model grids with them. The ESO model is described in detail in \citet{Noll12} and \citet{Jones13}.
+In this section, we briefly describe the sky components included in the ESO model and how we have created grids of model spectra with them. The ESO model is described in detail in \citet{Noll12} and \citet{Jones13}.
 
-For all of the ESO models, we save the template spectra as numpy zip files.  The model specta run from 300 nm to 2 microns, with 0.1 nm stepsize.  In addition to the spectra, we also pre-compute the 6 LSST magnitudes from the spectrum at each interpolation point.
+For all of the ESO models, we save the template spectra as numpy zip files.  The model spectra run from 300 nm to 2 microns, with 0.1 nm stepsize.  In addition to the spectra, we also pre-compute the 6 LSST magnitudes from each spectrum at each grid point.
 
 \subsection{Zodiacal Light}
 Zodiacal light is caused by sunlight scattered by dust grains in the plane of the ecliptic.  The ESO model varies the Zodiacal light as a function of ecliptic coordinates and airmass.  
 
-We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5. And a healpixel grid of 192 elements (nside=4, resolution of $\sim15\degree$).  The healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  Some example zodiacal light spectra are shown in Figure~\ref{fig:zodiacal}.
+We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5 and a Healpixel grid of 192 elements (nside=4, resolution of $\sim15\degree$), resulting in 960 template spectra.  The Healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  Some example zodiacal light spectra are shown in Figure~\ref{fig:zodiacal}. 
 
 \begin{figure}
   \plotone{../Plots/zodiacal.pdf}
@@ -60,11 +59,11 @@ We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5. And a healpixel grid of 192
 
 \citet{Krisciunas91} provide one of the most popular models for computing the scattered moon light. This model is based on observed magnitudes from Mauna Kea. The ESO code uses the updated model of \citet{Jones13} which is fully spectroscopic and designed for Cerro Paranal. \citet{Jones13} claim their model uncertainty is $<20$\% in the optical.  Unlike the \citet{Krisciunas91} model that is a fit to observed broadband sky brightnesses, the \citet{Jones13} model uses fully 3D single scattering calculations and provides an entire spectrum.
 
-We build a template library of scattered moonlight by considering moon-sun separations of 0$\degree$to 180$\degree$ in 15 degree steps, and moon altitudes from 15$\degree$to 90$\degree$.  We then compute the expected spectrum on a grid of 29 positions across the sky. This is a healpixel grid (with nside=4, resolution of $\sim15\degree$), based on altitude and azimuth (relative to the moon), where we ignore poistions with an airmass greater than 2.6. This results in a total of 2,262 template spectra for the scattered moonlight\footnote{The very observant might notice that since the azimuth is defined relative to the moon, the sky is symetric and we should be able to drop half of the healpixels}.
+We build a template library of scattered moonlight by considering moon-sun separations of 0$\degree$to 180$\degree$ in 15 degree steps, and moon altitudes from 15$\degree$to 90$\degree$.  We then compute the expected spectrum on a grid of 29 positions across the sky. This is a Healpixel grid (with nside=4, resolution of $\sim15\degree$), based on altitude and azimuth (relative to the moon), where we ignore pointings with an airmass greater than 2.6. This results in a total of 2,262 template spectra for the scattered moonlight\footnote{The very observant might notice that since the azimuth is defined relative to the moon, the sky is symmetric and we should be able to drop half of the Healpixels}.
 
 \begin{figure}
   \plotone{../Plots/moon.pdf}
-  \caption{Example of the moon spectra. \label{fig:moon}}
+  \caption{Example of the scattered lunar light. \label{fig:moon}}
 \end{figure}
 
 
@@ -72,7 +71,7 @@ We build a template library of scattered moonlight by considering moon-sun separ
 
 The airglow is assumed to be a function of airmass and solar activity.  We compute the spectra on a grid of airmass of 1 to 2 with steps of 0.1 and additionally an airmass of 2.5.  For the solar activity, we span 50 to 310 sfu with a step size of 20, resulting in a total of 168 airglow spectra. 
 
-Technically, the airglow is also varies with the time of year and time of night.  This variation is quite small relative to the solar activity\citet{Noll12}, so we have not included it.
+Technically, the airglow is also varies with the time of year and time of night.  This variation is quite small relative to the solar activity \citep{Noll12}, so we have not included it.
 
 \begin{figure}
   \plotone{../Plots/airglow.pdf}
@@ -83,20 +82,17 @@ Technically, the airglow is also varies with the time of year and time of night.
 
 \subsection{Scattered Star Light}
 
-The scattered star light is a very minor component in the sky background, thus the ESO model uses a mean spectrum for the scattered starlight.  An example of the scattered star light is show in Figure\ref{fig:merged}. This component in only a function of airmass.
+The scattered star light is a very minor component in the sky background, thus the ESO model uses a mean spectrum for the scattered starlight.  An example of the scattered star light is show in Figure~\ref{fig:merged}. This component in only a function of airmass.
 
 
 \subsection{Atmospheric Emission Lines}
 
-The Airglow and emission lines vary through the night and by season, but \citet{Noll12} show the variation is at the 10-20\% level.  Since LSST is a broad band survey, such mild changes in narrow emission features should not strongly effect the integrated sky background.  For scheduling observations, the variation in background caused by changing airmass should swamp any effects from the skylines fading during the night.
+The airglow and emission lines vary through the night and by season, but \citet{Noll12} show the variation is at the 10-20\% level.  Since LSST is a broad band survey, such mild changes in narrow emission features should not strongly effect the integrated sky background.  For scheduling observations, the variation in background caused by changing airmass should swamp any effects from the skylines fading during the night.
 
 The lower atmosphere only contains emission in the IR, but we have included it for completeness.  We assume the atmosphere emission is a function of only airmass and take template spectra at with airmass of 1 to 2 with steps of 0.1 and additionally an airmass of 2.5.
 
+Because the upper atmosphere, lower atmosphere, and scattered star light only vary as a function of airmass, we have combined them. By default, we interpolate from model spectra at 12 airmass values.  Example of the spectra are shown in Figure~\ref{fig:merged}.
 
-
-%The airglow also correlates strongly with the solar radio flux level.  This variation results in a factor of $\sim4$ change in the flux from the minimum to maximum solar activity.  
-
-%XXX--looking at fig 14 in  \citet{Noll12}, it looks like the emission lines should be varying with the solar flux ratio--but I thought I didn't see any variation when I plugged it into the ESO calculator.  OK, just double checked and they don't vary. Might want to check with ESO about that.
 
 \begin{figure}
   \plotone{../Plots/merged.pdf}
@@ -106,16 +102,14 @@ The lower atmosphere only contains emission in the IR, but we have included it f
 
 \section{Interpolating the Templates}
 
-Because the upper atmosphere, lower atmosphere, and scattered starlight are all only functions of airmass, by default we interpolate the sum of these three components rather than each one individually.
+For all the interpolations, we weight and average the base-10 log of the template spectra (or average the magnitudes).  In the future, we could experiment with switching between interpolating the spectra and the log of the spectra based on how much variation there is between interpolation points.  We use simple linear interpolation (e.g., the spectrum of an observation at an airmass of 1.02 will be the sum of 0.8 times the airmass 1.0 template and 0.2 times the airmass 1.1 template). 
 
-For all the interpolations, we weight and average the base-10 log of the template spectra.  In the future, we could experiment with switching between interpolating the spectra and the log of the spectra based on how much variation there is between interpolation points.  We use simple linear interpolation (e.g., the spectrum of an observation at an airamss of 1.02 will be the sum of 0.8 times the airmass 1.0 template and 0.2 times the airmass 1.1 template). 
-
-For the Zodiacal and Lunar components, since we have placed the templates at healpix gridpoints, we can use fast healpy routines to find the 4 nearest healpixel points, along with their weights.  
+For the Zodiacal and Lunar components, since we have placed the templates at healpix grid-points, we can use fast healpy routines to find the 4 nearest Healpixel points, along with their weights.  
 
 
 \section{Observations}
 
-XXX-describe the Cannon all-sky camera and photometry pipeline. Desceibe the photodiode data.  
+XXX-describe the Cannon all-sky camera and photometry pipeline. Describe the photodiode data.  
 
 
 \section{Additional Components}
@@ -123,17 +117,17 @@ XXX-describe the Cannon all-sky camera and photometry pipeline. Desceibe the pho
 
 The ESO sky model does not include a component for scattered sunlight.  The twilight sky brightness is difficult to compute analytically.  While scattered moonlight can be computed via a single or double scattering model, the solar twilight comes from multiple scatterings, thus there is no simple analytic model for computing the solar twilight from first principles and models must instead rely on Monte Carlo radiative transfer simulations \citep{Patat06}.
 
-Rather than run a lot of radiative transfer, looking at the data from the all-sky camera as well as other sites shows that after the sun's altitude is less that $\sim-10\degree$ the zenith twilight flux decays exponentially with solar altitude.
+Rather than compute radiative transfer, the data from the all-sky camera as well as other sites shows that after the sun's altitude is less that $\sim-10\degree$ the twilight flux decays exponentially with solar altitude. Figure~\ref{diodePlot} shows the zenith sky brightness as a function of sun altitude. The curve is well fit by an exponential decay plus a constant floor.  In Figures~\ref{fig:twiSky} and~\ref{fig:twiExp} we show that when one moves to heliocentric-azimuth altitude coordinates, the twilight is well described as an exponential decline for any point in the sky.
 
 \begin{figure*}
   \plotone{../../examples/Plots/diode.pdf}
-  \caption{The photodiode data.  All three photodiodes are pointed to zenith. The light gray points show individual measurements, while the yellow points are the median-binned data. The solid blue line shows the best fit exponetial decay plus constant. The green vertical line marks 12 degree twilight, and the dashed vertical blue line shows where the data was not used because the detector was often saturated at that point. \label{diodePlot}}
+  \caption{The photodiode data.  All three photodiodes are pointed to zenith. The light gray points show individual measurements, while the yellow points are the median-binned data. The solid blue line shows the best fit exponential decay plus constant. The green vertical line marks 12 degree twilight, and the dashed vertical blue line shows where the data was not used because the detector was often saturated at that point. \label{diodePlot}}
 \end{figure*}
 
 
 \begin{figure*}
   \plotone{../../examples/Plots/twiExamples.pdf}
-  \caption{Sky brightess values measured from the Canon all-sky camera after binning spatially by healpixels and combining similar sun altitudes. Only frames with the moon below the horizon were used. Zenith is at the center of each image, and the sun is below the horizon at an azimuth of zero (bottom of the frame.)}
+  \caption{Sky brightness values measured from the Canon all-sky camera after binning spatially by Healpixels and combining similar sun altitudes. Only frames with the moon below the horizon were used. Zenith is at the center of each image, and the sun is below the horizon at an azimuth of zero (bottom of the frame.) \label{fig:twiSky}}
 \end{figure*}
 
 
@@ -142,7 +136,7 @@ Rather than run a lot of radiative transfer, looking at the data from the all-sk
   \epsscale{1}
   \plottwo{../../examples/Plots/altDecay.pdf}{../../examples/Plots/altDecayHA.pdf}
   \epsscale{1}
-  \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (left panels), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses (right panels), the decay is still expoential, but now is a function of both airmass and azimuth relative to the sun.}
+  \caption{Photometry from the Cannon all-sky camera, after it was been median-binned and selected for only times where the moon is down.  At low airmass (left panels), the sky brightness decays exponentially and has a small variation that is dominated by the change in airmass.  At higher airmasses (right panels), the decay is still exponential, but now is a function of both airmass and azimuth relative to the sun. \label{fig:twiExp}}
 \end{figure*}
 
 
@@ -198,21 +192,28 @@ The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Ca
  \end{deluxetable*}
 
 
-The paramters in Table~\ref{table:canonFits} do a reasonable job reproducing the observed magnitudes, we are also interested in generating the full spectrum of the sky.  For this, we assume the twilight is a modified solar spectrum.  We multiply a solar spectrum\footnote{cite source} by a low order polynomial such that it reproduces the expected broad band magnitudes.  One obvious shortcomming of this approach is that we have not included the effects of atmosphiric transmission on the twilight sky spectrum.  
+The parameters in Table~\ref{table:canonFits} do a reasonable job reproducing the observed magnitudes, we are also interested in generating the full spectrum of the sky.  For this, we assume the twilight is a modified solar spectrum.  We multiply a solar spectrum\footnote{cite source} by a low order polynomial such that it reproduces the expected broad band magnitudes.  One obvious shortcoming of this approach is that we have not included the effects of atmospheric transmission on the twilight sky spectrum.  
 
 
 \section{Validation}
 
-XXX--make some plots of residuals vs different conditions.  Maybe the zenith sky brightness for the Cannon in all the bands--dark time, moon up, twilight.  For each one, show a histogram of the raw variation, and then the variation of raw-model.  
+To verify the performance of the sky model, we compare it to the sky brightness observations made by the Canon all-sky camera.
 
-plan for validation:
-select all the observations with alt $>85$ degrees. Median bin for observations with same mjd, I guess take a mean of the ra and dec? Then compute the RGB mags from the model.  Then plot various subsets of the residuals--all residuals, no moon or twilight, moon no twilight, twilight.
+\begin{figure*}
+  \plotone{../../examples/Plots/exampleSkys_0.pdf}
+  \plotone{../../examples/Plots/exampleSkys_1.pdf}
+  \plotone{../../examples/Plots/exampleSkys_2.pdf}
+  \plotone{../../examples/Plots/exampleSkys_3.pdf}
+  \caption{Some examples of Canon all-sky observations and model values for airmasses less than 2.1. The sky observations have been binned into Healpixels. These are all for the Canon R-filter. The top row shows a clear dark-time frame, the second row is a dark time frame where there were clouds. The third row shows a high moon, and the final row is during twilight with some light clouds. \label{fig:skyExamples}}
+\end{figure*}
 
-Maybe another good verification metric would be angular distance between darkest observed spot in the sky and the model darkest spot.  Could plot as contour map of moon Alt vs sun Alt.  
+
+
+Figure~\ref{fig:darkDir} shows how well the sky model does at predicting the direction of the darkest region of the sky.  For the observations from the all-sky camera, we select those that have at least 200 stars detected to select those without extreme cloud coverage. To speed things up, we use every 10th frame from the sky camera, resulting in around 3400 unique observations.  We then bin the sky brightness observations onto a Healpixel grid of nside=16 and compute the model sky brightness at each Healpixel and find the distance between the predicted brightness minimum and the observed minimum.  The results, binned by moon and sun altitude are shown in Figure~\ref{fig:darkDir}.  The results are promising, with the median offsets tending to be around 15$\degree$.  Note we have not done any significant screening for sparse clouds in the observations, which would probably reduce the differences even more. 
+
+Using the same set of 3400 observations, we zeropoint each frame (to correct for any average cloud cover or instrument zeropoint drift) and record the model and observation zenith sky brightness. Figure~\ref{fig:zenithModel} shows the median and standard deviation of the model and observation zenith residuals.  In general, the model does an excellent job matching the observed zenith sky brightness, and only fails when the moon is very high in the sky.  
 
 Note that we have not verified the off-zenith IR performance of the model.
-
-Figure~\ref{fig:darkDir} shows how well the sky model does at predicting the direction of the darkest region of the sky.  For the observations from the all-sky camera, we select those that have at least 200 stars detected to select those without extreme cloud coverage. To speed things up, we use every 10th frame from the sky camera, resulting in around 3400 unique observations.  We then bin the sky brightness observations onto a healpixel grid of nside=16 and compute the model sky brightness at each healpixel and find the distance between the predicted brightness minimum and the observed minimum.  The results, binned by moon and sun altitude are shown in Figure~\ref{fig:darkDir}.  The results are promissing, with the median offsets tending to be around 15$\degree$.  Note we have not done any significant screening for sparse clouds in the observations, which would probably reduce the differences even more. 
 
 \begin{figure*}
   \epsscale{.8}
@@ -223,23 +224,24 @@ Figure~\ref{fig:darkDir} shows how well the sky model does at predicting the dir
   \caption{Comparing the angular distance between the predicted model darkest spot on the sky and the darkest spot as observed by the Canon all-sky camera \label{fig:darkDir}}
 \end{figure*}
 
-
-\section{Speed Testing}
-
+\clearpage
 
 
-\section{What's Not Included}
+\begin{figure*}
+  \epsscale{0.8}
+  \plottwo{../../examples/Plots/zenithMedian_R_.pdf}{../../examples/Plots/zenithRMS_R_.pdf}
+  \plottwo{../../examples/Plots/zenithMedian_G_.pdf}{../../examples/Plots/zenithRMS_G_.pdf}
+  \plottwo{../../examples/Plots/zenithMedian_B_.pdf}{../../examples/Plots/zenithRMS_B_.pdf}
+  \epsscale{1}
+  \caption{ The offset and RMS of the model sky brightness.  The model does tend to fail near the moon, thus the large residuals when the moon reaches high altitude should be expected.  \label{fig:zenithModel}}
+\end{figure*}
 
-There are several things that, in theory, could be used to better refine the returned sky spectrum.
-
-blahblah, the IR sky is known to be variable on short timescales.
-
-blahblah, emission lines are brighter right after sunset and before sunrise.
-
-Clouds are complicated since they can block some sources of sky background while also reflecting other components.  
 
 
 \bibliography{skyModel.bib}
 \end{document}
 
 
+
+%%  LocalWords:  ESO SkyCalc airglow Noll numpy nm airmass Healpixel
+%%  LocalWords:  nside Healpixels Krisciunas Patat twi az skyModel

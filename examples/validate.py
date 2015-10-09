@@ -68,7 +68,7 @@ indices = np.arange(0,dateData.size, skipsize)
 #binsize = 15./60./24.
 #edges = np.arange(skydata['mjd'].min(),skydata['mjd'].max()+binsize*2, binsize)
 
-read = False
+read = True
 filters = ['R','G','B']
 sm = sb.SkyModel(mags=False)
 telescope = TelescopeInfo('LSST')
@@ -97,7 +97,6 @@ hpid = np.arange(npix)
 lat,lon = hp.pix2ang(nside,hpid)
 hpra = lon
 hpdec = np.pi/2.-lat
-
 
 
 for filterName in filters:
@@ -173,8 +172,8 @@ for filterName in filters:
     ax.set_xlabel('Moon Altitude (degrees)')
     ax.set_title('filter %s' % filterName)
     ax.set_ylim([-50,-10])
-    ax.axhline(-22, linestyle='--')
-    ax.axvline(0, linestyle='--')
+    ax.axhline(-22, linestyle='--', color='k')
+    ax.axvline(0, linestyle='--', color='k')
     cb = plt.colorbar(im)
     cb.set_label('Median Offset (degrees)')
     cb.solids.set_edgecolor("face")
@@ -192,8 +191,8 @@ for filterName in filters:
     ax.set_xlabel('Moon Altitude (degrees)')
     ax.set_title('filter %s' % filterName)
     ax.set_ylim([-50,-10])
-    ax.axhline(-22, linestyle='--')
-    ax.axvline(0, linestyle='--')
+    ax.axhline(-22, linestyle='--', color='k')
+    ax.axvline(0, linestyle='--', color='k')
 
     cb = plt.colorbar(im)
     cb.set_label('Robust-RMS Offset (degrees)')
@@ -210,8 +209,8 @@ for filterName in filters:
     ax.set_xlabel('Moon Altitude (degrees)')
     ax.set_title('filter %s, %i total frames ' % (filterName, good[0].size))
     ax.set_ylim([-50,-10])
-    ax.axhline(-22, linestyle='--')
-    ax.axvline(0, linestyle='--')
+    ax.axhline(-22, linestyle='--', color='k')
+    ax.axvline(0, linestyle='--', color='k')
 
     cb = plt.colorbar(im)
     cb.set_label('Count')
@@ -226,15 +225,17 @@ for filterName in filters:
     good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666))
     #resid = resid - np.median(resid[good])
     #good =  np.where((resid != 0.) & (validationArr['moonAlt'] != -666) & (np.abs(resid) < 0.5))
+
+    # Include a frame-by-frame zeropoint correction.
     im = ax.hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
-                   C=resid[good], reduce_C_function=np.std , gridsize=20,
-                   vmin=0.,vmax=1.)
+                   C=resid[good]-validationArr['frameZP'][good], reduce_C_function=np.std , gridsize=20,
+                   vmin=0.,vmax=0.5)
     ax.set_ylabel('Sun Altitude (degrees)')
     ax.set_xlabel('Moon Altitude (degrees)')
     ax.set_title('filter %s,  Model - Observations' % (filterName))
     ax.set_ylim([-50,-10])
-    ax.axhline(-22, linestyle='--')
-    ax.axvline(0, linestyle='--')
+    ax.axhline(-22, linestyle='--', color='k')
+    ax.axvline(0, linestyle='--', color='k')
     cb = plt.colorbar(im)
     cb.set_label('RMS (mags)')
     cb.solids.set_edgecolor("face")
@@ -242,11 +243,76 @@ for filterName in filters:
     plt.close(fig)
 
 
+    fig,ax = plt.subplots()
+    im = ax.hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
+                   C=resid[good]-validationArr['frameZP'][good], reduce_C_function=np.median , gridsize=20,
+                   vmin=0.,vmax=.2)
+
+    ax.set_ylabel('Sun Altitude (degrees)')
+    ax.set_xlabel('Moon Altitude (degrees)')
+    ax.set_title('filter %s,  Model - Observations' % (filterName))
+    ax.set_ylim([-50,-10])
+    ax.axhline(-22, linestyle='--', color='k')
+    ax.axvline(0, linestyle='--', color='k')
+    cb = plt.colorbar(im)
+    cb.set_label('Median offset (mags)')
+    cb.solids.set_edgecolor("face")
+    fig.savefig('Plots/zenithMedian_%s_.pdf' % filterName)
+    plt.close(fig)
+
+
+
+
     if not read:
         np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
 
 
 
+    # Make a couple example frames
+    dateIDs = [2844,40290,17449,22010]
+
+    filterName = 'R'
+    for i,dID in enumerate(dateIDs):
+        fig = plt.figure(1, figsize=(11,2.8))
+        figCounter = 0
+        skydata,mjd = sb.allSkyDB(dID, filt=filterName)
+        airmass = 1./np.cos(np.radians(90.-skydata['alt']))
+        skydata = skydata[np.where((airmass < amMax) & (airmass >= 1.))]
+        alt,az,pa =  _altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
+                                       telescope.lon, telescope.lat, mjd)
+        skyhp = healplots.healbin(az,alt, skydata['sky'], nside=nside)
+        skyhp[np.isnan(skyhp)] = hp.UNSEEN
+
+        good = np.where(skyhp != hp.UNSEEN)
+        sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
+        sm.computeSpec()
+        modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
+        modelhp[good] = sm.computeMags(canonDict[filterName])
+
+
+        hp.mollview(skyhp, rot=(0,90), sub=(1,3,1),
+                    title=r'$\alpha_{moon}= %.1f$, $\alpha_{\odot}=%.1f$' % (np.degrees(sm.moonAlt),np.degrees(sm.sunAlt)), unit='mag')
+        figCounter += 1
+        if figCounter <= 3:
+            title = 'Model'
+        else:
+            title = ''
+        hp.mollview(modelhp, rot=(0,90), sub=(1,3,2), title=title, unit='mag')
+        figCounter += 1
+        if figCounter <= 3:
+            title = 'Residuals'
+        else:
+            title = ''
+        resid = skyhp-modelhp
+        mask = np.where( (skyhp == hp.UNSEEN) | (modelhp == hp.UNSEEN))
+        resid[mask] = hp.UNSEEN
+        good = np.where(resid != hp.UNSEEN)
+        resid[good] -= np.median(resid[good])
+        hp.mollview(resid, rot=(0,90), sub=(1,3,3), title=title,
+                    fig=1,unit='mag', min=-0.5, max=0.5)
+
+        fig.savefig('Plots/exampleSkys_%i.pdf' % i)
+        plt.close(fig)
 
 
 # Do I need to use the origin='lower' ? YES
