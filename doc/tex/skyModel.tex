@@ -109,8 +109,13 @@ For the Zodiacal and Lunar components, since we have placed the templates at hea
 
 \section{Observations}
 
-XXX-describe the Cannon all-sky camera and photometry pipeline. Describe the photodiode data.  
+Several sky monitoring instruments have been installed at the LSST site on Cerro Pachon.  A Canon 5D Mark III SLR has been operating taking data since Jan 2014.  The Canon takes 10s exposures in RGB filters throughout the night and during twilight.  More information on the Canon can be found at \url{https://confluence.lsstcorp.org/display/} \url{SIM/Cerro+Pachon+All-Sky+Camera+Project}.
 
+The current pipeline for the Canon data takes aperture photometry of bright stars and records their magnitudes as well as the sky brightness measured in an anulus around the stars.  We have combined the observations into a database with a resulting 42,000 images producing 91.5 million photometric measurements spanning 311 days.  
+
+In addition to the Canon camera, three NIST-calibrated photodiodes have been installed to observe the zenith sky brightness in R, $z$, and $y$ bands. The photodiode data spans 293 days, and includes 36.1 million sky brightness measurements.
+
+We use these sky observations to fit a reasonable twilight sky brightness model and verify the other components of the sky brightness model.
 
 \section{Additional Components}
 \subsection{Twilight}
@@ -127,7 +132,7 @@ Rather than compute radiative transfer, the data from the all-sky camera as well
 
 \begin{figure*}
   \plotone{../../examples/Plots/twiExamples.pdf}
-  \caption{Sky brightness values measured from the Canon all-sky camera after binning spatially by Healpixels and combining similar sun altitudes. Only frames with the moon below the horizon were used. Zenith is at the center of each image, and the sun is below the horizon at an azimuth of zero (bottom of the frame.) \label{fig:twiSky}}
+  \caption{Sky brightness values measured from the Canon all-sky camera after median binning spatially by Healpixels and combining similar sun altitudes. Only frames with the moon below the horizon were used. Zenith is at the center of each image, and the sun is below the horizon at an azimuth of zero (bottom of the frame. The data values are intrumental magnitudes.)  \label{fig:twiSky}}
 \end{figure*}
 
 
@@ -150,21 +155,25 @@ where $\alpha$ is the altitude of the sun, $X$ is the airmass, $f_{z}$ is the fl
   \label{eqn:twi}
   f^{twi}  = \left\{
   \begin{array}{@{}ll@{}}
-        f^{away}, & \text{if}\  \pi/2 < \phi < -\pi/2   \\
-        f^{away} 10^{c (X-1) \cos{\phi}}, &  \text{if}\   \pi/2 > \phi >  -\pi/2
+        f^{away}, & \text{if}\  \pi/2 < \phi < -\pi/2  \text{ or } X < 1.1\\
+        f^{away} 10^{c (X-1) \cos{\phi}}, &  \text{if}\   \pi/2 > \phi >  -\pi/2 \text{ and } X > 1.1
         \end{array} \right.
 \end{equation}
-where $\phi$ is the azimuthal angle relative to the sun. The total sky background flux at zenith is then given by $f = f^{twi} + f_{z}$.
-
-
+where $\phi$ is the azimuthal angle relative to the sun. The total sky background flux at zenith is then given by $f = f^{twi} + f_{z}$. Equation~\ref{eqn:twi} can be converted to magnitudes thusly:
 \begin{eqnarray}
   m^{away} = m_0 -2.5a(\alpha+12^{\circ})-2.5b(X-1) \\
   m^{toward} = m^{away} -2.5c(X-1)\cos{\phi}
 \end{eqnarray}
-By default, we only apply the twilight component for solar altitudes between -11 and -20 degrees.
+where $m_0$ is the scattered sunlight component to the 12-degree twilight surface brightness at zenith.  
+
+By default, we only apply the twilight component for solar altitudes between -11 and -20 degrees. For solar altitude values less than -20 degrees, we find the other sky components always dominate. For altitudes greater than -11, our simple model breaks down but we expect LSST exposures would saturate well before this level.  
+
+XXX--we have taken the sky brightness measurements from the Canon camera and median binned blah blah.  Some example R-band twilight maps are shown in Figures~\ref{fig:twiSky} and~\ref{fig:twiExp}.  We use these data to find the best-fitting paramteres for Equation~\ref{eqn:twi}.  
 
 
-The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Canon filters and the photodiode data are listed in Table~\ref{table:canonFits}
+The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Canon filters and the photodiode data are listed in Table~\ref{table:canonFits}, along with values we have adopted for $u$ and IR filters.
+
+One important lesson from the data is the counter-intuitive (at least to me) result that during twilight the darkest part of the sky is near zenith, not moderate airmass in the hemisphere away from the sun. One is usually better off observing at low airmass towards the sun rather than high airmass away from the sun.
 
 %>>> import lsst.sims.skybrightness as sb
 %>>> twi = sb.TwilightInterp()
@@ -213,7 +222,8 @@ Figure~\ref{fig:darkDir} shows how well the sky model does at predicting the dir
 
 Using the same set of 3400 observations, we zeropoint each frame (to correct for any average cloud cover or instrument zeropoint drift) and record the model and observation zenith sky brightness. Figure~\ref{fig:zenithModel} shows the median and standard deviation of the model and observation zenith residuals.  In general, the model does an excellent job matching the observed zenith sky brightness, and only fails when the moon is very high in the sky.  
 
-Note that we have not verified the off-zenith IR performance of the model.
+
+
 
 \begin{figure*}
   \epsscale{.8}
@@ -237,6 +247,16 @@ Note that we have not verified the off-zenith IR performance of the model.
 \end{figure*}
 
 
+\section{Future Work}
+
+Note that we have not verified the off-zenith IR performance of the model. If the source of scattering of IR sunlight in the atmopshere is significatly different from optical light, the model could be wrong. Measuring the IR surface brightness of the twilight sky along just a few more alt-az pointings could help in verifying and constraining the $b4 and $c$ terms of Equation~\ref{eqn:twi}.
+
+In theory, we should be able to use the photodiode data to verify the sky brightness model has the correct zeropoint. In practice, it has proven difficult to find anyone who knows how to convert the output of the photodiodes to magnitudes per square arcsecond.
+
+When fitting the all-sky twilight data, we assumed that as long as the moon had set we could approximate the sky background at a given airmass as constant. We should go back and remove the expected zodical light as well as airglow given the solar activity at the time of the obervations. Thus, we should expect the the fits in Table~\ref{table:canonFits} to be slightly skewed by the presence of zodical light, particularly parameter $c$.  
+
+The sky model currently uses the pyEphem package to compute sun and moon positions as well as a few coordinate transformations. It would be preferable to eliminate this dependecy.  
+
 
 \bibliography{skyModel.bib}
 \end{document}
@@ -245,3 +265,5 @@ Note that we have not verified the off-zenith IR performance of the model.
 
 %%  LocalWords:  ESO SkyCalc airglow Noll numpy nm airmass Healpixel
 %%  LocalWords:  nside Healpixels Krisciunas Patat twi az skyModel
+%%  LocalWords:  SIM Cerro Pachon photodiodes airmasses radians
+%%  LocalWords:  photodiode zeropoint
