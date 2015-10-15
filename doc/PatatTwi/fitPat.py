@@ -14,7 +14,7 @@ def expPc(x,a,const, ratio):
 
 files = {'B':'Bband.dat', 'I':'Iband.dat', 'R':'Rband.dat', 'U':'Uband.dat', 'V':'vband.dat'}
 
-names = ['zenthAng', 'sb']
+names = ['zenithAng', 'sb']
 types = [float]*2
 dt = zip(names,types)
 
@@ -28,8 +28,11 @@ order = ['U','B','V','R','I']
 for i,key in enumerate(order):
     data = np.genfromtxt(files[key], dtype=dt, comments='#', delimiter=',')
 
+    good = np.where(data['zenithAng'] >= 100.)
+    data = data[good]
+
     flux = 10.**(-0.4*data['sb'])
-    x = np.radians(90.-data['zenthAng'])
+    x = np.radians(90.-data['zenithAng'])
     p0 = [22., np.min(flux), 4.]
     popt, pcov = curve_fit(expPc, x, flux, p0=p0, sigma=flux*.05)
 
@@ -42,7 +45,7 @@ for i,key in enumerate(order):
                 color='k', alpha=.5)
 
 
-ax.set_xlim([-6,-22])
+ax.set_xlim([-10,-22])
 ax.set_xlabel('Sun Altitude (degrees)')
 ax.set_ylabel('Flux (arbitrary)')
 ax.legend()

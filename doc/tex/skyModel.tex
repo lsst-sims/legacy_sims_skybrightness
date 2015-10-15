@@ -35,7 +35,7 @@ Seattle WA, 98195; {yoachim@uw.edu} }
 
 \section{Introduction}
 
-An accurate model of the background sky emission is needed to accurately simulate and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?} \url{INS.MODE=swspectr+INS.NAME=SKYCALC}}.  The ESO model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  
+An accurate model of the background sky emission is needed to accurately simulate and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?} \url{INS.MODE=swspectr+INS.NAME=SKYCALC}} \citep{Noll12,Jones13}.  The ESO model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  
 
 The general idea is that the ESO model computes the expected sky background from different sources from first principles. Because LSST will want to compute the sky background for the full sky millions of times throughout the survey, we need to improve performance by pre-computing the ESO model on relevant parameter grids and interpolating the results to our specific observation times. Also, the ESO source code is not available, limiting our ability to run it directly at scale.
 
@@ -53,7 +53,7 @@ We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5 and a Healpixel grid with 19
 
 \begin{figure}
   \plotone{../Plots/zodiacal.pdf}
-  \caption{Example of zodiacal light \label{fig:zodiacal}}
+  \caption{Example of zodiacal light interpolated from ESO templates. \label{fig:zodiacal}}
 \end{figure}
 
 
@@ -98,7 +98,7 @@ Because the upper atmosphere, lower atmosphere, and scattered star light only va
 
 \begin{figure}
   \plotone{../Plots/merged.pdf}
-  \caption{Example of the sky brightness components that are only dependent on airmass.  \label{fig:merged}}
+  \caption{Examples of the sky brightness components that are only dependent on airmass.  \label{fig:merged}}
 \end{figure}
 
 
@@ -128,13 +128,13 @@ Rather than compute radiative transfer, the data from the all-sky camera as well
 
 \begin{figure*}
   \plotone{../../examples/Plots/diode.pdf}
-  \caption{The photodiode data.  All three photodiodes are pointed to zenith. The light gray points show individual measurements, while the yellow points are the median-binned data. The solid blue line shows the best fit exponential decay plus constant. The green vertical line marks 12 degree twilight, and the dashed vertical blue line shows where the data was not used because the detector was often saturated at that point. \label{diodePlot}}
+  \caption{Photodiode observations of zenith at the LSST site. The light gray points show individual measurements, while the yellow points are the median-binned data. The solid blue line shows the best fit exponential decay plus constant. The green vertical line marks 12 degree twilight, and the dashed vertical blue line shows where the data was not used because the detector was often saturated at that point. \label{diodePlot}}
 \end{figure*}
 
 
 \begin{figure*}
   \plotone{../../examples/Plots/twiExamples.pdf}
-  \caption{Sky brightness values measured from the Canon all-sky camera after median binning spatially by Healpixels and combining similar sun altitudes. Only frames with the moon below the horizon were used. Zenith is at the center of each image, and the sun is below the horizon at an azimuth of zero (bottom of the frame. The data values are instrumental magnitudes.)  \label{fig:twiSky}}
+  \caption{Sky brightness values measured from the Canon all-sky camera after median binning spatially by Healpixels and combining similar sun altitude observations. Only frames with the moon below the horizon were used. Zenith is at the center of each image, and the sun is below the horizon at an azimuth of zero (bottom of the frame). The values are instrumental magnitudes.  \label{fig:twiSky}}
 \end{figure*}
 
 
@@ -237,7 +237,7 @@ Using the same set of 3400 observations, we zeropoint each frame (to correct for
   \plottwo{../../examples/Plots/medianAngDiff_G_.pdf}{../../examples/Plots/rmsAngDiff_G_.pdf}
   \plottwo{../../examples/Plots/medianAngDiff_B_.pdf}{../../examples/Plots/rmsAngDiff_B_.pdf}
   \epsscale{1}
-  \caption{Comparing the angular distance between the model-predicted darkest spot on the sky and the darkest spot as observed by the Canon all-sky camera \label{fig:darkDir}.  Most of the variation can be attributed to frames with clouds. Dashed lines mark moon-rise and the end of twilight.}
+  \caption{Comparing the angular distance between the model-predicted darkest spot on the sky and the darkest spot as observed by the Canon all-sky camera \label{fig:darkDir}.  Dashed lines mark moonrise and end of twilight (lower left region is dark-time).  The panels on the left show the median distance between the model and observation for each bin while the right panels show the robust-RMS for each bin.  Most of the variation can be attributed to frames with clouds.}
 \end{figure*}
 
 \clearpage
@@ -253,12 +253,12 @@ Using the same set of 3400 observations, we zeropoint each frame (to correct for
 \end{figure*}
 
 
-Our results can be compared to the ESO-Paranal twilight sky observations presented in \citet{Patat06}. We have scrapped the twilight zenith sky brightness data for observations taken of long-exposure standards with the FORS1 instrument.  The data and best fitting exponential-plus-constant models are shown in Figure~\ref{fig:Patat}.  The best-fit parameters are listed in Table~\ref{table:PatatFits}.  The Canon-B brightness seems to be fainter than Johnson's $B$.  The slopes of the twilight decay are very similar with the \citet{Patat06} data having $ -0.99  < a < -0.94 $ mag degree$^-1$ and our fits are in the range $ -1.02 < a < -0.97$ mag degree$^-1$.
+Our results can be compared to the ESO-Paranal twilight sky observations presented in \citet{Patat06}. We have scrapped the twilight zenith sky brightness data for observations taken of long-exposure standards with the FORS1 instrument.  The data and best fitting exponential-plus-constant models are shown in Figure~\ref{fig:Patat}.  The best-fit parameters are listed in Table~\ref{table:PatatFits}.  The Canon-B brightness seems to be fainter than Johnson's $B$.  The slopes of the twilight decay are very similar with the \citet{Patat06} data having $ -1.06  < a < -0.97 $ mag degree$^-1$ and our fits are in the range $ -1.02 < a < -0.97$ mag degree$^-1$.
 
 
 \begin{figure}
   \plotone{../PatatTwi/patatFits.pdf}
-  \caption{Data scraped from \citet{Patat06} and fit with our simple exponential decay plus constant model. Dashed black lines show the best-fit curves.  The red dashed line shows the 12-degree twilight line.  \label{fig:Patat} }
+  \caption{Zenith sky surface brightness data scraped from \citet{Patat06} and fit with our simple exponential decay plus constant model. Dashed black lines show the best-fit curves.  The red dashed line shows the 12-degree twilight line.  \label{fig:Patat} }
 \end{figure}
 
 
@@ -271,11 +271,11 @@ Our results can be compared to the ESO-Paranal twilight sky observations present
   \tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ } \\
   & & \colhead{(1/radians)}  }
   \startdata
-  U & 13.28 & 21.79 \\
-  B & 15.57 & 21.65 \\
-  V & 4.81 & 21.91 \\
-  R & 3.52 & 22.27 \\
-  I & 2.36 & 22.78
+  U & 13.40 & 22.37 \\
+  B & 15.49 & 22.60 \\
+  V & 4.78  & 22.31 \\
+  R & 3.35  & 24.35 \\
+  I & 2.29  & 24.08
 \end{deluxetable}
 
 
@@ -302,4 +302,4 @@ The sky model currently uses the pyEphem package to compute sun and moon positio
 %%  LocalWords:  SIM Cerro Pachon photodiodes airmasses radians pre
 %%  LocalWords:  photodiode zeropoint skybrightness stepsize Mauna
 %%  LocalWords:  Kea Paranal brightnesses pointings SFU annulus NIST
-%%  LocalWords:  radiative FORS
+%%  LocalWords:  radiative FORS healpix healpy pyEphem
