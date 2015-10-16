@@ -73,7 +73,7 @@ We build a template library of scattered moonlight by considering moon-sun separ
 
 The airglow is assumed to be a function of airmass and solar activity as measured by solar radio observations.  We compute the spectra on a grid of airmass of 1 to 2 with steps of 0.1 and additionally an airmass of 2.5.  For the solar activity, we span 50 to 310 SFU with a step size of 20, resulting in a total of 168 airglow spectra. 
 
-Technically, the airglow is also varies with the time of year and time of night.  This variation is quite small relative to the solar activity \citep{Noll12}, so we have not included it. Examples of the airglow spectra are shown in Figure~\ref{fig:airglow}.
+Technically, the airglow is also varies with the time of year and time of night.  This variation is quite small relative to the solar activity \citep{Noll12}, so we have not included it.  \citet{Patat08} also shows the seasonal variation in $BVRI$ has an amplitude of less than $\pm0.5$ magnitudes. Examples of the airglow spectra are shown in Figure~\ref{fig:airglow}.
 
 \begin{figure}
   \plotone{../Plots/airglow.pdf}
@@ -172,9 +172,11 @@ By default, we only apply the twilight component for solar altitudes between -11
 
 We have taken the sky brightness measurements from the Canon camera (when the moon is down) and median-binned the data based on sun altitude and alt-az coordinate.  The median binning effectively eliminates cloudy data.  Some example R-band twilight maps are shown in Figures~\ref{fig:twiSky} and~\ref{fig:twiExp}.  We use these data to find the best-fitting parameters for Equation~\ref{eqn:twi}.  
 
-The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Canon filters and the photodiode data are listed in Table~\ref{table:canonFits}, along with values we have adopted for $u$ and IR filters.
+The best fitting parameters for $r_{12/z}$, $a$, $b$, and $c$ for each of the Canon filters and the photodiode data are listed in Table~\ref{table:canonFits}.
 
-One important lesson from the data is the counter-intuitive (at least to me) result that during twilight the darkest part of the sky is near zenith, not moderate airmass in the hemisphere away from the sun. One is usually better off observing at low airmass towards the sun rather than high airmass away from the sun.
+We use the photodiode measurements in Figure~\ref{diodePlot} to fit $r_{12/z}$, and $a$ and then assume the $b$ and $c$ terms are similar to the optical bands.  The photodiode data seems to be very faint at 12-degree twilight compared to other data sets.  The photodiode $r$ filter is much fainter than the Canon R, and the photodiode $z$ is much fainter than Johnson's $I$. 
+
+One important lesson from the data is the counter-intuitive (at least to me) result that during twilight the darkest part of the sky is near zenith, not moderate airmass in the hemisphere facing away from the sun. One is better off observing at low airmass towards the sun rather than high airmass away from the sun.
 
 
 %>>> import lsst.sims.skybrightness as sb
@@ -282,6 +284,8 @@ Our results can be compared to the ESO-Paranal twilight sky observations present
 \section{Possible Future Work}
 
 Note that we have not verified the off-zenith IR performance of the model. If the source of scattering of IR sunlight in the atmosphere is significantly different from optical light, the model could be wrong. Measuring the IR surface brightness of the twilight sky along just a few more alt-az pointings could help in verifying and constraining the $b$ and $c$ terms of Equation~\ref{eqn:twi}.
+
+We have not included the sky brightness increase that can come from light reflected off of clouds.  With the data from the all-sky camera, we could construct a model for the increased brightness we expect as a function of atmospheric transparency.  
 
 In theory, we should be able to use the photodiode data to verify the sky brightness model has the correct zeropoint. In practice, it has proven difficult to find anyone who knows how to convert the output of the photodiodes to magnitudes per square arcsecond.
 

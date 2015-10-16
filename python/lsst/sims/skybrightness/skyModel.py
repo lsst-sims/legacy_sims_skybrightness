@@ -269,7 +269,7 @@ class SkyModel(object):
                 if not hasattr(self,'wave'):
                     self.wave = result['wave']
                 else:
-                    if not np.array_equal(result['wave'], self.wave):
+                    if not np.allclose(result['wave'], self.wave, rtol= 1e-5,atol=1e-5):
                         warnings.warn('Wavelength arrays of components do not match.')
         self.spec[np.where(mask == 0),:] = 0
 

@@ -503,9 +503,12 @@ class ZodiacalInterp(BaseSingleInterp):
         """
         result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
+        inRange = np.where( (interpPoints['airmass'] <= np.max(self.dimDict['airmass'])) &
+                            (interpPoints['airmass'] >= np.min(self.dimDict['airmass']))  )
+        usePoints = interpPoints[inRange]
         # Find the neighboring healpixels
-        hpids, hweights =  hp.get_neighbours(self.nside, np.pi/2.-interpPoints['altEclip'],
-                                                interpPoints['azEclipRelSun'] )
+        hpids, hweights =  hp.get_neighbours(self.nside, np.pi/2.-usePoints['altEclip'],
+                                             usePoints['azEclipRelSun'] )
 
         badhp = np.in1d(hpids.ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
         hweights[badhp] = 0.
@@ -514,31 +517,14 @@ class ZodiacalInterp(BaseSingleInterp):
         good= np.where(norm != 0.)[0]
         hweights[:,good] = hweights[:,good]/norm[good]
 
-
-        #norm = np.sum(hweights,axis=0)
-        #hweights = hweights/norm
-
-        # Find the neighboring airmass points in the grid
-        order = np.argsort(interpPoints['airmass'])
-        good = np.where( (interpPoints['airmass'][order] >= np.min( self.dimDict['airmass'])) &
-                         (interpPoints['airmass'][order] <= np.max( self.dimDict['airmass']))  )
-        rightAMs = np.searchsorted(self.dimDict['airmass'], interpPoints[order]['airmass'] )
-        leftAMs = rightAMs-1
-
-        # Set the indices that are out of the grid to 0.
-        leftAMs[np.where(leftAMs) < 0] = 0
-        rightAMs[np.where(rightAMs > self.dimDict['airmass'].size-1)] = 0
-        amids = np.array([rightAMs,leftAMs] )
-
-        amWs= np.zeros((2,interpPoints.size), dtype=float)
-        amWs[0,order[good]] = (self.dimDict['airmass'][rightAMs[good]]-interpPoints['airmass'][order[good]])/(self.dimDict['airmass'][rightAMs[good]]- self.dimDict['airmass'][leftAMs[good]])
-        amWs[1,order[good]] =(interpPoints['airmass'][order[good]]-self.dimDict['airmass'][leftAMs[good]])/(self.dimDict['airmass'][rightAMs[good]]- self.dimDict['airmass'][leftAMs[good]])
+        amRightIndex, amLeftIndex, amRightW, amLeftW = self.indxAndWeights(usePoints['airmass'],
+                                                                           self.dimDict['airmass'])
 
         nhpid = self.dimDict['hpid'].size
         # loop though the hweights and the airmass weights
         for hpid,hweight in zip(hpids,hweights):
-            for amid,amW in zip(amids, amWs):
+            for amIndex, amW in zip([amRightIndex,amLeftIndex], [amRightW,amLeftW] ):
                 weight = hweight*amW
-                result += weight[:,np.newaxis]*values[amid*nhpid+hpid]
+                result[inRange] += weight[:,np.newaxis]*values[amIndex*nhpid+hpid]
 
         return result
