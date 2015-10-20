@@ -260,7 +260,26 @@ for filterName in filters:
     fig.savefig('Plots/zenithMedian_%s_.pdf' % filterName)
     plt.close(fig)
 
+    # Just make the raw plots for comparison
+    fig,ax = plt.subplots(2)
+    im1 = ax[0].hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
+                      C=validationArr['obsZenith'][good], reduce_C_function=np.mean , gridsize=20)
+    cb = plt.colorbar(im1, ax=ax[0])
+    ax[0].set_title('Observed zenith, Canon %s' % filterName)
+    ax[0].set_xlabel('Moon Alt (degrees)')
+    ax[0].set_ylabel('Sun Alt (degrees)')
 
+    im2 = ax[1].hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
+                      C=validationArr['modelZenith'][good], reduce_C_function=np.mean , gridsize=20)
+    ax[1].set_title('Model zenith')
+    ax[1].set_xlabel('Moon Alt (degrees)')
+    ax[1].set_ylabel('Sun Alt (degrees)')
+
+    cb = plt.colorbar(im2, ax=ax[1])
+    fig.tight_layout()
+    fig.savefig('Plots/simple_zenith_comp_%s.pdf' % filterName)
+
+    plt.close(fig)
 
 
     if not read:

@@ -51,6 +51,7 @@ Zodiacal light is caused by sunlight scattered by dust grains in the plane of th
 
 We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5 and a Healpixel grid with 192 elements (nside=4, resolution of $\sim15\degree$), resulting in 960 zodiacal template spectra.  The Healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  Some example zodiacal light spectra are shown in Figure~\ref{fig:zodiacal}. 
 
+
 \begin{figure}
   \plotone{../Plots/zodiacal.pdf}
   \caption{Example of zodiacal light interpolated from ESO templates. \label{fig:zodiacal}}
@@ -126,19 +127,20 @@ The ESO sky model does not include a component for scattered sunlight.  The twil
 
 Rather than compute radiative transfer, the data from the all-sky camera as well as other sites shows that after the sun's altitude drops below $\sim-10\degree$ the twilight flux decays exponentially with solar altitude. Figure~\ref{diodePlot} shows the zenith sky brightness as a function of sun altitude measured by the photodiodes. The total sky brightness is well fit by an exponential decay plus a constant floor.  In Figures~\ref{fig:twiSky} and~\ref{fig:twiExp} we show that when one uses alt-az coordinates, where azimuth is heliocentric (sun always at az=0), the twilight is well described as an exponential decay plus a constant for all points in the sky.
 
+% from fitDiode.py
 \begin{figure*}
   \plotone{../../examples/Plots/diode.pdf}
   \caption{Photodiode observations of zenith at the LSST site. The light gray points show individual measurements, while the yellow points are the median-binned data. The solid blue line shows the best fit exponential decay plus constant. The green vertical line marks 12 degree twilight, and the dashed vertical blue line shows where the data was not used because the detector was often saturated at that point. \label{diodePlot}}
 \end{figure*}
 
-
+% from twiPlotsForDoc.py
 \begin{figure*}
   \plotone{../../examples/Plots/twiExamples.pdf}
   \caption{Sky brightness values measured from the Canon all-sky camera after median binning spatially by Healpixels and combining similar sun altitude observations. Only frames with the moon below the horizon were used. Zenith is at the center of each image, and the sun is below the horizon at an azimuth of zero (bottom of the frame). The values are instrumental magnitudes.  \label{fig:twiSky}}
 \end{figure*}
 
 
-
+% from fitTwiSlopesSimul.py
 \begin{figure*}
   \epsscale{1}
   \plottwo{../../examples/Plots/altDecay.pdf}{../../examples/Plots/altDecayHA.pdf}
@@ -216,6 +218,7 @@ In our fits we have not used the photodiode $R$ band data, as the 12-degree twil
 
 To verify the performance of the sky model, we compare it to the sky brightness observations made by the Canon all-sky camera.
 
+% from validate.py
 \begin{figure*}
   \plotone{../../examples/Plots/exampleSkys_0.pdf}
   \plotone{../../examples/Plots/exampleSkys_1.pdf}
@@ -233,6 +236,7 @@ Using the same set of 3400 observations, we zeropoint each frame (to correct for
 
 
 
+% from validate.py
 \begin{figure*}
   \epsscale{.8}
   \plottwo{../../examples/Plots/medianAngDiff_R_.pdf}{../../examples/Plots/rmsAngDiff_R_.pdf}
@@ -245,6 +249,7 @@ Using the same set of 3400 observations, we zeropoint each frame (to correct for
 \clearpage
 
 
+% from validate.py
 \begin{figure*}
   \epsscale{0.8}
   \plottwo{../../examples/Plots/zenithMedian_R_.pdf}{../../examples/Plots/zenithRMS_R_.pdf}
