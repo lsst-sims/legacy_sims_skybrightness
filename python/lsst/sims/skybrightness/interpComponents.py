@@ -224,17 +224,20 @@ class Airglow(BaseSingleInterp):
 
 class TwilightInterp(object):
     def __init__(self, mags=False,
-                 darkSkyMags = {'u':22.8, 'g':22.3, 'r':21.2,
-                                'i':20.3, 'z':19.3, 'y':18.0,
-                                'B':22.35, 'G':21.71, 'R':21.3}):
+                 darkSkyMags = None, fitResults = None):
         """
         Read the Solar spectrum into a handy object and compute mags in different filters
         mags:  If true, only return the LSST filter magnitudes, otherwise return the full spectrum
 
         darkSkyMags = dict of the zenith dark sky values to be assumed. The twilight fits are
         done relative to the dark sky level.
+        fitResults = dict of twilight parameters based on twilightFunc. Keys should be filter names.
         """
-        # XXX Note the darkSkyMags still should to be averaged over lots of zodiacal values.
+
+        if darkSkyMags is None:
+            darkSkyMags = {'u':22.8, 'g':22.3, 'r':21.2,
+                           'i':20.3, 'z':19.3, 'y':18.0,
+                           'B':22.35, 'G':21.71, 'R':21.3}
 
         self.mags = mags
 
@@ -283,23 +286,26 @@ class TwilightInterp(object):
         # Just assuming the shape parameter fits are similar to the other bands.
         # Looks like the diode is not sensitive enough to detect faint sky.
         # Using the Patat et al 2006 I-band values for z and modeified a little for y as a temp fix.
-        self.fitResults = {'B': [8.42181815e+00,   2.29622121e+01,   2.85862729e-01,
-                                 2.99902574e-01,   2.32325117e-04 ],
-                           'G': [4.13747072e+00,   2.29416735e+01,   2.97229615e-01,
-                                 3.15696066e-01,   4.20961686e-04],
-                           'R': [2.73450774e+00,   2.22015053e+01,   2.97825187e-01,
-                                 3.28865935e-01,   2.08470485e-04],
-                           #'r': [ 0.52247301,  22.51393345, 0.3, 0.3,  54.8812249],
-                           #'z': [0.74072461,  23.37634241, 0.3, 0.3,  12.88718065],
-                           #'y': [0.13894689,  23.41098193, 0.3, 0.3,  29.46852266]
-                           'z': [2.29, 24.08, 0.3,0.3,-666],
-                           'y': [2.0, 24.08, 0.3,0.3,-666]}
+        if fitResults is None:
+            self.fitResults = {'B': [8.42181815e+00,   2.29622121e+01,   2.85862729e-01,
+                                     2.99902574e-01,   2.32325117e-04 ],
+                               'G': [4.13747072e+00,   2.29416735e+01,   2.97229615e-01,
+                                     3.15696066e-01,   4.20961686e-04],
+                               'R': [2.73450774e+00,   2.22015053e+01,   2.97825187e-01,
+                                     3.28865935e-01,   2.08470485e-04],
+                               #'r': [ 0.52247301,  22.51393345, 0.3, 0.3,  54.8812249],
+                               #'z': [0.74072461,  23.37634241, 0.3, 0.3,  12.88718065],
+                               #'y': [0.13894689,  23.41098193, 0.3, 0.3,  29.46852266]
+                               'z': [2.29, 24.08, 0.3,0.3,-666],
+                               'y': [2.0, 24.08, 0.3,0.3,-666]}
 
 
-        # XXX-completely arbitrary fudge factor to make things brighter in the blue
-        # Just copy the blue and say it's brighter.
-        self.fitResults['u'] = [16.,   2.29622121e+01,   2.85862729e-01,
-                                2.99902574e-01,   2.32325117e-04 ]
+            # XXX-completely arbitrary fudge factor to make things brighter in the blue
+            # Just copy the blue and say it's brighter.
+            self.fitResults['u'] = [16.,   2.29622121e+01,   2.85862729e-01,
+                                    2.99902574e-01,   2.32325117e-04 ]
+        else:
+            self.fitResults = fitResults
 
         # Take out any filters that don't have fit results
         self.filterNames = [ key for key in self.filterNames if key in self.fitResults.keys() ]
