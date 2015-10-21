@@ -35,21 +35,21 @@ Seattle WA, 98195; {yoachim@uw.edu} }
 
 \section{Introduction}
 
-An accurate model of the background sky emission is needed to accurately simulate and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?} \url{INS.MODE=swspectr+INS.NAME=SKYCALC}} \citep{Noll12,Jones13}.  The ESO model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  
+An accurate model of the background sky emission is needed to accurately simulate and schedule observations for LSST.  As a starting point, we use the ESO SkyCalc Sky Model Calculator\footnote{\url{http://www.eso.org/observing/etc/bin/gen/form?} \url{INS.MODE=swspectr+INS.NAME=SKYCALC}} \citep{Noll12,Jones13}.  The ESO model includes scattered moonlight, scattered starlight, zodiacal light, molecular emission from the lower atmosphere, emission lines from the upper atmosphere, and airglow continuum.  The ESO model is designed for Paranal, which seems to be very similar to Pachon.  Pachon is located 625 km south of Paranal, at an altitude of 2,700m compared to Paranal at 2,600m.  
 
-The general idea is that the ESO model computes the expected sky background from different sources from first principles. Because LSST will want to compute the sky background for the full sky millions of times throughout the survey, we need to improve performance by pre-computing the ESO model on relevant parameter grids and interpolating the results to our specific observation times. Also, the ESO source code is not available, limiting our ability to run it directly at scale.
+The general idea is that the ESO model computes the expected sky background from different sources from first principles (e.g., single and double scattering of lunar light). Because LSST will want to compute the sky background for the full sky millions of times throughout the survey, we need to improve performance by pre-computing the ESO model on relevant parameter grids and interpolating the results to our specific observation times. Also, the ESO source code is not available, limiting our ability to run it directly at scale.
 
 Our new sky brightness code can be found at \url{https://github.com/lsst/sims\_skybrightness}.
 
 \section{The ESO Model}
 In this section, we briefly describe the sky components included in the ESO model and how we have created grids of model spectra with them. The ESO model is described in detail in \citet{Noll12} and \citet{Jones13}.
 
-For all of the ESO models, we save the template spectra as numpy zip files.  The model spectra run from 300 nm to 2 microns, with 0.1 nm stepsize.  In addition to the spectra, we also pre-compute the 6 LSST magnitudes from each spectrum at each grid point. These pre-computed values are stored in their own git repository (\url{https://github.com/lsst/sims\_skybrightness\_data}) and are about 1 Gb in size.
+For each ESO model component, we save the output spectra as numpy zip files.  The model spectra run from 300 nm to 2 microns, with 0.1 nm stepsize.  In addition to the spectra, we also pre-compute the 6 LSST magnitudes from each spectrum at each grid point. These pre-computed spectra and magnitudes are stored in their own git repository (\url{https://github.com/lsst/sims\_skybrightness\_data}) and are about 1 Gb in size.
 
 \subsection{Zodiacal Light}
 Zodiacal light is caused by sunlight scattered by dust grains in the plane of the ecliptic.  The ESO model varies the Zodiacal light as a function of ecliptic coordinates and airmass.  
 
-We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5 and a Healpixel grid with 192 elements (nside=4, resolution of $\sim15\degree$), resulting in 960 zodiacal template spectra.  The Healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  Some example zodiacal light spectra are shown in Figure~\ref{fig:zodiacal}. 
+We use an airmass grid of 1, 1.2, 1.4, 2.0, and 2.5 and a Healpixel grid with 192 elements (nside=4, resolution of $\sim15\degree$).  We use the ESO calculator to generate spectra at the center of each Healpixel coordinate and each airmass value, resulting in 960 zodiacal spectra that we can then interpolate to arbitrary position and airmass.  The Healpixels are a grid in heliocentric ecliptic latitude and longitude (i.e., longitude zero is fixed to the solar position).  Some example zodiacal light spectra are shown in Figure~\ref{fig:zodiacal}. 
 
 
 \begin{figure}
@@ -123,9 +123,9 @@ We use these sky observations to fit a reasonable twilight sky brightness model 
 \section{Additional Components}
 \subsection{Twilight}
 
-The ESO sky model does not include a component for scattered sunlight.  The twilight sky brightness is difficult to compute analytically.  While scattered moonlight can be computed via a single or double scattering model, the solar twilight comes from multiple scatterings, thus there is no simple analytic model for computing the solar twilight from first principles and models must instead rely on Monte Carlo radiative transfer simulations \citep{Patat06}.
+The ESO sky model does not include a component for sunlight scattered by earth's atmosphere.  The twilight sky brightness is difficult to compute analytically.  While scattered moonlight can be computed via a single or double scattering model, the solar twilight comes from multiple scatterings, thus there is no simple analytic model for computing the solar twilight from first principles and models must instead rely on Monte Carlo radiative transfer simulations \citep{Patat06}.
 
-Rather than compute radiative transfer, the data from the all-sky camera as well as other sites shows that after the sun's altitude drops below $\sim-10\degree$ the twilight flux decays exponentially with solar altitude. Figure~\ref{diodePlot} shows the zenith sky brightness as a function of sun altitude measured by the photodiodes. The total sky brightness is well fit by an exponential decay plus a constant floor.  In Figures~\ref{fig:twiSky} and~\ref{fig:twiExp} we show that when one uses alt-az coordinates, where azimuth is heliocentric (sun always at az=0), the twilight is well described as an exponential decay plus a constant for all points in the sky.
+Rather than compute radiative transfer, we fit a simple empirical model to the twilight flux.  Data from the all-sky camera as well as other sites show that after the sun's altitude drops below $\sim-10\degree$ the twilight flux decays exponentially with solar altitude. Figure~\ref{diodePlot} shows the zenith sky brightness as a function of sun altitude measured by the photodiodes. The total sky brightness is well fit by an exponential decay plus a constant floor.  In Figures~\ref{fig:twiSky} and~\ref{fig:twiExp} we show that when one uses alt-az coordinates, where azimuth is heliocentric (sun always at az=0), the twilight is well described as an exponential decay plus a constant for all points in the sky.
 
 % from fitDiode.py
 \begin{figure*}
@@ -150,7 +150,7 @@ Rather than compute radiative transfer, the data from the all-sky camera as well
 
 
 
-To model the broadband flux from only the scattered twilight, we first model the flux from scattered starlight in the hemisphere pointed away from the sun as
+To model the broadband flux from only the scattered twilight, we first model the flux from scattered sunlight in the hemisphere pointed away from the sun as
 \begin{equation}\label{eqn:twi1}
   f^{away} = f_{z} r_{12/z} 10^{a(\alpha+12^{\circ})+b(X-1)}
 \end{equation}
@@ -311,4 +311,4 @@ The sky model currently uses the pyEphem package to compute sun and moon positio
 %%  LocalWords:  SIM Cerro Pachon photodiodes airmasses radians pre
 %%  LocalWords:  photodiode zeropoint skybrightness stepsize Mauna
 %%  LocalWords:  Kea Paranal brightnesses pointings SFU annulus NIST
-%%  LocalWords:  radiative FORS healpix healpy pyEphem
+%%  LocalWords:  radiative FORS healpix healpy pyEphem BVRI
