@@ -96,15 +96,16 @@ fig = plt.figure()
 for i,filterName in enumerate(filterNames):
     good = np.where( diode[filterName] < 480. )
     ax = fig.add_subplot(3,1,i+1)
-    ax.semilogy(np.degrees(diode['sunAlt'][good][::100]),
-                diode[filterName][good][::100], 'ko', alpha=.01 )
+    ax.plot(np.degrees(diode['sunAlt'][good][::100]),
+                -2.5*np.log10(diode[filterName][good][::100]), 'ko', alpha=.01 )
     ax.set_xlabel('Sun Altitude (degrees)')
-    ax.set_ylabel('Flux (arbitrary) ')
+    ax.set_ylabel('Mags')
     ax.set_title(filterName)
 
     xbinned,ybinned,yrms = medFilt(np.degrees(diode['sunAlt'][good]),
                                    diode[filterName][good])
-    ax.errorbar(xbinned,ybinned, yerr=yrms, fmt='yo')
+    magErr = 1.0857*yrms/ybinned
+    ax.errorbar(xbinned,-2.5*np.log10(ybinned), yerr=magErr, fmt='yo')
     ax.axvline(x=altLimits[filterName], color='b', linestyle='--')
     ax.set_xlim([-5,-24])
     ax.axvline(x=-12, color='g', linestyle='-')
@@ -115,8 +116,9 @@ for i,filterName in enumerate(filterNames):
                                           ybinned[goodBinned],
                                           sigma=yrms[goodBinned], p0=p0)
 
-    ax.plot(xbinned[goodBinned], zenithTwilight(np.radians(xbinned[goodBinned]), *fitParams), 'b' )
+    ax.plot(xbinned[goodBinned], -2.5*np.log10(zenithTwilight(np.radians(xbinned[goodBinned]), *fitParams)), 'b' )
 
+    ax.set_ylim([-1,-8])
 
     fittedParams[filterName] = fitParams
 

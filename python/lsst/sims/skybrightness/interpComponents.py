@@ -74,7 +74,9 @@ class BaseSingleInterp(object):
                 temp = np.load(filename)
                 self.spec = np.append(self.spec, temp['spec'])
         # Take the log of the spectra in case we want to interp in log space.
-        self.logSpec = np.log10(self.spec['spectra'])
+        self.logSpec = np.zeros(self.spec['spectra'].shape, dtype=float)
+        good = np.where( self.spec['spectra'] != 0)
+        self.logSpec[good] = np.log10(self.spec['spectra'][good])
         self.specSize = self.spec['spectra'][0].size
 
         # What order are the dimesions sorted by (from how the .npz was packaged)
@@ -91,6 +93,36 @@ class BaseSingleInterp(object):
         else:
             return self.interpSpec(intepPoints)
 
+
+    def indxAndWeights(self, points, grid):
+        """
+        for given 1-D points, find the grid points on either side and return the weights
+        assume grid is sorted
+        """
+
+        order = np.argsort(points)
+
+        indxL = np.empty(points.size, dtype=int)
+        indxR = np.empty(points.size, dtype=int)
+
+        indxR[order] = np.searchsorted(grid, points[order])
+        indxL = indxR-1
+
+        # If points off the grid were requested, just use the edge grid point
+        offGrid = np.where(indxR == grid.size)
+        indxR[offGrid] = grid.size-1
+        fullRange = grid[indxR]-grid[indxL]
+
+        wL = np.zeros(fullRange.size, dtype=float)
+        wR = np.ones(fullRange.size, dtype=float)
+
+        good = np.where(fullRange != 0)
+        wL[good] = (grid[indxR][good] - points[good])/fullRange[good]
+        wR[good] = (points[good] - grid[indxL[good]])/fullRange[good]
+
+        return indxR,indxL,wR,wL
+
+
     def _weighting(self, interpPoints, values):
         """
         given a list/array of airmass values, return a dict with the interpolated
@@ -99,39 +131,18 @@ class BaseSingleInterp(object):
         Input interpPoints should be sorted
         """
 
-        order = np.argsort(interpPoints, order=self.sortedOrder)
-
         results = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
-        # The model values for the left and right side.
-        right = np.searchsorted(self.dimDict['airmass'], interpPoints['airmass'][order])
-        left = right-1
+        inRange = np.where( (interpPoints['airmass'] <= np.max(self.dimDict['airmass'])) &
+                            (interpPoints['airmass'] >= np.min(self.dimDict['airmass'])))
+        indxR,indxL,wR,wL = self.indxAndWeights(interpPoints['airmass'][inRange],
+                                                self.dimDict['airmass'])
 
-        # catch it somewhere if the interp point is outside the model range?
-        #inRange = np.where((left >= 0) & (right <= self.dimDict['airmass'].size)  & (left < right) )
-        inRange = np.where( (interpPoints['airmass'][order] <= np.max(self.dimDict['airmass'])) &
-                            (interpPoints['airmass'][order] >= np.min(self.dimDict['airmass'])))
-
-        left[np.where(left < 0)] = 0
-        right[np.where(right >= self.dimDict['airmass'].size)] = self.dimDict['airmass']-1
-
-        # Calc the weights associated with each of those corners
-        fullRange = self.dimDict['airmass'][right]-self.dimDict['airmass'][left]
-        w1 = (self.dimDict['airmass'][right] - interpPoints['airmass'][order])/fullRange
-        w2 = (interpPoints['airmass'][order] - self.dimDict['airmass'][left])/fullRange
-
-        # Catch points that land on a model point
-        onPoint = np.where(fullRange == 0)
-        w1[onPoint] = 1.
-        w2[onPoint] = 0.
-
-        # Little kludge to make up for the fact that each airmass
-        # has 3 "time of night" values that we're ignoring.
         nextra = 3
 
         # XXX--should I use the log spectra?  Make a check and switch back and forth?
-        results[order[inRange]] = w1[inRange,np.newaxis]*values[left[inRange]*nextra] + \
-                                  w2[inRange,np.newaxis]*values[right[inRange]*nextra]
+        results[inRange] = wR[:,np.newaxis]*values[indxR*nextra] + \
+                           wL[:,np.newaxis]*values[indxL*nextra]
 
         return results
 
@@ -187,32 +198,6 @@ class Airglow(BaseSingleInterp):
     def __init__(self, compName='Airglow', sortedOrder=['airmass','solarFlux'], mags=False):
         super(Airglow,self).__init__(compName=compName, mags=mags, sortedOrder=sortedOrder)
         self.nSolarFlux = np.size(self.dimDict['solarFlux'])
-
-
-    def indxAndWeights(self, points, grid):
-        """
-        for given 1-D points, find the grid points on either side and return the weights
-        assume grid is sorted
-        """
-
-        order = np.argsort(points)
-
-        indxL = np.empty(points.size, dtype=int)
-        indxR = np.empty(points.size, dtype=int)
-
-        indxR[order] = np.searchsorted(grid, points[order])
-        indxL = indxR-1
-
-        fullRange = grid[indxR]-grid[indxL]
-        wL = (grid[indxR] - points)/fullRange
-        wR = (points - grid[indxL])/fullRange
-
-        # Catch points that land on a model point
-        onPoint = np.where(fullRange == 0)
-        wR[onPoint] = 1.
-        wL[onPoint] = 0.
-
-        return indxR,indxL,wR,wL
 
 
     def _weighting(self, interpPoints, values):
@@ -363,6 +348,22 @@ class TwilightInterp(object):
                 self.lsstEquations[i,-1] = 10.**(-0.4*(darkSkyMags[filterName]-np.log10(3631.)))
 
 
+    def printFitsUsed(self):
+        """
+        Print out the fit parameters being used
+        """
+        print '\\tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ (1/radians)} & \colhead{$b$ (1/airmass)} & \colhead{$c$ (az term/airmass)} & \colhead{$f_z_dark$ (erg/s/cm$^2$)$\\times 10^8$} & \colhead{m$_z_dark$}}'
+        for key in self.fitResults.keys():
+            numbers = ''
+            for num in  self.fitResults[key]:
+                if num > .001:
+                    numbers += ' & %.2f' % num
+                else:
+                    numbers += ' & %.2f' % (num*1e8)
+            print key, numbers, ' & ', '%.2f' % (-2.5*np.log10(self.fitResults[key][-1])+np.log10(3631.))
+
+
+
     def __call__(self, intepPoints):
         if self.mags:
             return self.interpMag(intepPoints)
@@ -438,8 +439,7 @@ class MoonInterp(BaseSingleInterp):
 
     def _weighting(self, interpPoints, values):
         """
-        A temporary method that does a stupid loop until I can figure out how to do the proper
-        all numpy array slicing
+
         """
 
         result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
@@ -460,42 +460,12 @@ class MoonInterp(BaseSingleInterp):
         hweights[:,good] = hweights[:,good]/norm[good]
 
         # Find the neighboring moonAltitude points in the grid
-        order = np.argsort(interpPoints['moonAltitude'])
-        good = np.where( (interpPoints['moonAltitude'][order] >= np.min( self.dimDict['moonAltitude'])) &
-                         (interpPoints['moonAltitude'][order] <= np.max( self.dimDict['moonAltitude']))  )
-        rightMAs = np.searchsorted(self.dimDict['moonAltitude'], interpPoints[order]['moonAltitude'] )
-        leftMAs = rightMAs-1
-
-        # Set the indices that are out of the grid to 0.
-        #leftMAs[np.where(leftMAs) < 0] = 0
-        #rightMAs[np.where(rightMAs > self.dimDict['moonAltitude'].size-1)] = 0
-        maids = np.array([rightMAs,leftMAs] )
-
-        maWs= np.zeros((2,interpPoints.size), dtype=float)
-        fullRange = self.dimDict['moonAltitude'][rightMAs[good]]- self.dimDict['moonAltitude'][leftMAs[good]]
-        maWs[0,order[good]] = (self.dimDict['moonAltitude'][rightMAs[good]]-
-                               interpPoints['moonAltitude'][order[good]])/fullRange
-        maWs[1,order[good]] =(interpPoints['moonAltitude'][order[good]]-
-                              self.dimDict['moonAltitude'][leftMAs[good]])/fullRange
+        rightMAs, leftMAs, maRightW, maLeftW = self.indxAndWeights(interpPoints['moonAltitude'],
+                                                                   self.dimDict['moonAltitude'])
 
         # Find the neighboring moonSunSep points in the grid
-        order = np.argsort(interpPoints['moonSunSep'])
-        good = np.where( (interpPoints['moonSunSep'][order] >= np.min( self.dimDict['moonSunSep'])) &
-                         (interpPoints['moonSunSep'][order] <= np.max( self.dimDict['moonSunSep']))  )
-        rightMAs = np.searchsorted(self.dimDict['moonSunSep'], interpPoints[order]['moonSunSep'] )
-        leftMAs = rightMAs-1
-
-        # Set the indices that are out of the grid to 0.
-        #leftMAs[np.where(leftMAs) < 0] = 0
-        #rightMAs[np.where(rightMAs > self.dimDict['moonSunSep'].size-1)] = 0
-        mssids = np.array([rightMAs,leftMAs] )
-
-        mssWs= np.zeros((2,interpPoints.size), dtype=float)
-        fullRange = self.dimDict['moonSunSep'][rightMAs[good]]- self.dimDict['moonSunSep'][leftMAs[good]]
-        mssWs[0,order[good]] = (self.dimDict['moonSunSep'][rightMAs[good]]-
-                               interpPoints['moonSunSep'][order[good]])/fullRange
-        mssWs[1,order[good]] =(interpPoints['moonSunSep'][order[good]]-
-                              self.dimDict['moonSunSep'][leftMAs[good]])/fullRange
+        rightMss, leftMss, mssRightW, mssLeftW = self.indxAndWeights(interpPoints['moonSunSep'],
+                                                                   self.dimDict['moonSunSep'])
 
         nhpid = self.dimDict['hpid'].size
         nMA = self.dimDict['moonAltitude'].size
@@ -506,8 +476,8 @@ class MoonInterp(BaseSingleInterp):
         # loop though the hweights and the moonAltitude weights
 
         for hpid,hweight in zip(hpindx,hweights):
-            for maid,maW in zip(maids, maWs):
-                for mssid,mssW in zip(mssids, mssWs):
+            for maid,maW in zip([rightMAs,leftMAs],[maRightW,maLeftW] ):
+                for mssid,mssW in zip([rightMss,leftMss], [mssRightW,mssLeftW]):
                     weight = hweight*maW*mssW
                     result += weight[:,np.newaxis]*values[mssid*nhpid*nMA+maid*nhpid+hpid]
 
@@ -533,9 +503,12 @@ class ZodiacalInterp(BaseSingleInterp):
         """
         result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
 
+        inRange = np.where( (interpPoints['airmass'] <= np.max(self.dimDict['airmass'])) &
+                            (interpPoints['airmass'] >= np.min(self.dimDict['airmass']))  )
+        usePoints = interpPoints[inRange]
         # Find the neighboring healpixels
-        hpids, hweights =  hp.get_neighbours(self.nside, np.pi/2.-interpPoints['altEclip'],
-                                                interpPoints['azEclipRelSun'] )
+        hpids, hweights =  hp.get_neighbours(self.nside, np.pi/2.-usePoints['altEclip'],
+                                             usePoints['azEclipRelSun'] )
 
         badhp = np.in1d(hpids.ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
         hweights[badhp] = 0.
@@ -544,31 +517,14 @@ class ZodiacalInterp(BaseSingleInterp):
         good= np.where(norm != 0.)[0]
         hweights[:,good] = hweights[:,good]/norm[good]
 
-
-        #norm = np.sum(hweights,axis=0)
-        #hweights = hweights/norm
-
-        # Find the neighboring airmass points in the grid
-        order = np.argsort(interpPoints['airmass'])
-        good = np.where( (interpPoints['airmass'][order] >= np.min( self.dimDict['airmass'])) &
-                         (interpPoints['airmass'][order] <= np.max( self.dimDict['airmass']))  )
-        rightAMs = np.searchsorted(self.dimDict['airmass'], interpPoints[order]['airmass'] )
-        leftAMs = rightAMs-1
-
-        # Set the indices that are out of the grid to 0.
-        leftAMs[np.where(leftAMs) < 0] = 0
-        rightAMs[np.where(rightAMs > self.dimDict['airmass'].size-1)] = 0
-        amids = np.array([rightAMs,leftAMs] )
-
-        amWs= np.zeros((2,interpPoints.size), dtype=float)
-        amWs[0,order[good]] = (self.dimDict['airmass'][rightAMs[good]]-interpPoints['airmass'][order[good]])/(self.dimDict['airmass'][rightAMs[good]]- self.dimDict['airmass'][leftAMs[good]])
-        amWs[1,order[good]] =(interpPoints['airmass'][order[good]]-self.dimDict['airmass'][leftAMs[good]])/(self.dimDict['airmass'][rightAMs[good]]- self.dimDict['airmass'][leftAMs[good]])
+        amRightIndex, amLeftIndex, amRightW, amLeftW = self.indxAndWeights(usePoints['airmass'],
+                                                                           self.dimDict['airmass'])
 
         nhpid = self.dimDict['hpid'].size
         # loop though the hweights and the airmass weights
         for hpid,hweight in zip(hpids,hweights):
-            for amid,amW in zip(amids, amWs):
+            for amIndex, amW in zip([amRightIndex,amLeftIndex], [amRightW,amLeftW] ):
                 weight = hweight*amW
-                result += weight[:,np.newaxis]*values[amid*nhpid+hpid]
+                result[inRange] += weight[:,np.newaxis]*values[amIndex*nhpid+hpid]
 
         return result

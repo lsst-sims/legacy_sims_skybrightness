@@ -106,8 +106,21 @@ class TestSkyModel(unittest.TestCase):
         sm2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
         sm2.computeSpec()
         mag2 = sm2.computeMags()
-
         np.testing.assert_allclose(mags1,mag2.T, rtol=1e-4)
+
+    def test90Deg(self):
+        """
+        Make sure we can look all the way to 90 degree altitude.
+        """
+        mjd =  56973.268218 #56995.22103
+        sm = sb.SkyModel(mags=True)
+        sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True)
+        sm.computeSpec()
+        mags = sm.computeMags()
+        assert(True not in np.isnan(mags))
+        assert(True not in np.isnan(sm.spec))
+
+
 
 
 if __name__=="__main__":
