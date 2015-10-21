@@ -281,7 +281,8 @@ class TwilightInterp(object):
         # r, z, and y are based on fitting the zenith decay in:
         # fitDiode.py
         # Just assuming the shape parameter fits are similar to the other bands.
-        # XXX-- I don't understand why R and r are so different. Or why z is so bright.
+        # Looks like the diode is not sensitive enough to detect faint sky.
+        # Using the Patat et al 2006 I-band values for z and modeified a little for y as a temp fix.
         self.fitResults = {'B': [8.42181815e+00,   2.29622121e+01,   2.85862729e-01,
                                  2.99902574e-01,   2.32325117e-04 ],
                            'G': [4.13747072e+00,   2.29416735e+01,   2.97229615e-01,
@@ -289,8 +290,10 @@ class TwilightInterp(object):
                            'R': [2.73450774e+00,   2.22015053e+01,   2.97825187e-01,
                                  3.28865935e-01,   2.08470485e-04],
                            #'r': [ 0.52247301,  22.51393345, 0.3, 0.3,  54.8812249],
-                           'z': [0.74072461,  23.37634241, 0.3, 0.3,  12.88718065],
-                           'y': [0.13894689,  23.41098193, 0.3, 0.3,  29.46852266]}
+                           #'z': [0.74072461,  23.37634241, 0.3, 0.3,  12.88718065],
+                           #'y': [0.13894689,  23.41098193, 0.3, 0.3,  29.46852266]
+                           'z': [2.29, 24.08, 0.3,0.3,-666],
+                           'y': [2.0, 24.08, 0.3,0.3,-666]}
 
 
         # XXX-completely arbitrary fudge factor to make things brighter in the blue
