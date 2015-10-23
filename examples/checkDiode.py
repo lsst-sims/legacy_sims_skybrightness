@@ -39,9 +39,10 @@ subDiode=diode[::1000]
 gridsize=20
 
 filters = ['r','z','y']
-pad = 2.5
+pads = {'r':2.5,'z':2, 'y':.5}
 for j,filterName in enumerate(filters):
-    fig,ax = plt.subplots(3)
+    pad = pads[filterName]
+    fig,ax = plt.subplots(2)
 
     obsMags = -2.5*np.log10(subDiode[filterName])
     dark = np.where(( subDiode['moonAlt'] < 0) & (subDiode['sunAlt'] < np.radians(-22.)) )
@@ -83,13 +84,13 @@ for j,filterName in enumerate(filters):
     resid = -2.5*np.log10(subDiode[filterName]) - modelVals[:,j]
     resid -= np.median(resid)
 
-    hb = ax[2].hexbin(np.degrees(subDiode['moonAlt']),np.degrees(subDiode['sunAlt']),
-                      resid, vmin=-3, vmax=3,
-                      gridsize=gridsize )
-    cb = fig.colorbar(hb, ax=ax[2])
-    ax[2].set_xlabel('Moon Alt (degrees)')
-    ax[2].set_ylabel('Sun Alt (degrees)')
-    ax[2].set_title('Diode-Model, %s' % filterName)
+#    hb = ax[2].hexbin(np.degrees(subDiode['moonAlt']),np.degrees(subDiode['sunAlt']),
+#                      resid, vmin=-3, vmax=3,
+#                      gridsize=gridsize )
+#    cb = fig.colorbar(hb, ax=ax[2])
+#    ax[2].set_xlabel('Moon Alt (degrees)')
+#    ax[2].set_ylabel('Sun Alt (degrees)')
+#    ax[2].set_title('Diode-Model, %s' % filterName)
 
     fig.tight_layout()
     fig.savefig('Plots/diodeCheck_%s.pdf' % filterName)
