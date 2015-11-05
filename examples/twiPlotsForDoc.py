@@ -1,6 +1,7 @@
 import numpy as np
 import healpy as hp
 import matplotlib.pylab as plt
+import matplotlib
 
 # Just make a few example plots for the document
 filterName = 'R'
@@ -21,6 +22,15 @@ airmass = 1./np.cos(np.pi/2.-alt)
 
 useAlts = [-12.5, -14, -16.5, -18.]
 
+
+# Make the masked data white
+cmap0 = matplotlib.cm.jet
+newcm = matplotlib.colors.LinearSegmentedColormap('newcm',cmap0._segmentdata,cmap0.N)
+newcm.set_over(newcm(1.0))
+newcm.set_under('w')
+newcm.set_bad('w')
+
+
 for i,alt in enumerate(useAlts):
     fig = plt.figure(1)
     good = np.where(sunAlts == np.radians(alt))[0]
@@ -28,7 +38,7 @@ for i,alt in enumerate(useAlts):
     toShow[np.where((airmass < 1) | (airmass > 10))] = hp.UNSEEN
     hp.mollview(toShow, rot=(0,90),
                 title=' Sun Alt = %.1f deg' % alt, fig=1, min=4.5,max=9.5,
-                unit='%s mags' % filterName, sub=(2,2,i+1))
+                unit='%s mags' % filterName, sub=(2,2,i+1), cmap=newcm)
 
 #fig.tight_layout()
 fig.savefig('Plots/twiExamples.pdf')
