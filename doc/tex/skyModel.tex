@@ -231,7 +231,7 @@ One important lesson from the data is the counter-intuitive result that during t
  \end{deluxetable*}
 
 
-While the parameters in Table~\ref{table:canonFits} do a reasonable job reproducing the observed magnitudes, we are also interested in generating the full spectrum of the sky.  For this, we assume the twilight is a modified solar spectrum.  We multiply a solar spectrum\footnote{XXX-cite source} by a low order polynomial such that it reproduces the expected broad band magnitudes.  One obvious shortcoming of this approach is that we have not included the effects of atmospheric transmission on the twilight sky spectrum. We could upgrade the code by using a library of twilight spectra scaled to the correct magnitudes, few spectral libraries span our full desired wavelength range.
+While the parameters in Table~\ref{table:canonFits} do a reasonable job reproducing the observed magnitudes, we are also interested in generating the full spectrum of the sky.  For this, we assume the twilight is a modified solar spectrum.  We multiply a solar spectrum\footnote{\url{http://rredc.nrel.gov/solar/spectra/am0/ASTM2000.html}} by a low order polynomial such that it reproduces the expected broad band magnitudes.  One obvious shortcoming of this approach is that we have not included the effects of atmospheric transmission on the twilight sky spectrum. We could upgrade the code by using a library of twilight spectra scaled to the correct magnitudes, few spectral libraries span our full desired wavelength range.
 
 To generate magnitudes in LSST filters we have not observed, we assume the parameters in Table~\ref{table:canonFits} are smooth functions of wavelength and interpolate the best-fit parameters to the central wavelengths of the LSST filters.
 
@@ -287,11 +287,34 @@ Using the same set of 3400 observations, we zeropoint each frame (to correct for
 Our results can be compared to the ESO-Paranal twilight sky observations presented in \citet{Patat06}. We have scrapped the twilight zenith sky brightness data for observations taken of long-exposure standards with the FORS1 instrument.  The data and best fitting exponential-plus-constant models are shown in Figure~\ref{fig:Patat}.  The best-fit parameters are listed in Table~\ref{table:PatatFits}.  The Canon-B brightness seems to be fainter than Johnson's $B$.  The slopes of the twilight decay are very similar with the \citet{Patat06} data having $ -1.06  < a < -0.97 $ mag degree$^-1$ and our fits are in the range $ -1.02 < a < -0.97$ mag degree$^-1$.
 
 
+
 XXX--add plots showing the dark-time residuals as a function of time-of-year and time-of-night for each filter.  See if there are any obvious residuals.
 
-XXX-Need a statement on how good the model is (0.1 mag, 0.5 mag etc)
+XXX-Need a statement on how good the model is (0.1 mag, 0.5 mag etc).  Maybe just make a table out of figure 12. say, dark time, moon up, twilight. Note that clouds have nit been explicitly excluded.
 
-XXX-List what the ESO dark sky brightesses are for the LSST filters.  
+
+In Table~\ref{table:darkSky}, we compare the median dark sky surface brightness computed from our model to the values addopted in \citet{Ivezic08}.  The only variation in included in the model is from the changing impact of Zodiacal light.  Other than the $y$-band which disagrees by 0.5 magnitures per square arsecond, the model and 
+\citet{Ivezic08} agree well.
+
+% from checkDarkSky.py
+\begin{deluxetable}{c c  c}
+  \tabletypesize{\small }
+  %\rotate
+  \tablewidth{0pt}
+  \tablecaption{Dark sky surface brightnesses \label{table:darkSky}}
+  
+  \tablehead{\colhead{Filter} & \colhead{Model} & \colhead{\citet{Ivezic08}} \\
+  & \colhead{($\mu$)} &  \colhead{($\mu$)}  }
+  \startdata
+  $u$ &    22.81 $\pm$  0.04  &  22.90 \\
+  $g$ &    22.27 $\pm$  0.11  &  22.30 \\
+  $r$ &    21.25 $\pm$  0.08  &  21.20 \\
+  $i$ &    20.38 $\pm$  0.04  &  20.50 \\
+  $z$ &    19.40 $\pm$  0.02  &  19.60 \\
+  $y$ &    18.10 $\pm$  0.01  &  18.60 
+\end{deluxetable}
+
+
 
 \begin{figure}
   \plotone{../PatatTwi/patatFits.pdf}
