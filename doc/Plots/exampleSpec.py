@@ -3,6 +3,9 @@ import lsst.sims.skybrightness as sb
 import healpy as hp
 import matplotlib.pylab as plt
 
+plt.rcParams.update({'axes.labelsize': 'x-large'})
+plt.rcParams.update({'axes.titlesize': 'x-large'})
+
 # Load up the spectra and plot some examples of each component
 
 comps = ['twilight', 'zodiacal', 'moon','airglow','lowerAtm',
@@ -62,8 +65,14 @@ plt.close(fig)
 
 
 alpha = 0.5
-
-fig, ax =  plt.subplots(4,1,sharex=True)
+fig = []
+ax = []
+for i in np.arange(4):
+    temp1,temp2 = plt.subplots()
+    fig.append(temp1)
+    ax.append(temp2)
+#fig, ax =  plt.subplots(2,2)#plt.subplots(4,1,sharex=True)
+#ax = np.ravel(ax)
 # Merged
 for comp in comps:
     setattr(sm,comp,False)
@@ -102,9 +111,13 @@ for oneAx in ax:
 
 ax[2].set_ylabel('Flux (erg/s/cm$^2$/nm/arcsec$^2$)')
 
-ax[-1].set_xlabel('Wavelength (nm)')
-fig.savefig('merged.pdf')
-plt.close(fig)
+for a in ax:
+    a.set_xlabel('Wavelength (nm)')
+    a.set_ylabel('Flux (erg/s/cm$^2$/nm/arcsec$^2$)')
+#ax[-1].set_xlabel('Wavelength (nm)')
+for i,f in enumerate(fig):
+    f.savefig('merged%i.pdf' % i)
+    plt.close(f)
 
 fig, ax =  plt.subplots()
 for comp in comps:
