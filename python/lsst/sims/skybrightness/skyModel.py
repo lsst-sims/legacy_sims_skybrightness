@@ -83,7 +83,22 @@ class SkyModel(object):
         else:
             self.Observatory = observatory
 
+        self.paramsSet = False
 
+    def setComponents(self, twilight=True, zodiacal=True,  moon=True,
+                      airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
+                      mergedSpec=True):
+        """
+        Convience function for turning on/off different sky components.
+        """
+        self.moon=moon
+        self.lowerAtm = lowerAtm
+        self.twilight = twilight
+        self.zodiacal = zodiacal
+        self.upperAtm = upperAtm
+        self.airglow = airglow
+        self.scatteredStar = scatteredStar
+        self.mergedSpec = mergedSpec
 
     def _initPoints(self):
         """
@@ -183,6 +198,10 @@ class SkyModel(object):
             self.points['altEclip'] += self.eclipLat
             self.points['azEclipRelSun'] += wrapRA(self.eclipLon - self.sunEclipLon)
 
+        self.paramsSet = True
+        # Interpolate the templates to the set paramters
+        self.interpSky()
+
     def setParams(self, airmass=1.,azs=90., alts=None, moonPhase=31.67, moonAlt=45.,
                   moonAz=0., sunAlt=-12., sunAz=0., sunEclipLon=0.,
                   eclipLon=135., eclipLat=90., degrees=True, solarFlux=130.):
@@ -241,7 +260,11 @@ class SkyModel(object):
         self.points['azRelSun'] = wrapRA(self.azs - self.sunAz)
         self.points['solarFlux'] = solarFlux
 
-    def computeSpec(self):
+        self.paramsSet = True
+        # Interpolate the templates to the set paramters
+        self.interpSky()
+
+    def interpSky(self):
         """
         Interpolate the template spectra to the set RA,Dec and MJD.
 
@@ -249,6 +272,10 @@ class SkyModel(object):
         .wave = the wavelength in nm
         .spec = array of spectra with units of ergs/s/cm^2/nm
         """
+
+        if not self.paramsSet:
+            raise ValueError('No parameters have been set. Must run setRaDecMjd or setParams before running interpSky.')
+
         # set up array to hold the resulting spectra for each ra,dec point.
         self.spec = np.zeros((self.npts, self.npix), dtype=float)
 
@@ -273,9 +300,22 @@ class SkyModel(object):
                         warnings.warn('Wavelength arrays of components do not match.')
         self.spec[np.where(mask == 0),:] = 0
 
-    def computeMags(self, bandpass=None):
-        """After the spectra have been computed, optionally convert to mags"""
+    def returnWaveSpec(self):
+        """
+        Return the wavelength and spectra
+        """
         if self.mags:
+            raise ValueError('skyModel has been set to interpolate magnitudes. Initialize object with mags=False')
+        return self.wave, self.spec
+
+    def returnMags(self, bandpass=None):
+        """
+        Convert the computed spectra to magnitudes using the supplied bandpasses,
+        or, if self.mags=True, just return the mags in the LSST filters
+        """
+        if self.mags:
+            if bandpass:
+                warnings.warn('Ignoring set bandpasses and returning LSST ugrizy.')
             mags = -2.5*np.log10(self.spec)+np.log10(3631.)
         else:
             mags = np.zeros(self.npts, dtype=float)-666
@@ -291,12 +331,3 @@ class SkyModel(object):
                     mags[i] = tempSed.calcMag(bandpass)
 
         return mags
-
-
-# XXX maybe switch methods:
-# computeSpec --> interpSky
-# then have:
-# returnWaveSpec and returnMags
-# on the init, have self.spec set to None and raise an error people try to return before running interpSky
-# and maybe just call the interpSky right after setRaDecMJD or setParams, why bother making an extra call?
-# Make an explicit method for turning on/off components
