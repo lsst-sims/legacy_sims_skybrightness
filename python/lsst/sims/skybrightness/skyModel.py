@@ -299,3 +299,4 @@ class SkyModel(object):
 # returnWaveSpec and returnMags
 # on the init, have self.spec set to None and raise an error people try to return before running interpSky
 # and maybe just call the interpSky right after setRaDecMJD or setParams, why bother making an extra call?
+# Make an explicit method for turning on/off components
