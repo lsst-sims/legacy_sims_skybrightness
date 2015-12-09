@@ -3,7 +3,7 @@ import lsst.sims.skybrightness as sb
 from scipy.stats import binned_statistic_2d
 
 from lsst.sims.selfcal.analysis import healplots
-from lsst.sims.utils import _altAzPaFromRaDec
+from lsst.sims.utils import _altAzPaFromRaDec, _raDecFromAltAz, haversine
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
 import healpy as hp
 import os
@@ -68,7 +68,8 @@ indices = np.arange(0,dateData.size, skipsize)
 #binsize = 15./60./24.
 #edges = np.arange(skydata['mjd'].min(),skydata['mjd'].max()+binsize*2, binsize)
 
-read = True
+read = False#True
+moonLimit = 30. # Degrees
 filters = ['R','G','B']
 sm = sb.SkyModel(mags=False)
 telescope = TelescopeInfo('LSST')
@@ -117,16 +118,26 @@ for filterName in filters:
                 good = np.where(skyhp != hp.UNSEEN)
                 sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
                 sm.computeSpec()
+
+                # switch moon to ra dec
+                moonRA,moonDec = _raDecFromAltAz(sm.moonAlt,sm.moonAz, telescope.lon, telescope.lat, mjd)
+                # compute distances
+                moonDistances = haversine(hpra[good], hpdec[good], moonRA,moonDec)
+                closeToMoon = np.where( moonDistances < np.radians(moonLimit) )
+
                 modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
                 modelhp[good] = sm.computeMags(canonDict[filterName])
+                modelhp[good][closeToMoon] = hp.UNSEEN
+                good = np.where(modelhp != hp.UNSEEN )
                 validationArr['frameZP'][i] = np.median(modelhp[good]-skyhp[good] )
 
                 notnan = np.where(skyhp != hp.UNSEEN)
                 validationArr['obsDarkestHP'][i] = np.where(skyhp == skyhp[notnan].max() )[0].min()
                 validationArr['obsBrightestHP'][i] = np.where(skyhp == skyhp[notnan].min() )[0].min()
-                notnan =np.where(modelhp != hp.UNSEEN)
-                validationArr['modelDarkestHP'][i]  = np.where(modelhp == modelhp[notnan].max() )[0]
-                validationArr['modelBrightestHP'][i]  = np.where(modelhp == modelhp[notnan].min() )[0]
+                notnan =np.where(modelhp != hp.UNSEEN)[0]
+                if notnan.size >=1:
+                    validationArr['modelDarkestHP'][i]  = np.where(modelhp == modelhp[notnan].max() )[0].min()
+                    validationArr['modelBrightestHP'][i]  = np.where(modelhp == modelhp[notnan].min() )[0].min()
 
                 good = np.where(skyhp[0:4] != hp.UNSEEN)[0]
                 if good.size >= 1:

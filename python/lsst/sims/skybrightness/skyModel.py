@@ -107,8 +107,8 @@ class SkyModel(object):
         # Wrap in array just in case single points were passed
         if not type(lon).__module__ == np.__name__ :
             if np.size(lon) == 1:
-                lon = np.array([lon])
-                lat = np.array([lat])
+                lon = np.array([lon]).ravel()
+                lat = np.array([lat]).ravel()
             else:
                 lon = np.array(lon)
                 lat = np.array(lat)
@@ -285,10 +285,17 @@ class SkyModel(object):
             maxWave = bandpass.wavelen[isThrough].max()
             inBand = np.where( (self.wave >= minWave) & (self.wave <= maxWave))
             for i, ra in enumerate(self.ra):
+                # Check that there is flux in the band, otherwise calcMag fails
                 if np.max(self.spec[i,inBand]) > 0:
                     tempSed.setSED(self.wave, flambda=self.spec[i,:])
-                    # Need to try/except because the spectra might be zero in the filter
-                    # XXX-upgrade this to check if it's zero
                     mags[i] = tempSed.calcMag(bandpass)
 
         return mags
+
+
+# XXX maybe switch methods:
+# computeSpec --> interpSky
+# then have:
+# returnWaveSpec and returnMags
+# on the init, have self.spec set to None and raise an error people try to return before running interpSky
+# and maybe just call the interpSky right after setRaDecMJD or setParams, why bother making an extra call?
