@@ -288,13 +288,13 @@ Using the same set of 3400 observations, we zeropoint each frame (to correct for
 Our results can be compared to the ESO-Paranal twilight sky observations presented in \citet{Patat06}. We have scrapped the twilight zenith sky brightness data for observations taken of long-exposure standards with the FORS1 instrument.  The data and best fitting exponential-plus-constant models are shown in Figure~\ref{fig:Patat}.  The best-fit parameters are listed in Table~\ref{table:PatatFits}.  The Canon-B brightness seems to be fainter than Johnson's $B$.  The slopes of the twilight decay are very similar with the \citet{Patat06} data having $ -1.06  < a < -0.97 $ mag degree$^-1$ and our fits are in the range $ -1.02 < a < -0.97$ mag degree$^-1$.
 
 
+In Table~\ref{table:darkSky}, we compare the median dark sky surface brightness computed from our model to the values addopted in \citet{Ivezic08}.  The only variation in included in the model is from the changing impact of Zodiacal light.  Other than the $y$-band which disagrees by 0.5 magnitures per square arsecond, the model and \citet{Ivezic08} agree well. 
+
+In Table~\ref{table:zenithRMSSky}, we list the (robust) RMS residuals between our model and the zenith sky brightness observed by the Canon all-sky camera. In general, the residuals between the model and observations have na RMS between 0.2 and 0.3 magnitudes per square arcsecond.  
 
 XXX--add plots showing the dark-time residuals as a function of time-of-year and time-of-night for each filter.  See if there are any obvious residuals.--this might be getting wiped out by the way I zero-point the Canon maps? Ah, I save the zeropoint and mjd, so I can plot zeropoint as a function of time-of-night and season. Looks like the moon coming up is doing crazy things to the zeropoint. Probably need to put in a mask around the moon so it doesn't skew things.
 
-XXX-Need a statement on how good the model is (0.1 mag, 0.5 mag etc).  Maybe just make a table out of figure 12. say, dark time, moon up, twilight. Note that clouds have not been explicitly excluded.
 
-
-In Table~\ref{table:darkSky}, we compare the median dark sky surface brightness computed from our model to the values addopted in \citet{Ivezic08}.  The only variation in included in the model is from the changing impact of Zodiacal light.  Other than the $y$-band which disagrees by 0.5 magnitures per square arsecond, the model and \citet{Ivezic08} agree well.
 
 % from checkDarkSky.py
 \begin{deluxetable}{c c  c}
@@ -313,6 +313,24 @@ In Table~\ref{table:darkSky}, we compare the median dark sky surface brightness 
   $z$ &    19.40 $\pm$  0.02  &  19.60 \\
   $y$ &    18.10 $\pm$  0.01  &  18.60 
 \end{deluxetable}
+
+
+% from validate.py
+\begin{deluxetable}{c c  c c}
+  \tabletypesize{\small }
+  %\rotate
+  \tablewidth{0pt}
+  \tablecaption{ Robust RMS differences between the model and Canon sky observations in different conditions.\label{table:zenithRMSSky}}
+  
+  \tablehead{\colhead{Filter} & \colhead{Dark Time} & \colhead{Moon Up} & \colhead{Twilight} \\
+  & \colhead{(mags/sq arcsec)}   & \colhead{(mags/sq arcsec)}  & \colhead{(mags/sq arcsec)}}
+  \startdata
+  R & 0.22 & 0.24 & 0.29 \\
+  G & 0.21 & 0.29 & 0.26 \\
+  B & 0.22 & 0.38 & 0.26 
+
+\end{deluxetable}
+
 
 
 

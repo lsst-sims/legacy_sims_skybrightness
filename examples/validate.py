@@ -99,6 +99,8 @@ lat,lon = hp.pix2ang(nside,hpid)
 hpra = lon
 hpdec = np.pi/2.-lat
 
+rmsArray = []
+
 
 for filterName in filters:
     if read:
@@ -117,7 +119,6 @@ for filterName in filters:
 
                 good = np.where(skyhp != hp.UNSEEN)
                 sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
-                sm.computeSpec()
 
                 # switch moon to ra dec
                 moonRA,moonDec = _raDecFromAltAz(sm.moonAlt,sm.moonAz, telescope.lon, telescope.lat, mjd)
@@ -126,7 +127,7 @@ for filterName in filters:
                 closeToMoon = np.where( moonDistances < np.radians(moonLimit) )
 
                 modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
-                modelhp[good] = sm.computeMags(canonDict[filterName])
+                modelhp[good] = sm.returnMags(canonDict[filterName])
                 modelhp[good][closeToMoon] = hp.UNSEEN
                 good = np.where(modelhp != hp.UNSEEN )
                 validationArr['frameZP'][i] = np.median(modelhp[good]-skyhp[good] )
@@ -292,6 +293,34 @@ for filterName in filters:
 
     plt.close(fig)
 
+    # Compute the dark-time residuals:
+    print '------'
+    good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
+                    (validationArr['moonAlt'] < 0) & (validationArr['sunAlt'] < np.radians(-20.)))
+    print 'filter = %s' % filterName
+    dark = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
+    print 'Dark time zenith residuals (robust)RMS= %f mags' % dark
+    print 'Dark time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+
+
+    good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
+                    (validationArr['moonAlt'] > 0) & (validationArr['sunAlt'] < -20.) &
+                    (validationArr['moonAlt'] < 60))
+    print 'Moon beween 0 and 60 degree altitude'
+    gray = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
+    print 'Gray time zenith residuals (robust)RMS= %f mags' % gray
+    print 'Gray time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+
+
+    good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
+                    (validationArr['sunAlt'] > -20.))
+    bright = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
+    print 'Twilight time zenith residuals (robust)RMS= %f mags' % bright
+    print 'Twilight time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+    print '------'
+
+    rmsArray.append((filterName, dark,gray,bright))
+
 
     if not read:
         np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
@@ -315,9 +344,8 @@ for filterName in filters:
 
         good = np.where(skyhp != hp.UNSEEN)
         sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
-        sm.computeSpec()
         modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
-        modelhp[good] = sm.computeMags(canonDict[filterName])
+        modelhp[good] = sm.returnMags(canonDict[filterName])
 
 
         hp.mollview(skyhp, rot=(0,90), sub=(1,3,1),
@@ -344,6 +372,9 @@ for filterName in filters:
         fig.savefig('Plots/exampleSkys_%i.pdf' % i)
         plt.close(fig)
 
+print 'filter, dark time RMS, gray time RMS, twilight time RMS'
+for line in rmsArray:
+    print '%s & %.2f & %.2f & %.2f \\\\' % (line)
 
 # Do I need to use the origin='lower' ? YES
 #x = np.arange(10)

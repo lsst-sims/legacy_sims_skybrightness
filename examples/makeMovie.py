@@ -81,8 +81,7 @@ for i,dateID in enumerate(dateIDs):
 
     sm.setRaDecMjd(np.radians(skydata['ra']), np.radians(skydata['dec']), mjd, degrees=False)
     if sm.sunAlt < np.radians(-12.):
-        sm.computeSpec()
-        mags = sm.computeMags(canonDict[band])
+        mags = sm.returnMags(canonDict[band])
 
         good = np.where(mags > 0)
         if np.size(good[0]) > 10:
