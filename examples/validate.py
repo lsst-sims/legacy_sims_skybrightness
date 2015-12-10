@@ -105,7 +105,7 @@ hpra = lon
 hpdec = np.pi/2.-lat
 
 rmsArray = []
-
+medianZenithResid=[]
 
 for filterName in filters:
     if read:
@@ -342,6 +342,8 @@ for filterName in filters:
         mjdInfo['sinceSet'][i] = djd-Observatory.previous_setting(sun)
         mjdInfo['toSet'][i] = Observatory.next_setting(sun)-djd
 
+
+
     fig,ax = plt.subplots(1)
     residuals=resid[darkTime]-validationArr['frameZP'][darkTime]
     ax.plot(mjdInfo['sinceSet']*24., residuals, 'ko', alpha=0.2)
@@ -353,14 +355,36 @@ for filterName in filters:
     plt.close(fig)
 
     fig,ax = plt.subplots(1)
-
-    ax.plot(validationArr['mjd'][darkTime], residuals, 'ko', alpha=0.2)
-    ax.set_xlabel('MJD (day)')
+    ax.plot(validationArr['mjd'][darkTime] % 365.25, residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('MJD % 365.25 (days)')
     ax.set_ylabel('Observation-Model (mags)')
     ax.set_title('Zenith Dark Time Residuals, %s' % filterName)
     ax.set_ylim([-0.4,1])
     fig.savefig('Plots/residTOY_%s.pdf' % filterName)
     plt.close(fig)
+
+
+    medianZenithResid.append((filterName,np.median(residuals)) )
+
+    fig,ax = plt.subplots(1)
+    residuals=validationArr['frameZP'][darkTime]
+    ax.plot(mjdInfo['sinceSet']*24., residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('Time Since Sunset (hours)')
+    ax.set_ylabel('Frame Zero Point (mags)')
+    ax.set_title('Dark Time, %s' % filterName)
+    #ax.set_ylim([-0.4,1])
+    fig.savefig('Plots/zpTON_%s.pdf' % filterName)
+    plt.close(fig)
+
+    fig,ax = plt.subplots(1)
+    ax.plot(validationArr['mjd'][darkTime] % 365.25, residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('MJD % 365.25 (days)')
+    ax.set_ylabel('Frame Zero Point (mags)')
+    ax.set_title('Dark Time, %s' % filterName)
+    #ax.set_ylim([-0.4,1])
+    fig.savefig('Plots/zpTOY_%s.pdf' % filterName)
+    plt.close(fig)
+
 
 
 
@@ -419,6 +443,11 @@ for filterName in filters:
 print 'filter, dark time RMS, gray time RMS, twilight time RMS'
 for line in rmsArray:
     print '%s & %.2f & %.2f & %.2f \\\\' % (line)
+
+print 'filter, median zenith residual'
+for line in medianZenithResid:
+    print '%s %.2f' % (line)
+
 
 # Do I need to use the origin='lower' ? YES
 #x = np.arange(10)
