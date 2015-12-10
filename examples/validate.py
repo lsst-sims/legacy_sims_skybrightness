@@ -10,6 +10,8 @@ import os
 import lsst.sims.photUtils.Bandpass as Bandpass
 from lsst.sims.utils import haversine
 import matplotlib.pylab as plt
+import ephem
+from lsst.sims.skybrightness.utils import mjd2djd
 
 def robustRMS(data):
     iqr = np.percentile(data,75)-np.percentile(data,25)
@@ -53,7 +55,11 @@ for key in canonFiles.keys():
     band.setBandpass(data['wave'], data['throughput'])
     canonDict[key]=band
 
-
+telescope = TelescopeInfo('LSST')
+Observatory = ephem.Observer()
+Observatory.lat = telescope.lat
+Observatory.lon = telescope.lon
+Observatory.elevation = telescope.elev
 
 
 sqlQ = 'select id,mjd,sunAlt,moonAlt from dates'
@@ -72,7 +78,6 @@ read = True
 moonLimit = 30. # Degrees
 filters = ['R','G','B']
 sm = sb.SkyModel(mags=False)
-telescope = TelescopeInfo('LSST')
 
 nside = 16
 # Demand this many stars before trying to fit. This should reject the very cloudy frames
@@ -322,8 +327,47 @@ for filterName in filters:
     rmsArray.append((filterName, dark,gray,bright))
 
 
+    # OK, want to look at residuals as a function of time-of-year and time-of-night.
+    #Maybe just do this for dark time
+
+    darkTime = np.where( (resid != 0.) & (validationArr['moonAlt'] != -666) &
+                         (validationArr['moonAlt'] < 0) & (validationArr['sunAlt'] < -20.))[0]
+
+    names = ['sinceSet', 'toSet']
+    mjdInfo = np.zeros(darkTime.size, dtype=zip(names,types))
+    sun = ephem.Sun()
+    djds = mjd2djd(validationArr['mjd'][darkTime])
+    for i,djd in enumerate(djds):
+        Observatory.date = djd
+        mjdInfo['sinceSet'][i] = djd-Observatory.previous_setting(sun)
+        mjdInfo['toSet'][i] = Observatory.next_setting(sun)-djd
+
+    fig,ax = plt.subplots(1)
+    residuals=resid[darkTime]-validationArr['frameZP'][darkTime]
+    ax.plot(mjdInfo['sinceSet']*24., residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('Time Since Sunset (hours)')
+    ax.set_ylabel('Observation-Model (mags)')
+    ax.set_title('Zenith Dark Time Residuals, %s' % filterName)
+    ax.set_ylim([-0.4,1])
+    fig.savefig('Plots/residTON_%s.pdf' % filterName)
+    plt.close(fig)
+
+    fig,ax = plt.subplots(1)
+
+    ax.plot(validationArr['mjd'][darkTime], residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('MJD (day)')
+    ax.set_ylabel('Observation-Model (mags)')
+    ax.set_title('Zenith Dark Time Residuals, %s' % filterName)
+    ax.set_ylim([-0.4,1])
+    fig.savefig('Plots/residTOY_%s.pdf' % filterName)
+    plt.close(fig)
+
+
+
     if not read:
         np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
+
+
 
 
 
