@@ -113,6 +113,8 @@ for filterName in filters:
         data = np.load('Plots/valAr_%s.npz' % filterName)
         validationArr = data['validationArr'].copy()
         darkTimeMedianResid = data['darkTimeMedianResid'].copy()
+        darkTimestdResid = data['darkTimestdResid'].copy()
+        darkTimesCount = data['darkTimesCount'].copy()
     else:
         darkTimeMaps = []
         for i,indx in enumerate(indices):
@@ -163,7 +165,8 @@ for filterName in filters:
                      good = np.where( (modelhp != hp.UNSEEN) & (skyhp != hp.UNSEEN))
                      residMap[good] = modelhp[good] - skyhp[good]
                      residMap[good] = residMap[good]-np.median(residMap[good])
-                     darkTimeMaps.append(residMap)
+                     if np.std(residMap[good]) < 0.15:
+                         darkTimeMaps.append(residMap)
 
             else:
                 validationArr['moonAlt'][i] = -666
@@ -174,13 +177,24 @@ for filterName in filters:
                                                                          validationArr['modelBrightestHP']))
         # I should median down the darkTime Maps here
         darkTimeMaps = ma.masked_array(darkTimeMaps, mask=[darkTimeMaps == hp.UNSEEN], fill_value=hp.UNSEEN)
+        # mask any huge outliers
+        outlier = np.where(np.abs(darkTimeMaps) > 2.)
+        darkTimeMaps.mask[outlier] = True
 
         darkTimeMedianResid = ma.median(darkTimeMaps, axis=0)
-
+        darkTimestdResid = ma.std(darkTimeMaps, axis=0)
+        darkTimesCount = ma.count(darkTimeMaps, axis=0)
 
 ################
 
 
+    fig = plt.figure(1)
+    hp.mollview(darkTimeMedianResid, fig=1,
+                unit=r'Median model-sky (mags/sq$^{\prime\prime}$',
+                rot=(0,90), max=0.5, min=-0.5)
+    fig.savefig('Plots/medianResidMap_%s.pdf' % filterName)
+
+    plt.close(fig)
 
     fig,ax = plt.subplots()
 
@@ -407,7 +421,9 @@ for filterName in filters:
 
     if not read:
         np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr,
-                 darkTimeMedianResid=darkTimeMedianResid.data)
+                 darkTimeMedianResid=darkTimeMedianResid.data,
+                 darkTimestdResid=darkTimestdResid.data,
+                 darkTimesCount=darkTimesCount.data)
 
 
 

@@ -20,18 +20,21 @@ class SkyModel(object):
                  twilight=True, zodiacal=True,  moon=True,
                  airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
                  mergedSpec=True, mags=False):
-        """By default, assume this is for LSST site, otherwise expect an observatory object
-        with attributes lat,lon.elev
-        twilight
-        zodiacal
-        moon
-        airglow
-        lowerAtm
-        upperAtm
-        scatteredStar
-        mergedSpec: Since the lowerAtm, upperAtm, and scatteredStar components are
-            all functions of only airmass, they can be combined into a single interpolation.
-        mags: By default, the sky model computes a 17,001 element spectrum. If mags is true,
+        """
+        Instatiate the SkyModel. This loads all the required template spectra/magnitudes
+        that will be used for interpolation.
+
+        Observatory: object with attributes lat,lon,elev. But default loads LSST.
+        twilight: Include twilight component (True)
+        zodiacal: Include zodiacal light component (True)
+        moon: Include scattered moonlight compoennt (True)
+        airglow: Include airglow component (True)
+        lowerAtm: Include lower atmosphere component (False). This component is part of mergedSpec.
+        upperAtm: Include upper atmosphere component (False). This component is part of mergedSpec.
+        scatteredStar: Include scattered starlight component (False). This component is part of mergedSpec.
+        mergedSpec: Compute the lowerAtm, upperAtm, and scatteredStar simultaneously since they are all
+        functions of only airmass (True).
+        mags: (False) By default, the sky model computes a 17,001 element spectrum. If mags is true,
               the model will return the LSST ugrizy magnitudes.
         """
 
@@ -60,8 +63,6 @@ class SkyModel(object):
             if comp & self.mergedSpec:
                 warnings.warn("Adding component multiple times to the final output spectra.")
 
-
-
         interpolators = {'scatteredStar':ScatteredStar, 'airglow':Airglow, 'lowerAtm':LowerAtm,
                          'upperAtm':UpperAtm, 'mergedSpec':MergedSpec, 'moon':MoonInterp,
                          'zodiacal':ZodiacalInterp, 'twilight':TwilightInterp}
@@ -71,7 +72,6 @@ class SkyModel(object):
         for key in self.components:
             if self.components[key]:
                 self.interpObjs[key] = interpolators[key](mags=self.mags)
-
 
         # Set up a pyephem observatory object
         if observatory == 'LSST':
@@ -83,6 +83,7 @@ class SkyModel(object):
         else:
             self.Observatory = observatory
 
+        # Note that observing conditions have not been set
         self.paramsSet = False
 
     def setComponents(self, twilight=True, zodiacal=True,  moon=True,
@@ -115,9 +116,12 @@ class SkyModel(object):
         """
         Set the sky parameters by computing the sky conditions on a given MJD and sky location.
 
-        Ra and Dec in raidans or degrees.
-        input ra, dec or az,alt w/ altAz=True
-        solarFlux: solar flux in s.f.u. Between 50 and 310.
+        lon: Longitude-like (RA or Azimuth). Can be single number, list, or numpy array
+        lat: Latitude-lie (Dec or Altitude)
+        mjd: Modified Julian Date for the calculation. Must be single number.
+        degrees: (False) Assumes lon and lat are radians unless degrees=True
+        azAlt: (False) Assume lon,lat are RA,Dec unless azAlt=True
+        solarFlux: solar flux in SFU Between 50 and 310. Default=130. 1 SFU=10^4 Jy.
         """
         # Wrap in array just in case single points were passed
         if not type(lon).__module__ == np.__name__ :
@@ -133,6 +137,8 @@ class SkyModel(object):
         else:
             self.ra = lon
             self.dec = lat
+        if np.size(mjd) > 1:
+            raise ValueError('mjd must be single value.')
         self.mjd = mjd
         if azAlt:
             self.azs = self.ra.copy()
