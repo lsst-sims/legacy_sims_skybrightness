@@ -1,7 +1,6 @@
 import numpy as np
 import lsst.sims.skybrightness as sb
 from scipy.stats import binned_statistic_2d
-
 from lsst.sims.selfcal.analysis import healplots
 from lsst.sims.utils import _altAzPaFromRaDec, _raDecFromAltAz, haversine
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
@@ -10,6 +9,9 @@ import os
 import lsst.sims.photUtils.Bandpass as Bandpass
 from lsst.sims.utils import haversine
 import matplotlib.pylab as plt
+import ephem
+from lsst.sims.skybrightness.utils import mjd2djd
+import numpy.ma as ma
 
 def robustRMS(data):
     iqr = np.percentile(data,75)-np.percentile(data,25)
@@ -53,7 +55,11 @@ for key in canonFiles.keys():
     band.setBandpass(data['wave'], data['throughput'])
     canonDict[key]=band
 
-
+telescope = TelescopeInfo('LSST')
+Observatory = ephem.Observer()
+Observatory.lat = telescope.lat
+Observatory.lon = telescope.lon
+Observatory.elevation = telescope.elev
 
 
 sqlQ = 'select id,mjd,sunAlt,moonAlt from dates'
@@ -68,11 +74,10 @@ indices = np.arange(0,dateData.size, skipsize)
 #binsize = 15./60./24.
 #edges = np.arange(skydata['mjd'].min(),skydata['mjd'].max()+binsize*2, binsize)
 
-read = True
+read = False
 moonLimit = 30. # Degrees
 filters = ['R','G','B']
 sm = sb.SkyModel(mags=False)
-telescope = TelescopeInfo('LSST')
 
 nside = 16
 # Demand this many stars before trying to fit. This should reject the very cloudy frames
@@ -99,12 +104,19 @@ lat,lon = hp.pix2ang(nside,hpid)
 hpra = lon
 hpdec = np.pi/2.-lat
 
+rmsArray = []
+medianZenithResid=[]
+
 
 for filterName in filters:
     if read:
         data = np.load('Plots/valAr_%s.npz' % filterName)
         validationArr = data['validationArr'].copy()
+        darkTimeMedianResid = data['darkTimeMedianResid'].copy()
+        darkTimestdResid = data['darkTimestdResid'].copy()
+        darkTimesCount = data['darkTimesCount'].copy()
     else:
+        darkTimeMaps = []
         for i,indx in enumerate(indices):
             skydata,mjd = sb.allSkyDB(dateData[indx]['dateID'], filt=filterName)
             if skydata.size > starLimit:
@@ -117,7 +129,6 @@ for filterName in filters:
 
                 good = np.where(skyhp != hp.UNSEEN)
                 sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
-                sm.computeSpec()
 
                 # switch moon to ra dec
                 moonRA,moonDec = _raDecFromAltAz(sm.moonAlt,sm.moonAz, telescope.lon, telescope.lat, mjd)
@@ -126,7 +137,7 @@ for filterName in filters:
                 closeToMoon = np.where( moonDistances < np.radians(moonLimit) )
 
                 modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
-                modelhp[good] = sm.computeMags(canonDict[filterName])
+                modelhp[good] = sm.returnMags(canonDict[filterName])
                 modelhp[good][closeToMoon] = hp.UNSEEN
                 good = np.where(modelhp != hp.UNSEEN )
                 validationArr['frameZP'][i] = np.median(modelhp[good]-skyhp[good] )
@@ -149,6 +160,14 @@ for filterName in filters:
                 validationArr['sunAlt'][i] = np.degrees(sm.sunAlt)
                 validationArr['mjd'][i] = mjd
 
+                if ((sm.moonAlt < 0) & (np.degrees(sm.sunAlt) < -18.) & (np.size(skydata) > 200)):
+                     residMap = np.zeros(np.size(modelhp)) + hp.UNSEEN
+                     good = np.where( (modelhp != hp.UNSEEN) & (skyhp != hp.UNSEEN))
+                     residMap[good] = modelhp[good] - skyhp[good]
+                     residMap[good] = residMap[good]-np.median(residMap[good])
+                     if np.std(residMap[good]) < 0.15:
+                         darkTimeMaps.append(residMap)
+
             else:
                 validationArr['moonAlt'][i] = -666
 
@@ -156,9 +175,27 @@ for filterName in filters:
                                                                         validationArr['modelDarkestHP']))
         validationArr['angDistancesBright'] = np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'],
                                                                          validationArr['modelBrightestHP']))
+        # I should median down the darkTime Maps here
+        darkTimeMaps = ma.masked_array(darkTimeMaps, mask=[darkTimeMaps == hp.UNSEEN], fill_value=hp.UNSEEN)
+        # mask any huge outliers
+        outlier = np.where(np.abs(darkTimeMaps) > 2.)
+        darkTimeMaps.mask[outlier] = True
 
+        darkTimeMedianResid = ma.median(darkTimeMaps, axis=0)
+        darkTimestdResid = ma.std(darkTimeMaps, axis=0)
+        darkTimesCount = ma.count(darkTimeMaps, axis=0)
 
 ################
+
+
+    fig = plt.figure(1)
+    hp.mollview(darkTimeMedianResid, fig=1,
+                unit=r'Median model-sky (mags/sq$^{\prime\prime}$',
+                rot=(0,90), max=0.5, min=-0.5)
+    fig.savefig('Plots/medianResidMap_%s.pdf' % filterName)
+
+    plt.close(fig)
+
     fig,ax = plt.subplots()
 
     good = np.where(validationArr['moonAlt'] != -666)
@@ -292,9 +329,103 @@ for filterName in filters:
 
     plt.close(fig)
 
+    # Compute the dark-time residuals:
+    print '------'
+    good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
+                    (validationArr['moonAlt'] < 0) & (validationArr['sunAlt'] < np.radians(-20.)))
+    print 'filter = %s' % filterName
+    dark = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
+    print 'Dark time zenith residuals (robust)RMS= %f mags' % dark
+    print 'Dark time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+
+
+    good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
+                    (validationArr['moonAlt'] > 0) & (validationArr['sunAlt'] < -20.) &
+                    (validationArr['moonAlt'] < 60))
+    print 'Moon beween 0 and 60 degree altitude'
+    gray = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
+    print 'Gray time zenith residuals (robust)RMS= %f mags' % gray
+    print 'Gray time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+
+
+    good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
+                    (validationArr['sunAlt'] > -20.))
+    bright = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
+    print 'Twilight time zenith residuals (robust)RMS= %f mags' % bright
+    print 'Twilight time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+    print '------'
+
+    rmsArray.append((filterName, dark,gray,bright))
+
+
+    # OK, want to look at residuals as a function of time-of-year and time-of-night.
+    #Maybe just do this for dark time
+
+    darkTime = np.where( (resid != 0.) & (validationArr['moonAlt'] != -666) &
+                         (validationArr['moonAlt'] < 0) & (validationArr['sunAlt'] < -20.))[0]
+
+    names = ['sinceSet', 'toSet']
+    mjdInfo = np.zeros(darkTime.size, dtype=zip(names,types))
+    sun = ephem.Sun()
+    djds = mjd2djd(validationArr['mjd'][darkTime])
+    for i,djd in enumerate(djds):
+        Observatory.date = djd
+        mjdInfo['sinceSet'][i] = djd-Observatory.previous_setting(sun)
+        mjdInfo['toSet'][i] = Observatory.next_setting(sun)-djd
+
+
+
+    fig,ax = plt.subplots(1)
+    residuals=resid[darkTime]-validationArr['frameZP'][darkTime]
+    ax.plot(mjdInfo['sinceSet']*24., residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('Time Since Sunset (hours)')
+    ax.set_ylabel('Observation-Model (mags)')
+    ax.set_title('Zenith Dark Time Residuals, %s' % filterName)
+    ax.set_ylim([-0.4,1])
+    fig.savefig('Plots/residTON_%s.pdf' % filterName)
+    plt.close(fig)
+
+    fig,ax = plt.subplots(1)
+    ax.plot(validationArr['mjd'][darkTime] % 365.25, residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('MJD % 365.25 (days)')
+    ax.set_ylabel('Observation-Model (mags)')
+    ax.set_title('Zenith Dark Time Residuals, %s' % filterName)
+    ax.set_ylim([-0.4,1])
+    fig.savefig('Plots/residTOY_%s.pdf' % filterName)
+    plt.close(fig)
+
+
+    medianZenithResid.append((filterName,np.median(residuals)) )
+
+    fig,ax = plt.subplots(1)
+    residuals=validationArr['frameZP'][darkTime]
+    ax.plot(mjdInfo['sinceSet']*24., residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('Time Since Sunset (hours)')
+    ax.set_ylabel('Frame Zero Point (mags)')
+    ax.set_title('Dark Time, %s' % filterName)
+    #ax.set_ylim([-0.4,1])
+    fig.savefig('Plots/zpTON_%s.pdf' % filterName)
+    plt.close(fig)
+
+    fig,ax = plt.subplots(1)
+    ax.plot(validationArr['mjd'][darkTime] % 365.25, residuals, 'ko', alpha=0.2)
+    ax.set_xlabel('MJD % 365.25 (days)')
+    ax.set_ylabel('Frame Zero Point (mags)')
+    ax.set_title('Dark Time, %s' % filterName)
+    #ax.set_ylim([-0.4,1])
+    fig.savefig('Plots/zpTOY_%s.pdf' % filterName)
+    plt.close(fig)
+
+
+
 
     if not read:
-        np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
+        np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr,
+                 darkTimeMedianResid=darkTimeMedianResid.data,
+                 darkTimestdResid=darkTimestdResid.data,
+                 darkTimesCount=darkTimesCount.data)
+
+
 
 
 
@@ -315,9 +446,8 @@ for filterName in filters:
 
         good = np.where(skyhp != hp.UNSEEN)
         sm.setRaDecMjd(hpra[good], hpdec[good], mjd, degrees=False, azAlt=True)
-        sm.computeSpec()
         modelhp = np.zeros(npix,dtype=float)+hp.UNSEEN
-        modelhp[good] = sm.computeMags(canonDict[filterName])
+        modelhp[good] = sm.returnMags(canonDict[filterName])
 
 
         hp.mollview(skyhp, rot=(0,90), sub=(1,3,1),
@@ -343,6 +473,14 @@ for filterName in filters:
 
         fig.savefig('Plots/exampleSkys_%i.pdf' % i)
         plt.close(fig)
+
+print 'filter, dark time RMS, gray time RMS, twilight time RMS'
+for line in rmsArray:
+    print '%s & %.2f & %.2f & %.2f \\\\' % (line)
+
+print 'filter, median zenith residual'
+for line in medianZenithResid:
+    print '%s %.2f' % (line)
 
 
 # Do I need to use the origin='lower' ? YES

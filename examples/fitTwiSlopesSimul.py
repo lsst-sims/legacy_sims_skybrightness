@@ -280,8 +280,7 @@ for filterName in filters:
     esoAz = az[hpids]
     sm = sb.SkyModel(twilight=False, moon=False, zodiacal=False)
     sm.setRaDecMjd(esoAz,esoAlt, 4000, azAlt=True)
-    sm.computeSpec()
-    esoMags = sm.computeMags(canonDict[filterName])
+    esoMags = sm.returnMags(canonDict[filterName])
 
     good = np.where( (esoAz > np.pi/2) & (esoAz < 3.*np.pi/2 ) )
     m0 = np.median(esoMags[good]+2.5*np.log10(constMap[hpids][good]))

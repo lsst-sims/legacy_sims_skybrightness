@@ -25,10 +25,10 @@ class TestSkyModel(unittest.TestCase):
                          mergedSpec=False)
         sky2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
 
-        sky1.computeSpec()
-        sky2.computeSpec()
+        dummy, spec1 = sky1.returnWaveSpec()
+        dummy, spec2 = sky2.returnWaveSpec()
 
-        np.testing.assert_almost_equal(sky1.spec, sky2.spec)
+        np.testing.assert_almost_equal(spec1, spec2)
 
 
     def testSetups(self):
@@ -49,10 +49,10 @@ class TestSkyModel(unittest.TestCase):
                        eclipLat=sm1.eclipLat, solarFlux=sm1.solarFlux,
                        degrees=False)
 
-        sm1.computeSpec()
-        sm2.computeSpec()
+        dummy, spec1 = sm1.returnWaveSpec()
+        dummy, spec2 = sm2.returnWaveSpec()
 
-        np.testing.assert_array_equal(sm1.spec, sm2.spec)
+        np.testing.assert_array_equal(spec1, spec2)
 
         # Check that the degrees kwarg works
         sm2.setParams( azs=np.degrees(sm1.azs), alts=np.degrees(sm1.alts),
@@ -62,7 +62,6 @@ class TestSkyModel(unittest.TestCase):
                        sunEclipLon=np.degrees(sm1.sunEclipLon), eclipLon=np.degrees(sm1.eclipLon),
                        eclipLat=np.degrees(sm1.eclipLat), solarFlux=sm1.solarFlux,
                        degrees=True)
-        sm2.computeSpec()
 
         atList = ['azs', 'alts', 'moonPhase', 'moonAlt', 'moonAz', 'sunAlt', 'sunAz',
                   'sunEclipLon', 'eclipLon', 'eclipLat', 'solarFlux']
@@ -96,16 +95,14 @@ class TestSkyModel(unittest.TestCase):
 
         sm1 = sb.SkyModel()
         sm1.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
-        sm1.computeSpec()
         mags1 = []
         for bp in bps:
-            mags1.append(sm1.computeMags(bandpass=bp))
+            mags1.append(sm1.returnMags(bandpass=bp))
         mags1 = np.array(mags1)
 
         sm2 = sb.SkyModel(mags=True)
         sm2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
-        sm2.computeSpec()
-        mag2 = sm2.computeMags()
+        mag2 = sm2.returnMags()
         np.testing.assert_allclose(mags1,mag2.T, rtol=1e-4)
 
     def test90Deg(self):
@@ -115,12 +112,26 @@ class TestSkyModel(unittest.TestCase):
         mjd =  56973.268218 #56995.22103
         sm = sb.SkyModel(mags=True)
         sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True)
-        sm.computeSpec()
-        mags = sm.computeMags()
+        mags = sm.returnMags()
         assert(True not in np.isnan(mags))
         assert(True not in np.isnan(sm.spec))
 
+    def testAirglow(self):
+        """
+        test that the airglow goes up with increasing SFU
+        """
 
+        mjd =  56973.268218 #56995.22103
+        sm = sb.SkyModel(mags=True)
+        sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True, solarFlux=130.)
+        magNormal = sm.returnMags()
+        sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True, solarFlux=50.)
+        magFaint = sm.returnMags()
+        sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True, solarFlux=200.)
+        magBright = sm.returnMags()
+
+        assert(magNormal[0][2] < magFaint[0][2])
+        assert(magNormal[0][2] > magBright[0][2])
 
 
 if __name__=="__main__":

@@ -393,9 +393,7 @@ class TwilightInterp(object):
 
         for i,filterName in enumerate(self.lsstFilterNames):
             result[good,i] = twilightFunc(interpPoints[good], *self.lsstEquations[i,:].tolist() )
-        #mask = np.where(result == 0.)
-        #result =  10.**(-0.4*(result-np.log10(3631.)))
-        #result[mask]  = 0.
+
         return {'spec':result, 'wave':self.lsstEffWave}
 
     def interpSpec(self, interpPoints, maxAM=2.5,
@@ -445,10 +443,9 @@ class MoonInterp(BaseSingleInterp):
         # Magic number from when the templates were generated
         self.nside = 4
 
-
     def _weighting(self, interpPoints, values):
         """
-
+        Weighting for the scattered moonlight.
         """
 
         result = np.zeros( (interpPoints.size, np.size(values[0])) ,dtype=float)
