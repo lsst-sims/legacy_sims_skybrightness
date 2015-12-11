@@ -30,7 +30,7 @@
 Seattle WA, 98195; {yoachim@uw.edu} }
 
 \begin{abstract}
-  To optimize the observing strategy of the LSST, we require an accurate model of the night sky emission spectrum across a range of atmospheric conditions and from the near-UV to the near-IR.  We have used the ESO SkyCalc Sky Model Calculator \citep{Noll12,Jones13} to construct a library of template spectra for the Chilian night sky.  The ESO model includes emission from the upper and lower atmosphere, scattered starlight, scattered moonlight, and zodiacal light.
+  To optimize the observing strategy of the LSST, we require an accurate model of the night sky emission spectrum across a range of atmospheric conditions and from the near-UV to the near-IR.  We have used the ESO SkyCalc Sky Model Calculator \citep{Noll12,Jones13} to construct a library of template spectra for the Chilean night sky.  The ESO model includes emission from the upper and lower atmosphere, scattered starlight, scattered moonlight, and zodiacal light.
   We have then extended the ESO templates with an empirical fit to the twilight sky emission as measured by a Canon all-sky camera installed at the LSST site.
 
   With the ESO templates and our twilight model we can quickly interpolate to any arbitrary sky position and date and return the full sky spectrum or surface brightness magnitudes in the LSST filter system. Comparing our sky model to all-sky observations, we find typical residual RMS values of 0.2-0.3 magnitudes per square arcsecond.
@@ -292,9 +292,9 @@ Using the same set of 3400 observations, we zeropoint each frame (to correct for
 Our results can be compared to the ESO-Paranal twilight sky observations presented in \citet{Patat06}. We have scrapped the twilight zenith sky brightness data for observations taken of long-exposure standards with the FORS1 instrument.  The data and best fitting exponential-plus-constant models are shown in Figure~\ref{fig:Patat}.  The best-fit parameters are listed in Table~\ref{table:PatatFits}.  The Canon-B brightness seems to be fainter than Johnson's $B$.  The slopes of the twilight decay are very similar with the \citet{Patat06} data having $ -1.06  < a < -0.97 $ mag degree$^-1$ and our fits are in the range $ -1.02 < a < -0.97$ mag degree$^-1$.
 
 
-In Table~\ref{table:darkSky}, we compare the median dark sky surface brightness computed from our model to the values addopted in \citet{Ivezic08}.  The only variation in included in the model is from the changing impact of Zodiacal light.  Other than the $y$-band which disagrees by 0.5 magnitures per square arsecond, the model and \citet{Ivezic08} agree well. 
+In Table~\ref{table:darkSky}, we compare the median dark sky surface brightness computed from our model to the values adopted in \citet{Ivezic08}.  The only variation in included in the model is from the changing impact of Zodiacal light.  Other than the $y$-band which disagrees by 0.5 magnitudes per square arcsecond, the model and \citet{Ivezic08} agree well. 
 
-In Table~\ref{table:zenithRMSSky}, we list the (robust) RMS residuals between our model and the zenith sky brightness observed by the Canon all-sky camera. In general, the residuals between the model and observations have na RMS between 0.2 and 0.3 magnitudes per square arcsecond.  
+In Table~\ref{table:zenithRMSSky}, we list the (robust) RMS residuals between our model and the zenith sky brightness observed by the Canon all-sky camera. In general, the residuals between the model and observations have an RMS between 0.2 and 0.3 magnitudes per square arcsecond.  
 
 
 
@@ -360,7 +360,7 @@ In Table~\ref{table:zenithRMSSky}, we list the (robust) RMS residuals between ou
 
 
 
-In Figures~\ref{fig:timeOfNight} and~\ref{fig:timeOfYear} we look at the observed and predicted zenith sky brightness during dark time as a function of the time of night and the time of year.  We also plot the adopted intrumental magnitude zeropoint, as the zeropoint could absorb changed in the sky brightness that were not correctly modeled.  There are no obvious trends in the plots, suggesting that addding terms to model the seasonal and nightly variations in the sky would not significantly improve our model accuracy.  The zenith residuals do show a $\sim-0.7$ magnitude offset, suggesting a small error in how well we fit the airmass dependence.  This is probably just the result of there being many more high airmass pixels than zenith pixels, so a small error at high airmass can bias the computed frame zeropoint.
+In Figures~\ref{fig:timeOfNight} and~\ref{fig:timeOfYear} we look at the observed and predicted zenith sky brightness during dark time as a function of the time of night and the time of year.  We also plot the adopted instrumental magnitude zeropoint, as the zeropoint could absorb changed in the sky brightness that were not correctly modeled.  There are no obvious trends in the plots, suggesting that adding terms to model the seasonal and nightly variations in the sky would not significantly improve our model accuracy.  The zenith residuals do show a $\sim-0.7$ magnitude offset, suggesting a small error in how well we fit the airmass dependence.  This is probably just the result of there being many more high airmass pixels than zenith pixels, so a small error at high airmass can bias the computed frame zeropoint.
 
 \begin{figure*}
   \epsscale{0.3}
@@ -405,3 +405,4 @@ The sky model currently uses the pyEphem package to compute sun and moon positio
 %%  LocalWords:  photodiode zeropoint skybrightness stepsize Mauna
 %%  LocalWords:  Kea Paranal brightnesses pointings SFU annulus NIST
 %%  LocalWords:  radiative FORS healpix healpy pyEphem BVRI Gorski
+%%  LocalWords:  Ivezic
