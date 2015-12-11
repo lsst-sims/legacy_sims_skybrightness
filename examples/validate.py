@@ -1,7 +1,6 @@
 import numpy as np
 import lsst.sims.skybrightness as sb
 from scipy.stats import binned_statistic_2d
-
 from lsst.sims.selfcal.analysis import healplots
 from lsst.sims.utils import _altAzPaFromRaDec, _raDecFromAltAz, haversine
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
@@ -12,6 +11,7 @@ from lsst.sims.utils import haversine
 import matplotlib.pylab as plt
 import ephem
 from lsst.sims.skybrightness.utils import mjd2djd
+import numpy.ma as ma
 
 def robustRMS(data):
     iqr = np.percentile(data,75)-np.percentile(data,25)
@@ -74,7 +74,7 @@ indices = np.arange(0,dateData.size, skipsize)
 #binsize = 15./60./24.
 #edges = np.arange(skydata['mjd'].min(),skydata['mjd'].max()+binsize*2, binsize)
 
-read = True
+read = False
 moonLimit = 30. # Degrees
 filters = ['R','G','B']
 sm = sb.SkyModel(mags=False)
@@ -107,11 +107,14 @@ hpdec = np.pi/2.-lat
 rmsArray = []
 medianZenithResid=[]
 
+
 for filterName in filters:
     if read:
         data = np.load('Plots/valAr_%s.npz' % filterName)
         validationArr = data['validationArr'].copy()
+        darkTimeMedianResid = data['darkTimeMedianResid'].copy()
     else:
+        darkTimeMaps = []
         for i,indx in enumerate(indices):
             skydata,mjd = sb.allSkyDB(dateData[indx]['dateID'], filt=filterName)
             if skydata.size > starLimit:
@@ -155,6 +158,13 @@ for filterName in filters:
                 validationArr['sunAlt'][i] = np.degrees(sm.sunAlt)
                 validationArr['mjd'][i] = mjd
 
+                if ((sm.moonAlt < 0) & (np.degrees(sm.sunAlt) < -18.) & (np.size(skydata) > 200)):
+                     residMap = np.zeros(np.size(modelhp)) + hp.UNSEEN
+                     good = np.where( (modelhp != hp.UNSEEN) & (skyhp != hp.UNSEEN))
+                     residMap[good] = modelhp[good] - skyhp[good]
+                     residMap[good] = residMap[good]-np.median(residMap[good])
+                     darkTimeMaps.append(residMap)
+
             else:
                 validationArr['moonAlt'][i] = -666
 
@@ -162,9 +172,16 @@ for filterName in filters:
                                                                         validationArr['modelDarkestHP']))
         validationArr['angDistancesBright'] = np.degrees(healpixels2dist(nside,validationArr['obsBrightestHP'],
                                                                          validationArr['modelBrightestHP']))
+        # I should median down the darkTime Maps here
+        darkTimeMaps = ma.masked_array(darkTimeMaps, mask=[darkTimeMaps == hp.UNSEEN], fill_value=hp.UNSEEN)
+
+        darkTimeMedianResid = ma.median(darkTimeMaps, axis=0)
 
 
 ################
+
+
+
     fig,ax = plt.subplots()
 
     good = np.where(validationArr['moonAlt'] != -666)
@@ -389,7 +406,8 @@ for filterName in filters:
 
 
     if not read:
-        np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr)
+        np.savez('Plots/valAr_%s.npz' % filterName,validationArr=validationArr,
+                 darkTimeMedianResid=darkTimeMedianResid.data)
 
 
 

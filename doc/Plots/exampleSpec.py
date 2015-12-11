@@ -87,8 +87,9 @@ ax[0].set_title('Lower Atmosphere')
 sm.lowerAtm = False
 sm.upperAtm = True
 sm.interpSky()
-ax[1].plot(sm.wave, sm.spec[0] , alpha=alpha)
-ax[1].plot(sm.wave, sm.spec[200] , alpha=alpha)
+ax[1].semilogy(sm.wave, sm.spec[0] , alpha=alpha)
+ax[1].semilogy(sm.wave, sm.spec[200] , alpha=alpha)
+ax[1].set_ylim([1e-19,1e-12])
 ax[1].set_title('Upper Atmosphere')
 
 sm.upperAtm = False

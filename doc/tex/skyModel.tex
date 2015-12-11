@@ -29,8 +29,12 @@
 \altaffiltext{1}{Department of Astronomy, University of Washington, Box 351580,
 Seattle WA, 98195; {yoachim@uw.edu} }
 
-%\begin{abstract}
-%\end{abstract}
+\begin{abstract}
+  To optimize the observing strategy of the LSST, we require an accurate model of the night sky emission spectrum across a range of atmospheric conditions and from the near-UV to the near-IR.  We have used the ESO SkyCalc Sky Model Calculator \citep{Noll12,Jones13} to construct a library of template spectra for the Chilian night sky.  The ESO model includes emission from the upper and lower atmosphere, scattered starlight, scattered moonlight, and zodiacal light.
+  We have then extended the ESO templates with an empirical fit to the twilight sky emission as measured by a Canon all-sky camera installed at the LSST site.
+
+  With the ESO templates and our twilight model we can quickly interpolate to any arbitrary sky position and date and return the full sky spectrum or surface brightness magnitudes in the LSST filter system. Comparing our sky model to all-sky observations, we find typical residual RMS values of 0.2-0.3 magnitudes per square arcsecond.
+\end{abstract}
 
 
 \section{Introduction}
@@ -363,7 +367,7 @@ In Figures~\ref{fig:timeOfNight} and~\ref{fig:timeOfYear} we look at the observe
   \plotone{../../examples/Plots/residTON_R.pdf}\plotone{../../examples/Plots/residTON_G.pdf}\plotone{../../examples/Plots/residTON_B.pdf} \\
   \plotone{../../examples/Plots/zpTON_R.pdf}\plotone{../../examples/Plots/zpTON_G.pdf}\plotone{../../examples/Plots/zpTON_B.pdf}
   \epsscale{1}
-  \caption{The Canon camera zenith sky brightness residuals along with the adopted magnitude zeropoint for each frame. \label{fig:timeOfNight}}
+  \caption{The Canon camera zenith sky brightness residuals along with the adopted magnitude zeropoint for each frame. The outlier residuals at large values are most likely times when there were clouds at zenith.  \label{fig:timeOfNight}}
 \end{figure*}
 
 \begin{figure*}
