@@ -74,7 +74,7 @@ indices = np.arange(0,dateData.size, skipsize)
 #binsize = 15./60./24.
 #edges = np.arange(skydata['mjd'].min(),skydata['mjd'].max()+binsize*2, binsize)
 
-read = False
+read = True
 moonLimit = 30. # Degrees
 filters = ['R','G','B']
 sm = sb.SkyModel(mags=False)
@@ -189,12 +189,42 @@ for filterName in filters:
 
 
     fig = plt.figure(1)
+    myCmap = plt.cm.get_cmap('jet')
+    myCmap.set_under('w')
+    darkTimeMedianResid[np.where(darkTimeMedianResid == 0)] = hp.UNSEEN
     hp.mollview(darkTimeMedianResid, fig=1,
-                unit=r'Median model-sky (mags/sq$^{\prime\prime}$',
-                rot=(0,90), max=0.5, min=-0.5)
-    fig.savefig('Plots/medianResidMap_%s.pdf' % filterName)
+                unit=r'Median model-sky (mags/sq$^{\prime\prime}$)',
+                rot=(0,90), max=0.5, min=-0.5, cmap=myCmap, cbar=False,
+                title='Dark Time, %s' % filterName)
+    ax = plt.gca()
+    im = ax.get_images()[0]
+    cb = plt.colorbar(im, shrink=0.75, aspect=25, orientation='horizontal',
+                            extend='both', extendrect=True, format=None)
+    cb.set_label(r'Median model-sky (mags/sq$^{\prime\prime}$)')
+    cb.solids.set_edgecolor("face")
 
+    fig.savefig('Plots/medianResidMap_%s.pdf' % filterName)
     plt.close(fig)
+
+
+    fig = plt.figure(1)
+
+    darkTimestdResid[np.where(darkTimestdResid == 0)] = hp.UNSEEN
+    hp.mollview(darkTimestdResid, fig=1,
+                unit=r'RMS model-sky (mags/sq$^{\prime\prime}$)',
+                rot=(0,90), max=0.2, min=0., cmap=myCmap, cbar=False,
+                title='Dark Time, %s' % filterName)
+    ax = plt.gca()
+    im = ax.get_images()[0]
+    cb = plt.colorbar(im, shrink=0.75, aspect=25, orientation='horizontal',
+                            extend='both', extendrect=True, format=None)
+    cb.set_label(r'RMS model-sky (mags/sq$^{\prime\prime}$)')
+    cb.solids.set_edgecolor("face")
+
+    fig.savefig('Plots/stdResidMap_%s.pdf' % filterName)
+    plt.close(fig)
+
+
 
     fig,ax = plt.subplots()
 
@@ -294,7 +324,7 @@ for filterName in filters:
     fig,ax = plt.subplots()
     im = ax.hexbin(validationArr['moonAlt'][good],validationArr['sunAlt'][good],
                    C=resid[good]-validationArr['frameZP'][good], reduce_C_function=np.median , gridsize=20,
-                   vmin=0.,vmax=.2)
+                   vmin=-0.5,vmax=0.5)
 
     ax.set_ylabel('Sun Altitude (degrees)')
     ax.set_xlabel('Moon Altitude (degrees)')
@@ -450,14 +480,14 @@ for filterName in filters:
         modelhp[good] = sm.returnMags(canonDict[filterName])
 
 
-        hp.mollview(skyhp, rot=(0,90), sub=(1,3,1),
+        hp.mollview(skyhp, rot=(0,90), sub=(1,3,1), cmap=myCmap,
                     title=r'$\alpha_{moon}= %.1f$, $\alpha_{\odot}=%.1f$' % (np.degrees(sm.moonAlt),np.degrees(sm.sunAlt)), unit='mag')
         figCounter += 1
         if figCounter <= 3:
             title = 'Model'
         else:
             title = ''
-        hp.mollview(modelhp, rot=(0,90), sub=(1,3,2), title=title, unit='mag')
+        hp.mollview(modelhp, rot=(0,90), sub=(1,3,2), title=title, unit='mag',cmap=myCmap)
         figCounter += 1
         if figCounter <= 3:
             title = 'Residuals'
@@ -468,7 +498,7 @@ for filterName in filters:
         resid[mask] = hp.UNSEEN
         good = np.where(resid != hp.UNSEEN)
         resid[good] -= np.median(resid[good])
-        hp.mollview(resid, rot=(0,90), sub=(1,3,3), title=title,
+        hp.mollview(resid, rot=(0,90), sub=(1,3,3), title=title,cmap=myCmap,
                     fig=1,unit='mag', min=-0.5, max=0.5)
 
         fig.savefig('Plots/exampleSkys_%i.pdf' % i)
