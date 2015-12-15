@@ -117,7 +117,7 @@ class SkyModel(object):
         Set the sky parameters by computing the sky conditions on a given MJD and sky location.
 
         lon: Longitude-like (RA or Azimuth). Can be single number, list, or numpy array
-        lat: Latitude-lie (Dec or Altitude)
+        lat: Latitude-like (Dec or Altitude)
         mjd: Modified Julian Date for the calculation. Must be single number.
         degrees: (False) Assumes lon and lat are radians unless degrees=True
         azAlt: (False) Assume lon,lat are RA,Dec unless azAlt=True
