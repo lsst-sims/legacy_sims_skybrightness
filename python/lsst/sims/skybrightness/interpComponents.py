@@ -44,6 +44,53 @@ def intid2id(intids, uintids, uids, dtype=int):
     return result
 
 
+def loadSpecFiles(filenames, mags=False):
+    """
+    Load up the ESO spectra.
+    """
+
+    if len(filenames) == 1:
+        temp = np.load(filenames[0])
+        wave = temp['wave'].copy()
+        filterWave = temp['filterWave'].copy()
+        if mags:
+            # don't copy the spectra to save memory space
+            dt = np.dtype([(key,temp['spec'].dtype[i]) for
+                           i,key in enumerate(temp['spec'].dtype.names) if key != 'spectra'])
+            spec = np.zeros(temp['spec'].size, dtype=dt)
+            for key in temp['spec'].dtype.names:
+                if key != 'spectra':
+                    spec[key] = temp['spec'][key].copy()
+        else:
+            spec = temp['spec'].copy()
+    else:
+        temp = np.load(filenames[0])
+        wave = temp['wave'].copy()
+        filterWave = temp['filterWave'].copy()
+        if mags:
+            # don't copy the spectra to save memory space
+            dt = np.dtype([(key,temp['spec'].dtype[i]) for
+                           i,key in enumerate(temp['spec'].dtype.names) if key != 'spectra'])
+            spec = np.zeros(temp['spec'].size, dtype=dt)
+            for key in temp['spec'].dtype.names:
+                if key != 'spectra':
+                    spec[key] = temp['spec'][key].copy()
+        else:
+            spec = temp['spec'].copy()
+        for filename in filenames[1:]:
+            temp = np.load(filename)
+            if mags:
+                # don't copy the spectra to save memory space
+                dt = np.dtype([(key,temp['spec'].dtype[i]) for
+                               i,key in enumerate(temp['spec'].dtype.names) if key != 'spectra'])
+                tempspec = np.zeros(temp['spec'].size, dtype=dt)
+                for key in temp['spec'].dtype.names:
+                    if key != 'spectra':
+                        tempspec[key] = temp['spec'][key].copy()
+            else:
+                tempspec =  temp['spec']
+            spec = np.append(spec, tempspec)
+    return spec, wave, filterWave
 
 
 class BaseSingleInterp(object):
@@ -60,24 +107,16 @@ class BaseSingleInterp(object):
         dataDir = os.path.join(getPackageDir('sims_skybrightness_data'), 'ESO_Spectra/'+compName)
 
         filenames = glob.glob(dataDir+'/*.npz')
-        if len(filenames) == 1:
-            temp = np.load(filenames[0])
-            self.wave = temp['wave'].copy()
-            self.filterWave = temp['filterWave'].copy()
-            self.spec = temp['spec'].copy()
-        else:
-            temp = np.load(filenames[0])
-            self.wave = temp['wave'].copy()
-            self.filterWave = temp['filterWave'].copy()
-            self.spec = temp['spec'].copy()
-            for filename in filenames[1:]:
-                temp = np.load(filename)
-                self.spec = np.append(self.spec, temp['spec'])
+        self.spec, self.wave, self.filterWave = loadSpecFiles(filenames, mags=self.mags)
+
         # Take the log of the spectra in case we want to interp in log space.
-        self.logSpec = np.zeros(self.spec['spectra'].shape, dtype=float)
-        good = np.where( self.spec['spectra'] != 0)
-        self.logSpec[good] = np.log10(self.spec['spectra'][good])
-        self.specSize = self.spec['spectra'][0].size
+        if not mags:
+            self.logSpec = np.zeros(self.spec['spectra'].shape, dtype=float)
+            good = np.where( self.spec['spectra'] != 0)
+            self.logSpec[good] = np.log10(self.spec['spectra'][good])
+            self.specSize = self.spec['spectra'][0].size
+        else:
+            self.specSize = 0
 
         # What order are the dimesions sorted by (from how the .npz was packaged)
         self.sortedOrder = sortedOrder
