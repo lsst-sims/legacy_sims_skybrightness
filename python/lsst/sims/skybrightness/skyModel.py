@@ -19,7 +19,7 @@ class SkyModel(object):
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True,  moon=True,
                  airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
-                 mergedSpec=True, mags=False):
+                 mergedSpec=True, mags=False, airmassLimit=2.5):
         """
         Instatiate the SkyModel. This loads all the required template spectra/magnitudes
         that will be used for interpolation.
@@ -36,6 +36,7 @@ class SkyModel(object):
         functions of only airmass (True).
         mags: (False) By default, the sky model computes a 17,001 element spectrum. If mags is true,
               the model will return the LSST ugrizy magnitudes.
+        airmassLimit: Do not return values for airmasses above this limit
         """
 
         self.moon=moon
@@ -47,6 +48,7 @@ class SkyModel(object):
         self.scatteredStar = scatteredStar
         self.mergedSpec = mergedSpec
         self.mags = mags
+        self.airmassLimit = airmassLimit
 
         if self.mags:
             self.npix = 6
@@ -189,7 +191,6 @@ class SkyModel(object):
             self.points['azRelMoon'] += self.azRelMoon
             self.points['moonSunSep'] += self.moonPhase/100.*180.
 
-
         if self.zodiacal:
             self.eclipLon = np.zeros(self.npts)
             self.eclipLat = np.zeros(self.npts)
@@ -205,8 +206,12 @@ class SkyModel(object):
             self.points['azEclipRelSun'] += wrapRA(self.eclipLon - self.sunEclipLon)
 
         self.paramsSet = True
+
+        self.mask = np.where(self.airmass > self.airmassLimit)[0]
         # Interpolate the templates to the set paramters
         self.interpSky()
+
+
 
     def setParams(self, airmass=1.,azs=90., alts=None, moonPhase=31.67, moonAlt=45.,
                   moonAz=0., sunAlt=-12., sunAz=0., sunEclipLon=0.,
@@ -267,8 +272,12 @@ class SkyModel(object):
         self.points['solarFlux'] = solarFlux
 
         self.paramsSet = True
+
+        self.mask = np.where(self.airmass > self.airmassLimit)[0]
         # Interpolate the templates to the set paramters
         self.interpSky()
+
+
 
     def interpSky(self):
         """
@@ -305,6 +314,7 @@ class SkyModel(object):
                     if not np.allclose(result['wave'], self.wave, rtol= 1e-5,atol=1e-5):
                         warnings.warn('Wavelength arrays of components do not match.')
         self.spec[np.where(mask == 0),:] = 0
+        self.spec[self.mask,:]=0
 
     def returnWaveSpec(self):
         """
@@ -312,6 +322,8 @@ class SkyModel(object):
         """
         if self.mags:
             raise ValueError('skyModel has been set to interpolate magnitudes. Initialize object with mags=False')
+        # Mask out high airmass points
+        # self.spec[self.mask] *= 0
         return self.wave, self.spec
 
     def returnMags(self, bandpass=None):
@@ -336,4 +348,6 @@ class SkyModel(object):
                     tempSed.setSED(self.wave, flambda=self.spec[i,:])
                     mags[i] = tempSed.calcMag(bandpass)
 
+        # Mask out high airmass
+        # mags[self.mask] *= 0
         return mags

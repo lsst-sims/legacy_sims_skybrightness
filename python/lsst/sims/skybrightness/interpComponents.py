@@ -9,6 +9,11 @@ import os
 from lsst.utils import getPackageDir
 
 
+__all__ = ['id2intid', 'intid2id', 'loadSpecFiles', 'BaseSingleInterp', 'ScatteredStar', 'LowerAtm',
+           'UpperAtm', 'MergedSpec', 'Airglow', 'TwilightInterp', 'MoonInterp',
+           'ZodiacalInterp']
+
+
 def id2intid(ids):
     """
     take an array of ids, and convert them to an integer id.
