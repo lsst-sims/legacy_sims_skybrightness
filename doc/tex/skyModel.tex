@@ -388,6 +388,16 @@ In Figures~\ref{fig:timeOfNight} and~\ref{fig:timeOfYear} we look at the observe
   \caption{Median and RMS maps of the model dark time residuals. The ``bright spot'' that is in the upper left of all the residual images could be scattered light }
 \end{figure*}
 
+
+\citet{Coughlin15} use the sun as a proxy for the moon to observe the expected lunar contribution to the night sky brightness in LSST filters. In Figure~\ref{fig:cCompare} we compare Figure~3 from \citet{Coughlin15} with the output of a night-time computation of our sky model.  The plots show $\delta m_5$ as defined in \citet{Coughlin15} (basically, half the change in sky surface brightness in magnitudes).  
+
+\begin{figure*}
+  \plottwo{../Plots/deltam5.pdf}{../Plots/a1_alt_angle_meshgrid.pdf}
+  \caption{ Comparison of our sky model (left) and observations of the sun by \citet{Coughlin15} (right).  We only calculate for a single time (when the moon is at an altitude of $\sim 30$ degrees. \label{fig:cCompare}}
+\end{figure*}
+
+
+
 \section{Possible Future Work}
 
 Note that we have not verified the off-zenith IR performance of the model. If the source of scattering of IR sunlight in the atmosphere is significantly different from optical light, the model could be wrong. Measuring the IR surface brightness of the twilight sky along just a few more alt-az pointings could help in verifying and constraining the $b$ and $c$ terms of Equation~\ref{eqn:twi}.
@@ -414,4 +424,4 @@ The sky model currently uses the pyEphem package to compute sun and moon positio
 %%  LocalWords:  photodiode zeropoint skybrightness stepsize Mauna
 %%  LocalWords:  Kea Paranal brightnesses pointings SFU annulus NIST
 %%  LocalWords:  radiative FORS healpix healpy pyEphem BVRI Gorski
-%%  LocalWords:  Ivezic
+%%  LocalWords:  Ivezic Coughlin
