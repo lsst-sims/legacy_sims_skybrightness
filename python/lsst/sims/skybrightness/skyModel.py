@@ -1,7 +1,6 @@
 import numpy as np
 import ephem
-from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
-from lsst.sims.utils import haversine, _raDecFromAltAz, _altAzPaFromRaDec
+from lsst.sims.utils import haversine, _raDecFromAltAz, _altAzPaFromRaDec, Site, ObservationMetaData
 import warnings
 from lsst.sims.skybrightness.utils import wrapRA,  mjd2djd
 from .interpComponents import ScatteredStar,Airglow,LowerAtm,UpperAtm,MergedSpec,TwilightInterp,MoonInterp,ZodiacalInterp
@@ -77,11 +76,11 @@ class SkyModel(object):
 
         # Set up a pyephem observatory object
         if observatory == 'LSST':
-            self.telescope = TelescopeInfo(observatory)
+            self.telescope =  Site('LSST')
             self.Observatory = ephem.Observer()
-            self.Observatory.lat = self.telescope.lat
-            self.Observatory.lon = self.telescope.lon
-            self.Observatory.elevation = self.telescope.elev
+            self.Observatory.lat = self.telescope.latitude_rad
+            self.Observatory.lon = self.telescope.longitude_rad
+            self.Observatory.elevation = self.telescope.height
         else:
             self.Observatory = observatory
 
@@ -145,11 +144,11 @@ class SkyModel(object):
         if azAlt:
             self.azs = self.ra.copy()
             self.alts = self.dec.copy()
-            self.ra,self.dec = _raDecFromAltAz(self.alts,self.azs, self.Observatory.lon,
-                                               self.Observatory.lat, self.mjd)
+            self.ra,self.dec = _raDecFromAltAz(self.alts,self.azs,
+                                               ObservationMetaData(mjd=self.mjd,site=self.telescope))
         else:
-            self.alts,self.azs,pa = _altAzPaFromRaDec(self.ra, self.dec, self.Observatory.lon,
-                                                      self.Observatory.lat, self.mjd)
+            self.alts,self.azs,pa = _altAzPaFromRaDec(self.ra, self.dec,
+                                                      ObservationMetaData(mjd=self.mjd,site=self.telescope))
 
         self.npts = self.ra.size
         self._initPoints()

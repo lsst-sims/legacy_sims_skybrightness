@@ -6,14 +6,13 @@ import matplotlib.pylab as plt
 import healpy as hp
 from lsst.sims.selfcal.analysis import healplots
 from lsst.sims.skybrightness.utils import robustRMS, ut2Mjd, mjd2ut
-from lsst.sims.utils import _altAzPaFromRaDec, haversine, calcLmstLast, _raDecFromAltAz
-from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
+from lsst.sims.utils import _altAzPaFromRaDec, haversine, calcLmstLast, _raDecFromAltAz, ObservationMetaData, Site
 from scipy.interpolate import griddata
 
 
 # Let's recreate the delta m_5 plot from figure 3 in:
 # http://xxx.lanl.gov/pdf/1510.07574.pdf
-telescope = TelescopeInfo('LSST')
+telescope = Site('LSST')
 nside = 32
 lat, ra = hp.pix2ang(nside, np.arange(hp.nside2npix(nside)))
 dec = np.pi/2-lat
@@ -24,11 +23,11 @@ sm = sb.SkyModel(observatory='LSST', mags=True)#, **kwargs)
 mjd = 49353.177645
 sm.setRaDecMjd(ra,dec,mjd)
 mag = sm.returnMags()
-lmst, last = calcLmstLast(mjd,telescope.lon)
+lmst, last = calcLmstLast(mjd,telescope.longitude_rad)
 
-moonRA, moonDec =  _raDecFromAltAz(sm.moonAlt, sm.moonAz, telescope.lon, telescope.lat, mjd)
+moonRA, moonDec =  _raDecFromAltAz(sm.moonAlt, sm.moonAz, ObservationMetaData(mjd=mjd,site=telescope))
 
-alt, az, pa = _altAzPaFromRaDec(ra,dec, telescope.lon, telescope.lat, mjd)
+alt, az, pa = _altAzPaFromRaDec(ra,dec, ObservationMetaData(mjd=mjd,site=telescope))
 angDist2Moon = np.degrees(haversine(az,alt, sm.moonAz,sm.moonAlt))
 ang2 = np.degrees(haversine(ra,dec, moonRA,moonDec))
 alt = np.degrees(alt)
