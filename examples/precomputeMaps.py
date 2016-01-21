@@ -5,6 +5,8 @@ from lsst.sims.utils import Site
 import ephem
 from lsst.sims.utils import _altAzPaFromRaDec, haversine, Site, ObservationMetaData
 from scipy.spatial import cKDTree as kdtree
+import warnings
+warnings.filterwarnings("ignore")
 
 # Let's generate some arrays that could be used for lookup/lookahead
 
