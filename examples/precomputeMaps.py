@@ -32,7 +32,7 @@ sun_alt_limit = np.radians(-12.) # rad
 # Telescope pointing altitude limit.
 alt_limit = np.radians(20.)
 
-nside = 16
+nside = 64
 map_size = hp.nside2npix(nside)
 dec,ra = hp.pix2ang(nside, np.arange(map_size))
 dec = np.pi/2. - dec
@@ -44,11 +44,11 @@ healTree = kdtree(zip(x,y,z),leafsize=leafsize)
 # Need to build a kdtree to quick search for healpixes within a radius
 
 mjd_start = 59580.033829
-survey_length = .01 #years
+survey_length = 1 # days
 time_step = 10. # minitues
 
 mjds = np.arange(mjd_start,
-                 mjd_start + survey_length*365.25+time_step/60./24.,
+                 mjd_start + survey_length+time_step/60./24.,
                  time_step/60./24.)
 
 names=['u','g','r','i','z','y','airmass', 'mask']
@@ -74,7 +74,7 @@ sm = sb.SkyModel(mags=True)
 filterDict = {'u':0,'g':1,'r':2,'i':3,'z':4,'y':5}
 indices = np.arange(mjds.size)
 loopSize = mjds.size
-
+oldPC = 0
 for i,mjd,djd in zip(indices,mjds,mjds-doff):
     lsstObs.date = djd
     sun.compute(lsstObs)
@@ -88,7 +88,8 @@ for i,mjd,djd in zip(indices,mjds,mjds-doff):
         results['mask'][i][moon_mask_indices] = 0
         results['mask'][i][venus_mask_indices] = 0
 
-        alt,az,pa = _altAzPaFromRaDec(ra, dec, ObservationMetaData(mjd=mjd,site=site))
+        #alt,az,pa = _altAzPaFromRaDec(ra, dec, ObservationMetaData(mjd=mjd,site=site))
+        alt,az = sb.stupidFast_RaDec2AltAz(ra,dec,site.latitude_rad,site.longitude_rad,mjd)
         zenith_mask = np.where(alt > np.radians(90.-zenith_avoid))
         results['mask'][i][zenith_mask] = 0
 
@@ -103,19 +104,20 @@ for i,mjd,djd in zip(indices,mjds,mjds-doff):
         skyMags = sm.returnMags()
         for key in filterDict.keys():
             results[key][i][high_enough] = skyMags[:,filterDict[key]]
-        percentComplete = float(i)/loopSize*100
-        if percentComplete == i/loopSize*100:
-            sys.stdout.write('%i\% complete' % percentComplete)
+        percentComplete = int(float(i)/loopSize*100)
+        if percentComplete > oldPC:
+            sys.stdout.write('\r%i%% complete' % percentComplete)
             sys.stdout.flush()
+            oldPC = percentComplete+0
 
 sys.stdout.write('\n')
-
-
 
 # Can cut off any pixels that are always masked.
 collapseMask = np.sum(results['mask'], axis=0)
 unmaskedIDs = np.where(collapseMask != 0)[0]
 results = results[:,unmaskedIDs]
+hpids = np.arange(map_size)
+hpids = hpids[unmaskedIDs]
 
 # Chop off mjds where everything is masked
 collapseMask = np.sum(results['mask'], axis=1)
@@ -123,7 +125,14 @@ unmaskedIDs = np.where(collapseMask != 0)[0]
 results = results[unmaskedIDs,:]
 mjds = mjds[unmaskedIDs]
 
-hpids = np.arange(map_size)
-hpids = hpids[unmaskedIDs]
 
 np.savez('testsave.npz', precomputed=results, mjds=mjds, hpids=hpids)
+
+# 10 days, 10min sampling (1442 mjds), nside=128. 17GB of memory gets used, takes 10.5 min, output 4.4 G.
+# So that's a total of 1.6 TB.
+# 1 day, 10min sampling, nside=64. output is 103Mb. So, 376 GB. 35,000 hpids. 1-degree scale. takes 25s (most of that loading sky)
+
+def revertMap(nside, hpids, values):
+    full_map = np.zeros(hp.nside2npix(nside), dtype=float) + hp.UNSEEN
+    full_map[hpids] = values
+    return full_map
