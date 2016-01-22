@@ -12,6 +12,26 @@ def justReturn(input):
     """
     return input
 
+def stupidFast_RaDec2AltAz(ra,dec,lat,lmst):
+    """
+    Coordinate transformation is killing performance. Just use simple equations to speed it up
+    and ignore abberation, precesion, nutation, nutrition, etc.
+    """
+    ha = lmst-ra
+    sindec = np.sin(dec)
+    sinalt = np.sin(alt)
+    alt = np.asin(sindec*sinalt+np.cos(dec)*np.cos(lat)*np.cos(ha))
+    az = np.acos( (sindec-sinalt*np.sin(lat))/(np.cos(alt)*np.cos(lat)) )
+    signflip = np.where(np.sin(ha) < 0)
+    az[signflip] = 2.*np.pi-az[signflip]
+    return alt,az
+
+
+def stupidFast_altAz2RaDec(alt,az,lat,lmst):
+    """
+
+    """
+
 
 class SkyModel(object):
 
