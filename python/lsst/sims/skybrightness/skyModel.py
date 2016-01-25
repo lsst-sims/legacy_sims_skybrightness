@@ -1,10 +1,13 @@
 import numpy as np
 import ephem
-from lsst.sims.utils import haversine, _raDecFromAltAz, _altAzPaFromRaDec, Site, ObservationMetaData
+from lsst.sims.utils import haversine, _raDecFromAltAz, _altAzPaFromRaDec, Site, ObservationMetaData,calcLmstLast
 import warnings
 from lsst.sims.skybrightness.utils import wrapRA,  mjd2djd
 from .interpComponents import ScatteredStar,Airglow,LowerAtm,UpperAtm,MergedSpec,TwilightInterp,MoonInterp,ZodiacalInterp
 from lsst.sims.photUtils import Sed
+
+
+__all__ = ['justReturn', 'stupidFast_RaDec2AltAz', 'stupidFast_altAz2RaDec', 'SkyModel']
 
 def justReturn(input):
     """
@@ -12,13 +15,44 @@ def justReturn(input):
     """
     return input
 
+def stupidFast_RaDec2AltAz(ra,dec,lat,lon,mjd):
+    """
+    Coordinate transformation is killing performance. Just use simple equations to speed it up
+    and ignore abberation, precesion, nutation, nutrition, etc.
+    """
+    lmst,last = calcLmstLast(mjd,lon)
+    lmst = lmst/12.*np.pi # convert to rad
+    ha = lmst-ra
+    sindec = np.sin(dec)
+    sinlat = np.sin(lat)
+    coslat = np.cos(lat)
+    alt = np.arcsin(sindec*sinlat+np.cos(dec)*coslat*np.cos(ha))
+    az = np.arccos( (sindec-np.sin(alt)*sinlat)/(np.cos(alt)*coslat) )
+    signflip = np.where(np.sin(ha) > 0)
+    az[signflip] = 2.*np.pi-az[signflip]
+    return alt,az
+
+
+def stupidFast_altAz2RaDec(alt,az,lat,lon,mjd):
+    """
+    Convert alt,az to RA,Dec without taking into account abberation, precesion, diffraction, ect.
+    """
+    lmst,last = calcLmstLast(mjd,lon)
+    lmst = lmst/12.*np.pi # convert to rad
+
+    dec = np.arcsin( np.sin(lat)*np.sin(alt) + np.cos(lat)*np.cos(alt)*np.cos(az) )
+    ha = np.arctan2( -np.sin(az)*np.cos(alt), -np.cos(az)*np.sin(lat)*np.cos(alt)+np.sin(alt)*np.cos(lat))
+    ra = (lmst-ha)
+    raneg = np.where(ra < 0)
+    ra[raneg] = ra[raneg] + 2.*np.pi
+    return ra,dec
 
 class SkyModel(object):
 
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True,  moon=True,
                  airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
-                 mergedSpec=True, mags=False, airmassLimit=2.5):
+                 mergedSpec=True, mags=False, airmassLimit=2.5, preciceAltAz=False):
         """
         Instatiate the SkyModel. This loads all the required template spectra/magnitudes
         that will be used for interpolation.
@@ -36,6 +70,8 @@ class SkyModel(object):
         mags: (False) By default, the sky model computes a 17,001 element spectrum. If mags is true,
               the model will return the LSST ugrizy magnitudes.
         airmassLimit: Do not return values for airmasses above this limit
+        preciceAltAz: False By default, use the fast alt,az to ra,dec coordinate transformations that do not take
+        abberation, diffraction, etc into account. Results in errors up to ~1.5 degrees, but an order of magnitude faster.
         """
 
         self.moon=moon
@@ -48,6 +84,7 @@ class SkyModel(object):
         self.mergedSpec = mergedSpec
         self.mags = mags
         self.airmassLimit = airmassLimit
+        self.preciceAltAz = preciceAltAz
 
         if self.mags:
             self.npix = 6
@@ -144,11 +181,22 @@ class SkyModel(object):
         if azAlt:
             self.azs = self.ra.copy()
             self.alts = self.dec.copy()
-            self.ra,self.dec = _raDecFromAltAz(self.alts,self.azs,
-                                               ObservationMetaData(mjd=self.mjd,site=self.telescope))
+            if self.preciceAltAz:
+                self.ra,self.dec = _raDecFromAltAz(self.alts,self.azs,
+                                                   ObservationMetaData(mjd=self.mjd,site=self.telescope))
+            else:
+                self.ra,self.dec = stupidFast_altAz2RaDec(self.alts,self.azs,
+                                                          self.telescope.latitude_rad,
+                                                          self.telescope.longitude_rad,mjd)
         else:
-            self.alts,self.azs,pa = _altAzPaFromRaDec(self.ra, self.dec,
-                                                      ObservationMetaData(mjd=self.mjd,site=self.telescope))
+            if self.preciceAltAz:
+                self.alts,self.azs,pa = _altAzPaFromRaDec(self.ra, self.dec,
+                                                          ObservationMetaData(mjd=self.mjd,
+                                                                              site=self.telescope))
+            else:
+                self.alts,self.azs = stupidFast_RaDec2AltAz(self.ra,self.dec,
+                                                            self.telescope.latitude_rad,
+                                                            self.telescope.longitude_rad,mjd)
 
         self.npts = self.ra.size
         self._initPoints()
