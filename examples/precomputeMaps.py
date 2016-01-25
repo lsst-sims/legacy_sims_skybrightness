@@ -32,7 +32,7 @@ sun_alt_limit = np.radians(-12.) # rad
 # Telescope pointing altitude limit.
 alt_limit = np.radians(20.)
 
-nside = 64
+nside = 32
 map_size = hp.nside2npix(nside)
 dec,ra = hp.pix2ang(nside, np.arange(map_size))
 dec = np.pi/2. - dec
@@ -44,7 +44,7 @@ healTree = kdtree(zip(x,y,z),leafsize=leafsize)
 # Need to build a kdtree to quick search for healpixes within a radius
 
 mjd_start = 59580.033829
-survey_length = 1 # days
+survey_length = 10 # days
 time_step = 10. # minitues
 
 mjds = np.arange(mjd_start,
@@ -131,6 +131,19 @@ np.savez('testsave.npz', precomputed=results, mjds=mjds, hpids=hpids)
 # 10 days, 10min sampling (1442 mjds), nside=128. 17GB of memory gets used, takes 10.5 min, output 4.4 G.
 # So that's a total of 1.6 TB.
 # 1 day, 10min sampling, nside=64. output is 103Mb. So, 376 GB. 35,000 hpids. 1-degree scale. takes 25s (most of that loading sky)
+
+#10 day, 10min sampling, nside=64. 2.5 min. 1.1G output. So, we can pre-compute a 380 GB database, or spend 15 hours per OpSim run computing things.
+# That's 38,777 unique hpids.  If I cut down to number of opsim fields (3339), size would prob go down to 40 GB.
+
+# going 10 day, 10min interval, nside=32 (9707 pix get saved).  45 sec.  282M filesize.  So, full filesize would be 100 GB. And save 4 hours per run!
+
+
+# What else could go into the pre-compute database? Distance to moon map, solar elongation map...
+# moonAlt/Az, sunAlt/Az, moonPhase,
+# the weather, the filter availability, (these two could just be added to the masks)
+# the seeing, m5 maps.
+
+# In theory, one could save in alt/az coords to save space--but then the historical observations would need to be converted/interpolated every time.
 
 def revertMap(nside, hpids, values):
     full_map = np.zeros(hp.nside2npix(nside), dtype=float) + hp.UNSEEN
