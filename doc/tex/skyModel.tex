@@ -362,6 +362,8 @@ In Table~\ref{table:zenithRMSSky}, we list the (robust) RMS residuals between ou
 
 In Figures~\ref{fig:timeOfNight} and~\ref{fig:timeOfYear} we look at the observed and predicted zenith sky brightness during dark time as a function of the time of night and the time of year.  We also plot the adopted instrumental magnitude zeropoint, as the zeropoint could absorb changed in the sky brightness that were not correctly modeled.  There are no obvious trends in the plots, suggesting that adding terms to model the seasonal and nightly variations in the sky would not significantly improve our model accuracy.  The zenith residuals do show a $\sim-0.7$ magnitude offset, suggesting a small error in how well we fit the airmass dependence.  This is probably just the result of there being many more high airmass pixels than zenith pixels, so a small error at high airmass can bias the computed frame zeropoint.
 
+We can also compare our model to various published observations of the night sky brightness.  \citet{Galaz15} observing a high-airmass target with Magellen in dark time report average sky brightnesses of $r=20.2$ and $g=21.8$ mag arcsec$^{-2}$.  Running our sky model, we find  $r=20.8$ and $g=22.0$ mag arcsec$^{-2}$--very similar in the $g$ band, and the model is 0.6 mags fainter in $r$.  Not too surprsing since we exepct the model to break down at higher airmasses in general.
+
 \begin{figure*}
   \epsscale{0.3}
   \plotone{../../examples/Plots/residTON_R.pdf}\plotone{../../examples/Plots/residTON_G.pdf}\plotone{../../examples/Plots/residTON_B.pdf} \\
