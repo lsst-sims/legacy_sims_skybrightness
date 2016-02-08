@@ -52,7 +52,7 @@ class SkyModel(object):
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True,  moon=True,
                  airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
-                 mergedSpec=True, mags=False, airmassLimit=2.5, preciceAltAz=False):
+                 mergedSpec=True, mags=False,  preciceAltAz=False):
         """
         Instatiate the SkyModel. This loads all the required template spectra/magnitudes
         that will be used for interpolation.
@@ -69,7 +69,6 @@ class SkyModel(object):
         functions of only airmass (True).
         mags: (False) By default, the sky model computes a 17,001 element spectrum. If mags is true,
               the model will return the LSST ugrizy magnitudes.
-        airmassLimit: Do not return values for airmasses above this limit
         preciceAltAz: False By default, use the fast alt,az to ra,dec coordinate transformations that do not take
         abberation, diffraction, etc into account. Results in errors up to ~1.5 degrees, but an order of magnitude faster.
         """
@@ -83,8 +82,10 @@ class SkyModel(object):
         self.scatteredStar = scatteredStar
         self.mergedSpec = mergedSpec
         self.mags = mags
-        self.airmassLimit = airmassLimit
         self.preciceAltAz = preciceAltAz
+
+        # Airmass limit.
+        self.airmassLimit = 2.5
 
         if self.mags:
             self.npix = 6
@@ -254,7 +255,8 @@ class SkyModel(object):
 
         self.paramsSet = True
 
-        self.mask = np.where(self.airmass > self.airmassLimit)[0]
+        self.mask = np.where((self.airmass > self.airmassLimit) | (self.airmass < 1. ) )[0]
+        self.goodPix = np.where((self.airmass <= self.airmassLimit) | (self.airmass >= 1. ) )[0]
         # Interpolate the templates to the set paramters
         self.interpSky()
 
@@ -320,7 +322,8 @@ class SkyModel(object):
 
         self.paramsSet = True
 
-        self.mask = np.where(self.airmass > self.airmassLimit)[0]
+        self.mask = np.where((self.airmass > self.airmassLimit) | (self.airmass < 1. ) )[0]
+        self.goodPix = np.where((self.airmass <= self.airmassLimit) | (self.airmass >= 1. ) )[0]
         # Interpolate the templates to the set paramters
         self.interpSky()
 
@@ -350,18 +353,18 @@ class SkyModel(object):
         mask = np.ones(self.npts)
         for key in self.components:
             if self.components[key]:
-                result = self.interpObjs[key](self.points)
+                result = self.interpObjs[key](self.points[self.goodPix])
                 # Make sure the component has something
                 if np.max(result['spec']) > 0:
                     mask[np.where(np.sum(result['spec'], axis=1) == 0)] = 0
-                self.spec += result['spec']
+                self.spec[self.goodPix] += result['spec']
                 if not hasattr(self,'wave'):
                     self.wave = result['wave']
                 else:
                     if not np.allclose(result['wave'], self.wave, rtol= 1e-5,atol=1e-5):
                         warnings.warn('Wavelength arrays of components do not match.')
         self.spec[np.where(mask == 0),:] = 0
-        self.spec[self.mask,:]=0
+        self.spec[self.mask,:] = np.nan
 
     def returnWaveSpec(self):
         """
@@ -396,5 +399,5 @@ class SkyModel(object):
                     mags[i] = tempSed.calcMag(bandpass)
 
         # Mask out high airmass
-        # mags[self.mask] *= 0
+        mags[self.mask] *= np.nan
         return mags
