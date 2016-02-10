@@ -12,15 +12,46 @@ __all__ = ['justReturn', 'stupidFast_RaDec2AltAz', 'stupidFast_altAz2RaDec', 'Sk
 
 def justReturn(input):
     """
-    really, just return the input
+    Really, just return the input.
+
+    Parameters
+    ----------
+    input : anything
+
+    Returns
+    -------
+    input : anything
+        Just return whatever you sent in.
     """
     return input
 
 
 def stupidFast_RaDec2AltAz(ra, dec, lat, lon, mjd):
     """
+    Convert Ra,Dec to Altitude and Azimuth.
+
     Coordinate transformation is killing performance. Just use simple equations to speed it up
     and ignore abberation, precesion, nutation, nutrition, etc.
+
+    Parameters
+    ----------
+    ra : array_like
+        RA, in radians.
+    dec : array_like
+        Dec, in radians. Must be same length as `ra`.
+    lat : float
+        Latitude of the observatory in radians.
+    lon : float
+        Longitude of the observatory in radians.
+    mjd : float
+        Modified Julian Date.
+
+    Returns
+    -------
+    alt : numpy.array
+        Altitude, same length as `ra` and `dec`. Radians.
+    az : numpy.array
+        Azimuth, same length as `ra` and `dec`. Radians.
     """
     lmst, last = calcLmstLast(mjd, lon)
     lmst = lmst/12.*np.pi  # convert to rad
@@ -38,6 +69,26 @@ def stupidFast_RaDec2AltAz(ra, dec, lat, lon, mjd):
 def stupidFast_altAz2RaDec(alt, az, lat, lon, mjd):
     """
     Convert alt, az to RA, Dec without taking into account abberation, precesion, diffraction, ect.
+
+    Parameters
+    ----------
+    alt : numpy.array
+        Altitude, same length as `ra` and `dec`. Radians.
+    az : numpy.array
+        Azimuth, same length as `ra` and `dec`. Must be same length as `alt`. Radians.
+    lat : float
+        Latitude of the observatory in radians.
+    lon : float
+        Longitude of the observatory in radians.
+    mjd : float
+        Modified Julian Date.
+
+    Returns
+    -------
+    ra : array_like
+        RA, in radians.
+    dec : array_like
+        Dec, in radians.
     """
     lmst, last = calcLmstLast(mjd, lon)
     lmst = lmst/12.*np.pi  # convert to rad
@@ -60,22 +111,36 @@ class SkyModel(object):
         Instatiate the SkyModel. This loads all the required template spectra/magnitudes
         that will be used for interpolation.
 
-        Observatory: object with attributes lat, lon, elev. But default loads LSST.
-        twilight: Include twilight component (True)
-        zodiacal: Include zodiacal light component (True)
-        moon: Include scattered moonlight compoennt (True)
-        airglow: Include airglow component (True)
-        lowerAtm: Include lower atmosphere component (False). This component is part of mergedSpec.
-        upperAtm: Include upper atmosphere component (False). This component is part of mergedSpec.
-        scatteredStar: Include scattered starlight component (False). This component is part of mergedSpec.
-        mergedSpec: Compute the lowerAtm, upperAtm, and scatteredStar simultaneously since they are all
-        functions of only airmass (True).
-        mags: (False) By default, the sky model computes a 17, 001 element spectrum. If mags is true,
-              the model will return the LSST ugrizy magnitudes.
-        preciceAltAz: False By default, use the fast alt, az to ra, dec coordinate
-             transformations that do not take
-        abberation, diffraction, etc into account. Results in errors up to ~1.5 degrees,
-            but an order of magnitude faster.
+        Parameters
+        ----------
+        Observatory : Site object
+            object with attributes lat, lon, elev. But default loads LSST.
+
+        twilight : bool (True)
+            Include twilight component (True)
+        zodiacal : bool (True)
+            Include zodiacal light component (True)
+        moon : bool (True)
+            Include scattered moonlight component (True)
+        airglow : bool (True)
+            Include airglow component
+        lowerAtm : bool (False)
+            Include lower atmosphere component. This component is part of `mergedSpec`.
+        upperAtm : bool (False)
+            Include upper atmosphere component. This component is part of `mergedSpec`.
+        scatteredStar : bool (False)
+            Include scattered starlight component. This component is part of `mergedSpec`.
+        mergedSpec : bool (True)
+            Compute the lowerAtm, upperAtm, and scatteredStar simultaneously since they are all
+            functions of only airmass.
+        mags : bool (False)
+            By default, the sky model computes a 17,001 element spectrum. If `mags` is True,
+            the model will return the LSST ugrizy magnitudes (in that order).
+        preciceAltAz : bool (False)
+            If False, use the fast alt, az to ra, dec coordinate
+            transformations that do not take abberation, diffraction, etc
+            into account. Results in errors up to ~1.5 degrees,
+            but an order of magnitude faster than coordinate transforms in sims_utils.
         """
 
         self.moon = moon
@@ -380,6 +445,10 @@ class SkyModel(object):
         """
         Convert the computed spectra to magnitudes using the supplied bandpasses,
         or, if self.mags=True, just return the mags in the LSST filters
+
+        If mags=True when initialized, return mags returns an nx6 array where n is the
+        number of ra,dec points and the second dimension is lsst filter in the order
+        u,g,r,i,z,y.
         """
         if self.mags:
             if bandpass:
