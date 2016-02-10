@@ -133,6 +133,26 @@ class TestSkyModel(unittest.TestCase):
         assert(magNormal[0][2] < magFaint[0][2])
         assert(magNormal[0][2] > magBright[0][2])
 
+    def test_setRaDecAltAzMjd(self):
+        """
+        Make sure sending in self-computed alt,az works
+        """
+        sm1 = sb.SkyModel(mags=True)
+        sm2 = sb.SkyModel(mags=True)
+        ra = np.array([0.,0.,0.])
+        dec = np.array([-.1, -.2,-.3])
+        mjd = 5900
+        sm1.setRaDecMjd(ra,dec,mjd)
+        m1 = sm1.returnMags()
+        sm2.setRaDecAltAzMjd(ra,dec,sm1.alts,sm1.azs,mjd)
+        m2 = sm1.returnMags()
+
+        attrList = ['ra', 'dec', 'alts', 'azs']
+        for attr in attrList:
+            np.testing.assert_equal(getattr(sm1,attr), getattr(sm2,attr))
+
+        np.testing.assert_allclose(m1,m2, rtol=1e-6)
+
 
 if __name__=="__main__":
     unittest.main()

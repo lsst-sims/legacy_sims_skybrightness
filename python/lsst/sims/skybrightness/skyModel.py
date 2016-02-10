@@ -106,7 +106,7 @@ class SkyModel(object):
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True,  moon=True,
                  airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
-                 mergedSpec=True, mags=False,  preciceAltAz=False):
+                 mergedSpec=True, mags=False,  preciseAltAz=False):
         """
         Instatiate the SkyModel. This loads all the required template spectra/magnitudes
         that will be used for interpolation.
@@ -136,7 +136,7 @@ class SkyModel(object):
         mags : bool (False)
             By default, the sky model computes a 17,001 element spectrum. If `mags` is True,
             the model will return the LSST ugrizy magnitudes (in that order).
-        preciceAltAz : bool (False)
+        preciseAltAz : bool (False)
             If False, use the fast alt, az to ra, dec coordinate
             transformations that do not take abberation, diffraction, etc
             into account. Results in errors up to ~1.5 degrees,
@@ -152,7 +152,7 @@ class SkyModel(object):
         self.scatteredStar = scatteredStar
         self.mergedSpec = mergedSpec
         self.mags = mags
-        self.preciceAltAz = preciceAltAz
+        self.preciseAltAz = preciseAltAz
 
         # Airmass limit.
         self.airmassLimit = 2.5
@@ -251,7 +251,7 @@ class SkyModel(object):
         if azAlt:
             self.azs = self.ra.copy()
             self.alts = self.dec.copy()
-            if self.preciceAltAz:
+            if self.preciseAltAz:
                 self.ra, self.dec = _raDecFromAltAz(self.alts, self.azs,
                                                     ObservationMetaData(mjd=self.mjd, site=self.telescope))
             else:
@@ -259,7 +259,7 @@ class SkyModel(object):
                                                            self.telescope.latitude_rad,
                                                            self.telescope.longitude_rad, mjd)
         else:
-            if self.preciceAltAz:
+            if self.preciseAltAz:
                 self.alts, self.azs, pa = _altAzPaFromRaDec(self.ra, self.dec,
                                                             ObservationMetaData(mjd=self.mjd,
                                                                                 site=self.telescope))
@@ -274,6 +274,61 @@ class SkyModel(object):
         self.solarFlux = solarFlux
         self.points['solarFlux'] = self.solarFlux
 
+        self._setupPointGrid()
+
+        self.paramsSet = True
+
+        # Interpolate the templates to the set paramters
+        self.interpSky()
+
+    def setRaDecAltAzMjd(self, ra, dec, alt, az, mjd, degrees=False, solarFlux=130.):
+        """
+        Set the sky parameters by computing the sky conditions on a given MJD and sky location.
+
+        Use if you already have alt az coordinates so you can skip the coordinate conversion.
+        """
+        # Wrap in array just in case single points were passed
+        if not type(ra).__module__ == np.__name__:
+            if np.size(lon) == 1:
+                ra = np.array([ra]).ravel()
+                dec = np.array([dec]).ravel()
+                alt = np.array(alt).ravel()
+                az = np.array(az).ravel()
+            else:
+                ra = np.array(ra)
+                dec = np.array(dec)
+                alt = np.array(alt)
+                az = np.array(az)
+        if degrees:
+            self.ra = np.radians(ra)
+            self.dec = np.radians(dec)
+            self.alts = np.radians(alt)
+            self.azs = np.radians(az)
+        else:
+            self.ra = ra
+            self.dec = dec
+            self.azs = az
+            self.alts = alt
+        if np.size(mjd) > 1:
+            raise ValueError('mjd must be single value.')
+        self.mjd = mjd
+
+        self.npts = self.ra.size
+        self._initPoints()
+
+        self.solarFlux = solarFlux
+        self.points['solarFlux'] = self.solarFlux
+
+        self._setupPointGrid()
+
+        self.paramsSet = True
+        # Interpolate the templates to the set paramters
+        self.interpSky()
+
+    def _setupPointGrid(self):
+        """
+        Setup the points for the interpolation functions.
+        """
         # Switch to Dublin Julian Date for pyephem
         self.Observatory.date = mjd2djd(self.mjd)
 
@@ -322,12 +377,8 @@ class SkyModel(object):
             self.points['altEclip'] += self.eclipLat
             self.points['azEclipRelSun'] += wrapRA(self.eclipLon - self.sunEclipLon)
 
-        self.paramsSet = True
-
         self.mask = np.where((self.airmass > self.airmassLimit) | (self.airmass < 1.))[0]
         self.goodPix = np.where((self.airmass <= self.airmassLimit) | (self.airmass >= 1.))[0]
-        # Interpolate the templates to the set paramters
-        self.interpSky()
 
     def setParams(self, airmass=1., azs=90., alts=None, moonPhase=31.67, moonAlt=45.,
                   moonAz=0., sunAlt=-12., sunAz=0., sunEclipLon=0.,
