@@ -103,7 +103,7 @@ class TestSkyModel(unittest.TestCase):
         sm2 = sb.SkyModel(mags=True)
         sm2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
         mag2 = sm2.returnMags()
-        np.testing.assert_allclose(mags1,mag2.T, rtol=1e-4)
+        np.testing.assert_allclose(mags1,mag2.T, rtol=.01)
 
     def test90Deg(self):
         """
