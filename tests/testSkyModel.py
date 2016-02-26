@@ -109,7 +109,7 @@ class TestSkyModel(unittest.TestCase):
         mag2 = sm2.returnMags()
 
         # Check that mags computed from spectra match those from interpolation
-        rtol = 1e-4
+        rtol = 1e-3
         if np.max(np.abs(mags1-mag2.T)) > rtol:
             warnings.warn('Mags from spectra do not match pre-computed mags. \n Use the repo git@github.com:lsst-sims/sims_skybrightness_fits.git to update templates if throughputs or sims_photUtils have changed.')
         np.testing.assert_allclose(mags1,mag2.T, rtol=rtol)
