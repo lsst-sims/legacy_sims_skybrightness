@@ -4,6 +4,7 @@ import unittest
 import lsst.sims.photUtils.Bandpass as Bandpass
 from lsst.utils import getPackageDir
 import os
+import warnings
 
 class TestSkyModel(unittest.TestCase):
 
@@ -86,6 +87,7 @@ class TestSkyModel(unittest.TestCase):
         filters = ['u','g','r','i','z','y']
 
         bps = []
+        # Load all the LSST bandpasses
         for filterName in filters:
             bp = np.loadtxt(os.path.join(throughPath, 'filter_%s.dat' % filterName),
                             dtype=zip(['wave','trans'],[float]*2 ))
@@ -93,6 +95,7 @@ class TestSkyModel(unittest.TestCase):
             lsst_bp.setBandpass(bp['wave'], bp['trans'])
             bps.append(lsst_bp)
 
+        # Set up a sky model to interpolate spectra
         sm1 = sb.SkyModel()
         sm1.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
         mags1 = []
@@ -100,10 +103,16 @@ class TestSkyModel(unittest.TestCase):
             mags1.append(sm1.returnMags(bandpass=bp))
         mags1 = np.array(mags1)
 
+        # Set a sky model to interpolate pre-computed magnitudes directly
         sm2 = sb.SkyModel(mags=True)
         sm2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
         mag2 = sm2.returnMags()
-        np.testing.assert_allclose(mags1,mag2.T, rtol=1e-4)
+
+        # Check that mags computed from spectra match those from interpolation
+        rtol = 1e-3
+        if np.max(np.abs(mags1-mag2.T)) > rtol:
+            warnings.warn('Mags from spectra do not match pre-computed mags. \n Use the repo git@github.com:lsst-sims/sims_skybrightness_fits.git to update templates if throughputs or sims_photUtils have changed.')
+        np.testing.assert_allclose(mags1,mag2.T, rtol=rtol)
 
     def test90Deg(self):
         """
