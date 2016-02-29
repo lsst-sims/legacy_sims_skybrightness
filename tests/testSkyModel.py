@@ -7,6 +7,13 @@ import os
 
 class TestSkyModel(unittest.TestCase):
 
+    def setUp(self):
+        # Load up the spectra just once to speed things up a bit
+        self.sm_mags = sb.SkyModel(mags=True)
+        self.sm_mags2 = sb.SkyModel(mags=True)
+        self.sm_spec = sb.SkyModel(mags=False)
+        self.sm_spec2 = sb.SkyModel(mags=False)
+
     def testmergedComp(self):
         """
         Test that the 3 components that have been merged return the
@@ -37,10 +44,10 @@ class TestSkyModel(unittest.TestCase):
         radecmjd or all the parameters independently
         """
 
-        sm1 = sb.SkyModel()
+        sm1 = self.sm_spec
         sm1.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
 
-        sm2 = sb.SkyModel()
+        sm2 = self.sm_spec2
         sm2.setParams( azs=sm1.azs, alts=sm1.alts,
                        moonPhase=sm1.moonPhase,
                        moonAlt=sm1.moonAlt, moonAz=sm1.moonAz,
@@ -93,29 +100,29 @@ class TestSkyModel(unittest.TestCase):
             lsst_bp.setBandpass(bp['wave'], bp['trans'])
             bps.append(lsst_bp)
 
-        sm1 = sb.SkyModel()
+        sm1 = self.sm_spec
         sm1.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
         mags1 = []
         for bp in bps:
             mags1.append(sm1.returnMags(bandpass=bp))
         mags1 = np.array(mags1)
 
-        sm2 = sb.SkyModel(mags=True)
+        sm2 = self.sm_mags
         sm2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
         mag2 = sm2.returnMags()
-        for mag, filtername in zip(mags1,filters):
-            np.testing.assert_allclose(mag,mag2[filtername], rtol=1e-4)
+        for i, filtername in enumerate(filters):
+            np.testing.assert_allclose(mags1[i,:],mag2[filtername], rtol=1e-4)
 
     def test90Deg(self):
         """
         Make sure we can look all the way to 90 degree altitude.
         """
         mjd =  56973.268218 #56995.22103
-        sm = sb.SkyModel(mags=True)
+        sm = self.sm_mags
         sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True)
         mags = sm.returnMags()
-        for mag in mags:
-            assert(True not in np.isnan(mag))
+        for key in mags.dtype.names:
+            assert(True not in np.isnan(mags[key]))
         assert(True not in np.isnan(sm.spec))
 
     def testAirglow(self):
@@ -124,7 +131,7 @@ class TestSkyModel(unittest.TestCase):
         """
 
         mjd =  56973.268218 #56995.22103
-        sm = sb.SkyModel(mags=True)
+        sm = self.sm_mags
         sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True, solarFlux=130.)
         magNormal = sm.returnMags()
         sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True, solarFlux=50.)
@@ -139,8 +146,8 @@ class TestSkyModel(unittest.TestCase):
         """
         Make sure sending in self-computed alt,az works
         """
-        sm1 = sb.SkyModel(mags=True)
-        sm2 = sb.SkyModel(mags=True)
+        sm1 = self.sm_mags
+        sm2 = self.sm_mags2
         ra = np.array([0.,0.,0.])
         dec = np.array([-.1, -.2,-.3])
         mjd = 5900
@@ -153,7 +160,7 @@ class TestSkyModel(unittest.TestCase):
         for attr in attrList:
             np.testing.assert_equal(getattr(sm1,attr), getattr(sm2,attr))
 
-        for key in m1.keys:
+        for key in m1.dtype.names:
             np.testing.assert_allclose(m1[key],m2[key], rtol=1e-6)
 
 
