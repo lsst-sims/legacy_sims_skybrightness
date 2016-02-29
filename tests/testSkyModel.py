@@ -103,7 +103,8 @@ class TestSkyModel(unittest.TestCase):
         sm2 = sb.SkyModel(mags=True)
         sm2.setRaDecMjd([36.],[-68.],49353.18, degrees=True)
         mag2 = sm2.returnMags()
-        np.testing.assert_allclose(mags1,mag2.T, rtol=1e-4)
+        for mag, filtername in zip(mags1,filters):
+            np.testing.assert_allclose(mag,mag2[filtername], rtol=1e-4)
 
     def test90Deg(self):
         """
@@ -113,7 +114,8 @@ class TestSkyModel(unittest.TestCase):
         sm = sb.SkyModel(mags=True)
         sm.setRaDecMjd(0.,90.,mjd, degrees=True, azAlt=True)
         mags = sm.returnMags()
-        assert(True not in np.isnan(mags))
+        for mag in mags:
+            assert(True not in np.isnan(mag))
         assert(True not in np.isnan(sm.spec))
 
     def testAirglow(self):
@@ -151,7 +153,8 @@ class TestSkyModel(unittest.TestCase):
         for attr in attrList:
             np.testing.assert_equal(getattr(sm1,attr), getattr(sm2,attr))
 
-        np.testing.assert_allclose(m1,m2, rtol=1e-6)
+        for key in m1.keys:
+            np.testing.assert_allclose(m1[key],m2[key], rtol=1e-6)
 
 
 if __name__=="__main__":

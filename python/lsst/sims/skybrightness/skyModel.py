@@ -505,6 +505,12 @@ class SkyModel(object):
             if bandpass:
                 warnings.warn('Ignoring set bandpasses and returning LSST ugrizy.')
             mags = -2.5*np.log10(self.spec)+np.log10(3631.)
+            # Mask out high airmass
+            mags[self.mask] *= np.nan
+            # Convert to a structured array
+            mags = np.core.records.fromarrays(mags.transpose(),
+                                              names='u,g,r,i,z,y',
+                                              formats='float,'*6)
         else:
             mags = np.zeros(self.npts, dtype=float)-666
             tempSed = Sed()
@@ -518,6 +524,6 @@ class SkyModel(object):
                     tempSed.setSED(self.wave, flambda=self.spec[i, :])
                     mags[i] = tempSed.calcMag(bandpass)
 
-        # Mask out high airmass
-        mags[self.mask] *= np.nan
+            # Mask out high airmass
+            mags[self.mask] *= np.nan
         return mags
