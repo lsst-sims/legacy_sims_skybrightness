@@ -289,7 +289,7 @@ class SkyModel(object):
         """
         # Wrap in array just in case single points were passed
         if not type(ra).__module__ == np.__name__:
-            if np.size(lon) == 1:
+            if np.size(ra) == 1:
                 ra = np.array([ra]).ravel()
                 dec = np.array([dec]).ravel()
                 alt = np.array(alt).ravel()
