@@ -497,9 +497,8 @@ class SkyModel(object):
         Convert the computed spectra to magnitudes using the supplied bandpasses,
         or, if self.mags=True, just return the mags in the LSST filters
 
-        If mags=True when initialized, return mags returns an nx6 array where n is the
-        number of ra,dec points and the second dimension is lsst filter in the order
-        u,g,r,i,z,y.
+        If mags=True when initialized, return mags returns an structured array with
+        dtype names u,g,r,i,z,y.
         """
         if self.mags:
             if bandpass:
