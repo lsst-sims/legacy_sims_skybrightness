@@ -8,7 +8,8 @@ import os
 
 class TestSkyModel(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         # Load up the spectra just once to speed things up a bit
         self.sm_mags = sb.SkyModel(mags=True)
         self.sm_mags2 = sb.SkyModel(mags=True)
