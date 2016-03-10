@@ -5,17 +5,17 @@ import healpy as hp
 import os
 import sqlalchemy as sqla
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
-from lsst.sims.skybrightness.utils import wrapRA, mjd2djd, robustRMS #raDecToAltAz, altAzToRaDec
-from lsst.sims.selfcal.analysis.healplots import healbin
-from lsst.sims.utils import  altAzPaFromRaDec
+from lsst.sims.skybrightness.utils import wrapRA, mjd2djd, robustRMS
+from lsst.sims.utils import  _altAzPaFromRaDec, Site, _healbin, ObservationMetaData
+from lsst.utils import getPackageDir
 
 
 # Set up the telescope:
-telescope = TelescopeInfo('LSST')
+telescope = Site('LSST')
 Observatory = ephem.Observer()
-Observatory.lat = telescope.lat
-Observatory.lon = telescope.lon
-Observatory.elevation = telescope.elev
+Observatory.lat = telescope.latitude_rad
+Observatory.lon = telescope.longitude_rad
+Observatory.elevation = telescope.height
 sun = ephem.Sun()
 moon = ephem.Moon()
 
@@ -34,7 +34,7 @@ filterNames = ['R', 'G', 'B']
 
 for filterName in filterNames:
 
-    dataPath = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
+    dataPath = getPackageDir('SIMS_SKYBRIGHTNESS_DATA')
     dbAddress = 'sqlite:///'+os.path.join(dataPath, 'photometry','skydata.sqlite' )
 
     names = ['mjd', 'ra','dec','alt','starMag', 'sky', 'filter']
@@ -51,6 +51,7 @@ for filterName in filterNames:
 
         print 'Executing:'
         print q
+        print '%i of %i' % (i, np.size(sunAlts))
 
         cursor.execute(q)
         data = cursor.fetchall()
@@ -77,8 +78,11 @@ for filterName in filterNames:
         for j, (le, ri, mjd) in enumerate(zip(left,right,umjd)):
             Observatory.date = mjd2djd(mjd)
             sun.compute(Observatory)
-            alt, az, pa = altAzPaFromRaDec(data['ra'][le:ri], data['dec'][le:ri],
-                                           telescope.lon, telescope.lat, mjd)
+            obs_metadata = ObservationMetaData(pointingRA=np.degrees(sun.ra),
+                                                   pointingDec=np.degrees(sun.dec),
+                                                   rotSkyPos=np.degrees(0),
+                                                   mjd=mjd)
+            alt, az, pa = _altAzPaFromRaDec(data['ra'][le:ri], data['dec'][le:ri], obs_metadata)
             az = wrapRA(az - sun.az)
             altaz['alt'][le:ri] += alt
             altaz['az'][le:ri] += az
@@ -87,10 +91,10 @@ for filterName in filterNames:
 
         print 'making maps'
         good = np.where(moonAlt < 0)
-        magMap[:,i] = healbin(altaz['az'][good],altaz['alt'][good], data['sky'][good],
-                              nside=nside, reduceFunc=np.median)
-        rmsMap[:,i] = healbin(altaz['az'][good],altaz['alt'][good],data['sky'][good],
-                              nside=nside, reduceFunc=robustRMS)
+        magMap[:,i] = _healbin(altaz['az'][good],altaz['alt'][good], data['sky'][good],
+                               nside=nside, reduceFunc=np.median)
+        rmsMap[:,i] = _healbin(altaz['az'][good],altaz['alt'][good],data['sky'][good],
+                               nside=nside, reduceFunc=robustRMS)
 
     print 'saving maps'
     np.savez('TwilightMaps/twiMaps_%s.npz' % filterName, magMap=magMap, rmsMap=rmsMap, sunAlts=sunAlts)

@@ -315,7 +315,8 @@ class TwilightInterp(object):
             self.filterNames.append(key)
 
         # MAGIC NUMBERS from fitting the all-sky camera:
-        # Code to generate values in fitTwiSlopesSimul.py
+        # Code to generate values in sims_skybrightness/examples/fitTwiSlopesSimul.py
+        # Which in turn uses twilight maps from sims_skybrightness/examples/buildTwilMaps.py
         # values are of the form:
         # 0: ratio of f^z_12 to f_dark^z
         # 1: slope of curve wrt sun alt
@@ -323,9 +324,7 @@ class TwilightInterp(object):
         # 3: azimuth term.
         # 4: zenith dark sky flux (erg/s/cm^2)
 
-        # r, z, and y are based on fitting the zenith decay in:
-        # fitDiode.py
-        # Just assuming the shape parameter fits are similar to the other bands.
+        # For z and y, just assuming the shape parameter fits are similar to the other bands.
         # Looks like the diode is not sensitive enough to detect faint sky.
         # Using the Patat et al 2006 I-band values for z and modeified a little for y as a temp fix.
         if fitResults is None:
