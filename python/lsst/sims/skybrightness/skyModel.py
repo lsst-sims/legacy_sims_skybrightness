@@ -289,7 +289,7 @@ class SkyModel(object):
         """
         # Wrap in array just in case single points were passed
         if not type(ra).__module__ == np.__name__:
-            if np.size(lon) == 1:
+            if np.size(ra) == 1:
                 ra = np.array([ra]).ravel()
                 dec = np.array([dec]).ravel()
                 alt = np.array(alt).ravel()
@@ -497,14 +497,19 @@ class SkyModel(object):
         Convert the computed spectra to magnitudes using the supplied bandpasses,
         or, if self.mags=True, just return the mags in the LSST filters
 
-        If mags=True when initialized, return mags returns an nx6 array where n is the
-        number of ra,dec points and the second dimension is lsst filter in the order
-        u,g,r,i,z,y.
+        If mags=True when initialized, return mags returns an structured array with
+        dtype names u,g,r,i,z,y.
         """
         if self.mags:
             if bandpass:
                 warnings.warn('Ignoring set bandpasses and returning LSST ugrizy.')
             mags = -2.5*np.log10(self.spec)+np.log10(3631.)
+            # Mask out high airmass
+            mags[self.mask] *= np.nan
+            # Convert to a structured array
+            mags = np.core.records.fromarrays(mags.transpose(),
+                                              names='u,g,r,i,z,y',
+                                              formats='float,'*6)
         else:
             mags = np.zeros(self.npts, dtype=float)-666
             tempSed = Sed()
@@ -518,6 +523,6 @@ class SkyModel(object):
                     tempSed.setSED(self.wave, flambda=self.spec[i, :])
                     mags[i] = tempSed.calcMag(bandpass)
 
-        # Mask out high airmass
-        mags[self.mask] *= np.nan
+            # Mask out high airmass
+            mags[self.mask] *= np.nan
         return mags
