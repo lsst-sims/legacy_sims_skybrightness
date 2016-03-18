@@ -315,7 +315,8 @@ class TwilightInterp(object):
             self.filterNames.append(key)
 
         # MAGIC NUMBERS from fitting the all-sky camera:
-        # Code to generate values in fitTwiSlopesSimul.py
+        # Code to generate values in sims_skybrightness/examples/fitTwiSlopesSimul.py
+        # Which in turn uses twilight maps from sims_skybrightness/examples/buildTwilMaps.py
         # values are of the form:
         # 0: ratio of f^z_12 to f_dark^z
         # 1: slope of curve wrt sun alt
@@ -323,21 +324,16 @@ class TwilightInterp(object):
         # 3: azimuth term.
         # 4: zenith dark sky flux (erg/s/cm^2)
 
-        # r, z, and y are based on fitting the zenith decay in:
-        # fitDiode.py
-        # Just assuming the shape parameter fits are similar to the other bands.
+        # For z and y, just assuming the shape parameter fits are similar to the other bands.
         # Looks like the diode is not sensitive enough to detect faint sky.
         # Using the Patat et al 2006 I-band values for z and modeified a little for y as a temp fix.
         if fitResults is None:
-            self.fitResults = {'B': [8.42181815e+00,   2.29622121e+01,   2.85862729e-01,
-                                     2.99902574e-01,   2.32325117e-04],
-                               'G': [4.13747072e+00,   2.29416735e+01,   2.97229615e-01,
-                                     3.15696066e-01,   4.20961686e-04],
-                               'R': [2.73450774e+00,   2.22015053e+01,   2.97825187e-01,
-                                     3.28865935e-01,   2.08470485e-04],
-                               #'r': [ 0.52247301,  22.51393345, 0.3, 0.3,  54.8812249],
-                               #'z': [0.74072461,  23.37634241, 0.3, 0.3,  12.88718065],
-                               #'y': [0.13894689,  23.41098193, 0.3, 0.3,  29.46852266]
+            self.fitResults = {'B': [  7.56765633e+00,   2.29798055e+01,   2.86879956e-01,
+                                       3.01162143e-01,   2.58462036e-04],
+                               'G': [  2.38561156e+00,   2.29310648e+01,   2.97733083e-01,
+                                       3.16403197e-01,   7.29660095e-04],
+                               'R': [  1.75498017e+00,   2.22011802e+01,   2.98619033e-01,
+                                       3.28880254e-01,   3.24411056e-04],
                                'z': [2.29, 24.08, 0.3, 0.3, -666],
                                'y': [2.0, 24.08, 0.3, 0.3, -666]}
 
