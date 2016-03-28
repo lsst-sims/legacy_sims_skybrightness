@@ -325,6 +325,24 @@ class SkyModel(object):
         # Interpolate the templates to the set paramters
         self.interpSky()
 
+    def getComputedVals(self):
+    	"""
+    	Return the intermediate values that are caluculated by setRaDecMjd and used for interpolation.
+
+    	XXX--need to note what is in degrees and what's in radians. Should be all radians, but good to check.
+    	"""
+    	result = {}
+    	attributes = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux',
+    	'moonPhase', 'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun']
+
+    	for attribute in attributes:
+    		if hasattr(self, attribute):
+    			result[attribute] = getattr(self, attribute)
+    		else:
+    			result[attribute] = None
+
+    	return result
+
     def _setupPointGrid(self):
         """
         Setup the points for the interpolation functions.
