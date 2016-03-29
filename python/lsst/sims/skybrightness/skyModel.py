@@ -328,12 +328,45 @@ class SkyModel(object):
     def getComputedVals(self):
     	"""
     	Return the intermediate values that are caluculated by setRaDecMjd and used for interpolation.
+        All of these values are also accesible as class atributes, this is a convience method to grab them
+        all at once and document the formats.
 
-    	XXX--need to note what is in degrees and what's in radians. Should be all radians, but good to check.
+        Returns
+        -------
+        out : dict
+            Dictionary of all the intermediate calculated values that may be of use outside
+        (the key:values in the outpus dict)
+        ra : numpy.array
+            RA of the interpolation points (radians)
+        dec : np.array
+            Dec of the interpolation points (radians)
+        alts : np.array
+            Altitude (radians)
+        azs : np.array
+            Azimuth of interpolation points (radians)
+        airmass : np.array
+            Airmass values for each point, computed via 1./np.cos(np.pi/2.-self.alts).
+        solarFlux : float
+            The solar flux assumed (SFU).
+        sunAz : float
+            Azimuth of the sun (radians)
+        sunAlt : float
+            Altitude of the sun (radians)
+        azRelSun : np.array
+            Azimuth of each point relative to the sun (0=same direction as sun) (radians)
+        moonAz : float
+            Azimuth of the moon (radians)
+        moonAlt : float 
+            Altitude of the moon (radians)
+        moonPhase : float
+            Phase of the moon (0-100)
+        moonSunSep : float
+            Seperation of moon and sun (degrees)
     	"""
+
     	result = {}
-    	attributes = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux',
-    	'moonPhase', 'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun']
+    	attributes = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux', 'moonPhase', 
+                      'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun', 'moonSunSep']
 
     	for attribute in attributes:
     		if hasattr(self, attribute):

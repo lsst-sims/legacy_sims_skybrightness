@@ -114,6 +114,37 @@ class TestSkyModel(unittest.TestCase):
         for i, filtername in enumerate(filters):
             np.testing.assert_allclose(mags1[i, :], mag2[filtername], rtol=1e-4)
 
+    def testGetComputed(self):
+        """
+        Make sure we can recover computed values.
+        """
+
+        sm = self.sm_mags
+        valDict = sm.getComputedVals()
+
+        attrToCheck = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux',
+                       'moonPhase', 'moonSunSep', 'moonAz', 'moonAlt', 'sunAlt', 
+                       'sunAz', 'azRelSun']
+
+        for attr in attrToCheck:
+            assert(attr in valDict.keys())
+
+        # Check that things that should be radians are in radian range
+        radList = ['ra', 'alts', 'azs', 'moonAz', 
+                   'sunAz', 'azRelSun']
+
+        for attr in radList:
+            if valDict[attr] is not None:
+                assert(np.min(valDict[attr]) >= 0)
+                assert(np.max(valDict[attr])) <= 2.*np.pi
+
+        # Radians in negative to positive pi range
+        radList = ['moonAlt', 'sunAlt', 'dec']
+        for attr in radList:
+            if valDict[attr] is not None:
+                assert(np.min(valDict[attr]) >= -np.pi)
+                assert(np.max(valDict[attr])) <= np.pi
+
     def test90Deg(self):
         """
         Make sure we can look all the way to 90 degree altitude.
