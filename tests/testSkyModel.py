@@ -120,18 +120,25 @@ class TestSkyModel(unittest.TestCase):
         """
 
         sm = self.sm_mags
+        sm.setRaDecMjd([36., 36.], [-68., -70.], 49353.18, degrees=True)
         valDict = sm.getComputedVals()
 
-        attrToCheck = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux',
-                       'moonPhase', 'moonSunSep', 'moonAz', 'moonAlt', 'sunAlt', 
-                       'sunAz', 'azRelSun']
+        attrToCheck = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux', 'moonPhase',
+                      'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun', 'moonSunSep',
+                      'azRelMoon', 'eclipLon', 'eclipLat', 'moonRA', 'moonDec', 'sunRA',
+                      'sunDec']
 
         for attr in attrToCheck:
             assert(attr in valDict.keys())
+            if valDict[attr] is not None:
+                if np.size(valDict[attr]) > 1:
+                    np.testing.assert_array_equal(getattr(sm,attr), valDict[attr])
+                else:
+                    assert(getattr(sm,attr) == valDict[attr])
 
         # Check that things that should be radians are in radian range
-        radList = ['ra', 'alts', 'azs', 'moonAz', 
-                   'sunAz', 'azRelSun']
+        radList = ['ra', 'azs', 'moonAz', 'sunAz', 'azRelSun',
+                   'azRelMoon', 'eclipLon', 'moonRA', 'sunRA']
 
         for attr in radList:
             if valDict[attr] is not None:
@@ -139,7 +146,8 @@ class TestSkyModel(unittest.TestCase):
                 assert(np.max(valDict[attr])) <= 2.*np.pi
 
         # Radians in negative to positive pi range
-        radList = ['moonAlt', 'sunAlt', 'dec']
+        radList = ['moonAlt', 'sunAlt', 'alts', 'dec', 'moonDec',
+                   'sunDec', 'eclipLat']
         for attr in radList:
             if valDict[attr] is not None:
                 assert(np.min(valDict[attr]) >= -np.pi)
