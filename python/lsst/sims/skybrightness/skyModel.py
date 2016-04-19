@@ -325,6 +325,77 @@ class SkyModel(object):
         # Interpolate the templates to the set paramters
         self.interpSky()
 
+    def getComputedVals(self):
+    	"""
+    	Return the intermediate values that are caluculated by setRaDecMjd and used for interpolation.
+        All of these values are also accesible as class atributes, this is a convience method to grab them
+        all at once and document the formats.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of all the intermediate calculated values that may be of use outside
+        (the key:values in the output dict)
+        ra : numpy.array
+            RA of the interpolation points (radians)
+        dec : np.array
+            Dec of the interpolation points (radians)
+        alts : np.array
+            Altitude (radians)
+        azs : np.array
+            Azimuth of interpolation points (radians)
+        airmass : np.array
+            Airmass values for each point, computed via 1./np.cos(np.pi/2.-self.alts).
+        solarFlux : float
+            The solar flux used (SFU).
+        sunAz : float
+            Azimuth of the sun (radians)
+        sunAlt : float
+            Altitude of the sun (radians)
+        sunRA : float
+            RA of the sun (radians)
+        sunDec : float
+            Dec of the sun (radians)
+        azRelSun : np.array
+            Azimuth of each point relative to the sun (0=same direction as sun) (radians)
+        moonAz : float
+            Azimuth of the moon (radians)
+        moonAlt : float 
+            Altitude of the moon (radians)
+        moonRA : float
+            RA of the moon (radians)
+        moonDec : float
+            Dec of the moon (radians).  Note, if you want distances
+        moonPhase : float
+            Phase of the moon (0-100)
+        moonSunSep : float
+            Seperation of moon and sun (degrees)
+        azRelMoon : np.array
+            Azimuth of each point relative to teh moon
+        eclipLon : np.array
+            Ecliptic longitude (radians) of each point
+        eclipLat : np.array
+            Ecliptic latitude (radians) of each point
+
+        Note that since the alt and az can be calculated using the fast approximation, if one wants
+        to compute the distance between the the points and the sun or moon, it is probably better to
+        use the ra,dec positions rather than the alt,az positions.
+    	"""
+
+    	result = {}
+    	attributes = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux', 'moonPhase', 
+                      'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun', 'moonSunSep',
+                      'azRelMoon', 'eclipLon', 'eclipLat', 'moonRA', 'moonDec', 'sunRA', 
+                      'sunDec']
+
+    	for attribute in attributes:
+    		if hasattr(self, attribute):
+    			result[attribute] = getattr(self, attribute)
+    		else:
+    			result[attribute] = None
+
+    	return result
+
     def _setupPointGrid(self):
         """
         Setup the points for the interpolation functions.
@@ -336,6 +407,8 @@ class SkyModel(object):
         sun.compute(self.Observatory)
         self.sunAlt = sun.alt
         self.sunAz = sun.az
+        self.sunRA = sun.ra
+        self.sunDec = sun.dec
 
         # Compute airmass the same way as ESO model
         self.airmass = 1./np.cos(np.pi/2.-self.alts)
@@ -355,6 +428,8 @@ class SkyModel(object):
             self.moonPhase = moon.phase
             self.moonAlt = moon.alt
             self.moonAz = moon.az
+            self.moonRa = moon.ra
+            self.moonDec = moon.dec
             # Calc azimuth relative to moon
             self.azRelMoon = wrapRA(self.azs - self.moonAz)
             over = np.where(self.azRelMoon > np.pi)
