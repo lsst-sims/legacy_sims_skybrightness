@@ -40,6 +40,22 @@ class TestAltAz(unittest.TestCase):
         degreeTol =2.  # 2-degree tolerance on the fast transform
         assert(np.degrees(distanceDiff.max()) < degreeTol)
 
+    def testRoundTrip(self):
+        np.random.seed(42)
+        az = np.random.rand(100)*np.pi*2
+        alt = np.random.rand(100)*np.pi-np.pi/2
+        site = Site('LSST')
+        mjd = 55000
+
+        fastRA,fastDec = sb.stupidFast_altAz2RaDec(alt,az,site.latitude_rad,
+                                                   site.longitude_rad,mjd)
+        fastAlt, fastAz = sb.stupidFast_RaDec2AltAz(fastRA,fastDec,
+                                                    site.latitude_rad,
+                                                    site.longitude_rad,mjd)
+        np.testing.assert_array_almost_equal(fastAlt, alt)
+        np.testing.assert_array_almost_equal(fastAz, az)
+
+
 
 
 if __name__=="__main__":
