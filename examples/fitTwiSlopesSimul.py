@@ -6,6 +6,7 @@ from lsst.sims.skybrightness import twilightFunc, simpleTwi
 import lsst.sims.skybrightness as sb
 import os
 import lsst.sims.photUtils.Bandpass as Bandpass
+from matplotlib.patches import Rectangle
 
 def lineCurve(xdata, x0,x1):
     mag = x0*xdata+x1
@@ -51,8 +52,10 @@ fig = plt.figure()
 sunAltMax = np.radians(-11.)
 residPlot1 = plt.figure()
 residPlot2 = plt.figure()
-altBPlot = plt.figure()
-altBHAPlot = plt.figure()
+altBPlot, altBPlotAx = plt.subplots(3, sharex=True, sharey=True)
+#altBHAPlot, altBHAPlotAx = plt.subplots(3, sharex=True, sharey=True)
+# altBHAPlot = plt.figure()
+altBHAPlot, altBHAPlotAx = plt.subplots(3, sharex=True, sharey=True)
 
 paramList = []
 
@@ -239,29 +242,56 @@ for filterName in filters:
     cb = residPlot2.colorbar(s)
     cb.set_label('Alt (deg)')
 
-    ax = altBPlot.add_subplot(3,1,counter)
+    ax = altBPlotAx[counter-1]  #  .add_subplot(3,1,counter)
     lowAM = np.where((xdata2['airmass'] > 0) & (xdata2['airmass'] < 1.1))
-    s= ax.scatter(np.degrees(xdata2['sunAlt'][lowAM]),  -2.5*np.log10(flux[lowAM]),
-               c=xdata2['airmass'][lowAM], edgecolor='none', alpha=0.2)
-    ax.set_xlabel('Sun Altitude (degrees)')
-    ax.set_ylabel(' mags')
-    ax.set_title('X < 1.1, %s' % filterName)
+    s = ax.scatter(np.degrees(xdata2['sunAlt'][lowAM]),  -2.5*np.log10(flux[lowAM]),
+                   c=xdata2['airmass'][lowAM], edgecolor='none', alpha=0.2, 
+                   vmin=1, vmax=1.1)
+    if counter == 1:
+        ax.set_title('X < 1.1')
+    if counter == 2:
+        ax.set_ylabel(' mags')
+    extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
+    ax.legend([extra], ['%s' % filterName], frameon=False)
+    # ax.set_title('X < 1.1, %s' % filterName)
     ax.set_xlim(ax.get_xlim()[::-1] )
-    ax.set_ylim(ax.get_ylim()[::-1] )
-    cb = altBPlot.colorbar(s)
-    cb.set_label('Airmass')
+    # ax.set_ylim(ax.get_ylim()[::-1] )
+    ax.set_ylim([9.4, 5.8])
+    if counter == 3:
+        ax.set_xlabel('Sun Altitude (degrees)')
+        
+        altBPlot.subplots_adjust(right=0.8)
+        cbar_ax = altBPlot.add_axes([0.85, 0.15, 0.05, 0.7])
+        cb = altBPlot.colorbar(s, cax=cbar_ax)
+        #cb = altBPlot.colorbar(s)
+        cb.solids.set_edgecolor("face")
+        cb.set_label('Airmass')
 
-    ax = altBHAPlot.add_subplot(3,1,counter)
+
+#    ax = altBHAPlot.add_subplot(3,1,counter)
+    ax = altBHAPlotAx[counter-1]
     lowAM = np.where((xdata2['airmass'] < 2.5) & (xdata2['airmass'] > 2.))
-    s= ax.scatter(np.degrees(xdata2['sunAlt'][lowAM]),  -2.5*np.log10(flux[lowAM]),
-               c=xdata2['azRelSun'][lowAM], edgecolor='none', alpha=0.2)
-    ax.set_xlabel('Sun Altitude (degrees)')
-    ax.set_ylabel('mags')
-    ax.set_title('2.5 <  X < 2.0, %s' % filterName)
+    s = ax.scatter(np.degrees(xdata2['sunAlt'][lowAM]),  -2.5*np.log10(flux[lowAM]),
+                   c=xdata2['azRelSun'][lowAM], edgecolor='none', alpha=0.2,
+                   vmin = 0, vmax=5.6)
+    if counter == 1:
+        ax.set_title('2.5 <  X < 2.0')
+    if counter == 2:
+        ax.set_ylabel('mags')
+    extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
+    ax.legend([extra], ['%s' % filterName], frameon=False)
+
     ax.set_xlim(ax.get_xlim()[::-1] )
-    ax.set_ylim(ax.get_ylim()[::-1] )
-    cb = altBHAPlot.colorbar(s)
-    cb.set_label('Target Az')
+    #ax.set_ylim(ax.get_ylim()[::-1] )
+    ax.set_ylim([10.4, 3.3])
+    if counter == 3:
+        ax.set_xlabel('Sun Altitude (degrees)')
+
+        altBHAPlot.subplots_adjust(right=0.8)
+        cbar_ax = altBHAPlot.add_axes([0.85, 0.15, 0.05, 0.7])
+        cb = altBHAPlot.colorbar(s, cax=cbar_ax)
+        cb.solids.set_edgecolor("face")
+        cb.set_label('Target Az')
 
     #--------
     # Let's look at the zeropoints
@@ -319,12 +349,14 @@ residPlot2.savefig('Plots/residPlot2.pdf')
 plt.close(residPlot2)
 
 
-altBPlot.tight_layout()
+# altBPlot.tight_layout()
+altBPlot.subplots_adjust(hspace=0)
 altBPlot.savefig('Plots/altDecay.png')
 altBPlot.savefig('Plots/altDecay.pdf')
 plt.close(altBPlot)
 
-altBHAPlot.tight_layout()
+#altBHAPlot.tight_layout()
+altBHAPlot.subplots_adjust(hspace=0)
 altBHAPlot.savefig('Plots/altDecayHA.png')
 altBHAPlot.savefig('Plots/altDecayHA.pdf')
 plt.close(altBHAPlot)

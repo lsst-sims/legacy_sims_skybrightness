@@ -376,6 +376,8 @@ class SkyModel(object):
             Ecliptic longitude (radians) of each point
         eclipLat : np.array
             Ecliptic latitude (radians) of each point
+        sunEclipLon: np.array
+            Ecliptic longitude (radians) of each point with the sun at longitude zero
 
         Note that since the alt and az can be calculated using the fast approximation, if one wants
         to compute the distance between the the points and the sun or moon, it is probably better to
@@ -386,7 +388,7 @@ class SkyModel(object):
     	attributes = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux', 'moonPhase', 
                       'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun', 'moonSunSep',
                       'azRelMoon', 'eclipLon', 'eclipLat', 'moonRA', 'moonDec', 'sunRA', 
-                      'sunDec']
+                      'sunDec', 'sunEclipLon']
 
     	for attribute in attributes:
     		if hasattr(self, attribute):
@@ -420,7 +422,8 @@ class SkyModel(object):
 
         if self.twilight:
             self.points['sunAlt'] = self.sunAlt
-            self.points['azRelSun'] = wrapRA(self.azs - self.sunAz)
+            self.azRelSun = wrapRA(self.azs - self.sunAz)
+            self.points['azRelSun'] = self.azRelSun
 
         if self.moon:
             moon = ephem.Moon()
@@ -428,7 +431,7 @@ class SkyModel(object):
             self.moonPhase = moon.phase
             self.moonAlt = moon.alt
             self.moonAz = moon.az
-            self.moonRa = moon.ra
+            self.moonRA = moon.ra
             self.moonDec = moon.dec
             # Calc azimuth relative to moon
             self.azRelMoon = wrapRA(self.azs - self.moonAz)
@@ -436,7 +439,8 @@ class SkyModel(object):
             self.azRelMoon[over] = 2.*np.pi - self.azRelMoon[over]
             self.points['moonAltitude'] += np.degrees(self.moonAlt)
             self.points['azRelMoon'] += self.azRelMoon
-            self.points['moonSunSep'] += self.moonPhase/100.*180.
+            self.moonSunSep = self.moonPhase/100.*180.
+            self.points['moonSunSep'] += self.moonSunSep
 
         if self.zodiacal:
             self.eclipLon = np.zeros(self.npts)

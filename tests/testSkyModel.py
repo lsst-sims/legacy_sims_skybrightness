@@ -22,13 +22,13 @@ class TestSkyModel(unittest.TestCase):
         same result if they are computed independently
         """
 
-        sky1 = sb.SkyModel(twilight=False, zodiacal=False,  moon=False,
+        sky1 = sb.SkyModel(twilight=False, zodiacal=False, moon=False,
                            lowerAtm=False, upperAtm=False,
                            airglow=False, scatteredStar=False,
                            mergedSpec=True)
         sky1.setRaDecMjd([36.], [-68.], 49353.18, degrees=True)
 
-        sky2 = sb.SkyModel(twilight=False, zodiacal=False,  moon=False,
+        sky2 = sb.SkyModel(twilight=False, zodiacal=False, moon=False,
                            lowerAtm=True, upperAtm=True,
                            airglow=False, scatteredStar=True,
                            mergedSpec=False)
@@ -123,22 +123,21 @@ class TestSkyModel(unittest.TestCase):
         sm.setRaDecMjd([36., 36.], [-68., -70.], 49353.18, degrees=True)
         valDict = sm.getComputedVals()
 
-        attrToCheck = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux', 'moonPhase',
-                      'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun', 'moonSunSep',
-                      'azRelMoon', 'eclipLon', 'eclipLat', 'moonRA', 'moonDec', 'sunRA',
-                      'sunDec']
+        attrToCheck = ['ra', 'dec', 'alts', 'azs', 'airmass', 'solarFlux', 'moonPhase',
+                       'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun', 'moonSunSep',
+                       'azRelMoon', 'eclipLon', 'eclipLat', 'moonRA', 'moonDec', 'sunRA',
+                       'sunDec', 'sunEclipLon']
 
         for attr in attrToCheck:
             assert(attr in valDict.keys())
-            if valDict[attr] is not None:
-                if np.size(valDict[attr]) > 1:
-                    np.testing.assert_array_equal(getattr(sm,attr), valDict[attr])
-                else:
-                    assert(getattr(sm,attr) == valDict[attr])
+            if np.size(valDict[attr]) > 1:
+                np.testing.assert_array_equal(getattr(sm, attr), valDict[attr])
+            else:
+                assert(getattr(sm, attr) == valDict[attr])
 
         # Check that things that should be radians are in radian range
         radList = ['ra', 'azs', 'moonAz', 'sunAz', 'azRelSun',
-                   'azRelMoon', 'eclipLon', 'moonRA', 'sunRA']
+                   'azRelMoon', 'eclipLon', 'moonRA', 'sunRA', 'sunEclipLon']
 
         for attr in radList:
             if valDict[attr] is not None:
