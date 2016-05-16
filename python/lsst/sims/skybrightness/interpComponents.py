@@ -7,6 +7,14 @@ from lsst.sims.skybrightness.twilightFunc import twilightFunc
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from lsst.utils import getPackageDir
 
+# Make backwards compatible with healpy
+if hasattr(hp, 'get_neighbours'):
+    get_neighbours = hp.get_neighbours
+elif hasattr(hp, 'get_interp_weight'):
+    get_neighbours = hp.get_interp_weight
+else:
+    print("Could not find appropriate healpy function for get_interp_weight or get_neighbours")
+
 
 __all__ = ['id2intid', 'intid2id', 'loadSpecFiles', 'BaseSingleInterp', 'ScatteredStar', 'LowerAtm',
            'UpperAtm', 'MergedSpec', 'Airglow', 'TwilightInterp', 'MoonInterp',
@@ -485,8 +493,8 @@ class MoonInterp(BaseSingleInterp):
             return result
 
         # Find the neighboring healpixels
-        hpids, hweights = hp.get_neighbours(self.nside, np.pi/2.-interpPoints['alt'],
-                                            interpPoints['azRelMoon'])
+        hpids, hweights = get_neighbours(self.nside, np.pi/2.-interpPoints['alt'],
+                                         interpPoints['azRelMoon'])
 
         badhp = np.in1d(hpids.ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
         hweights[badhp] = 0.
@@ -542,8 +550,8 @@ class ZodiacalInterp(BaseSingleInterp):
                            (interpPoints['airmass'] >= np.min(self.dimDict['airmass'])))
         usePoints = interpPoints[inRange]
         # Find the neighboring healpixels
-        hpids, hweights = hp.get_neighbours(self.nside, np.pi/2.-usePoints['altEclip'],
-                                            usePoints['azEclipRelSun'])
+        hpids, hweights = get_neighbours(self.nside, np.pi/2.-usePoints['altEclip'],
+                                         usePoints['azEclipRelSun'])
 
         badhp = np.in1d(hpids.ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
         hweights[badhp] = 0.
