@@ -4,11 +4,14 @@ import os
 import numpy as np
 import matplotlib.pylab as plt
 import healpy as hp
-from lsst.sims.selfcal.analysis import healplots
+# from lsst.sims.selfcal.analysis import healplots
 from lsst.sims.skybrightness.utils import robustRMS, ut2Mjd, mjd2ut
 from lsst.sims.utils import _altAzPaFromRaDec, haversine, calcLmstLast, _raDecFromAltAz, ObservationMetaData, Site
 from scipy.interpolate import griddata
 
+plt.rcParams.update({'axes.labelsize': 'x-large'})
+plt.rcParams.update({'axes.titlesize': 'x-large'})
+plt.rcParams.update({'xtick.labelsize': 'large', 'ytick.labelsize': 'large'})
 
 # Let's recreate the delta m_5 plot from figure 3 in:
 # http://xxx.lanl.gov/pdf/1510.07574.pdf
@@ -32,7 +35,7 @@ angDist2Moon = np.degrees(haversine(az,alt, sm.moonAz,sm.moonAlt))
 ang2 = np.degrees(haversine(ra,dec, moonRA,moonDec))
 alt = np.degrees(alt)
 
-mags = -0.5*(mag[:,0].min()-mag[:,0])
+mags = -0.5*(np.nanmin(mag['u'])-mag['u'])
 
 
 #extent = (0,130, 0,90)

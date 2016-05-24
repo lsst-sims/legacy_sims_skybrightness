@@ -5,6 +5,8 @@ import matplotlib.pylab as plt
 
 plt.rcParams.update({'axes.labelsize': 'x-large'})
 plt.rcParams.update({'axes.titlesize': 'x-large'})
+plt.rcParams.update({'xtick.labelsize': 'large', 'ytick.labelsize': 'large'})
+
 
 # Load up the spectra and plot some examples of each component
 

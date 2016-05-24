@@ -1,8 +1,7 @@
 import numpy as np
 import lsst.sims.skybrightness as sb
 from scipy.stats import binned_statistic_2d
-from lsst.sims.selfcal.analysis import healplots
-from lsst.sims.utils import _altAzPaFromRaDec, _raDecFromAltAz, haversine
+from lsst.sims.utils import _altAzPaFromRaDec, _raDecFromAltAz, haversine, healbin
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
 import healpy as hp
 import os
@@ -12,6 +11,12 @@ import matplotlib.pylab as plt
 import ephem
 from lsst.sims.skybrightness.utils import mjd2djd
 import numpy.ma as ma
+
+
+plt.rcParams.update({'axes.labelsize': 'x-large'})
+plt.rcParams.update({'axes.titlesize': 'x-large'})
+plt.rcParams.update({'xtick.labelsize': 'large', 'ytick.labelsize': 'large'})
+
 
 def robustRMS(data):
     iqr = np.percentile(data,75)-np.percentile(data,25)
@@ -124,7 +129,7 @@ for filterName in filters:
                 skydata = skydata[np.where((airmass < amMax) & (airmass >= 1.))]
                 alt,az,pa =  _altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
                                                telescope.lon, telescope.lat, mjd)
-                skyhp = healplots.healbin(az,alt, skydata['sky'], nside=nside)
+                skyhp = healbin(az,alt, skydata['sky'], nside=nside)
                 skyhp[np.isnan(skyhp)] = hp.UNSEEN
 
                 good = np.where(skyhp != hp.UNSEEN)
@@ -202,6 +207,8 @@ for filterName in filters:
                             extend='both', extendrect=True, format=None)
     cb.set_label(r'Median model-sky (mags/sq$^{\prime\prime}$)')
     cb.solids.set_edgecolor("face")
+
+    import pdb ; pdb.set_trace()
 
     fig.savefig('Plots/medianResidMap_%s.pdf' % filterName)
     plt.close(fig)
@@ -471,7 +478,7 @@ for filterName in filters:
         skydata = skydata[np.where((airmass < amMax) & (airmass >= 1.))]
         alt,az,pa =  _altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
                                        telescope.lon, telescope.lat, mjd)
-        skyhp = healplots.healbin(az,alt, skydata['sky'], nside=nside)
+        skyhp = healbin(az,alt, skydata['sky'], nside=nside)
         skyhp[np.isnan(skyhp)] = hp.UNSEEN
 
         good = np.where(skyhp != hp.UNSEEN)

@@ -8,6 +8,11 @@ import os
 import lsst.sims.photUtils.Bandpass as Bandpass
 from matplotlib.patches import Rectangle
 
+plt.rcParams.update({'axes.labelsize': 'x-large'})
+plt.rcParams.update({'axes.titlesize': 'x-large'})
+plt.rcParams.update({'xtick.labelsize': 'large', 'ytick.labelsize': 'large'})
+
+
 def lineCurve(xdata, x0,x1):
     mag = x0*xdata+x1
     return mag
@@ -261,7 +266,7 @@ for filterName in filters:
         ax.set_xlabel('Sun Altitude (degrees)')
         
         altBPlot.subplots_adjust(right=0.8)
-        cbar_ax = altBPlot.add_axes([0.85, 0.15, 0.05, 0.7])
+        cbar_ax = altBPlot.add_axes([0.81, 0.15, 0.05, 0.7])
         cb = altBPlot.colorbar(s, cax=cbar_ax)
         #cb = altBPlot.colorbar(s)
         cb.solids.set_edgecolor("face")

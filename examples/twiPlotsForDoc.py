@@ -3,6 +3,10 @@ import healpy as hp
 import matplotlib.pylab as plt
 import matplotlib
 
+plt.rcParams.update({'axes.labelsize': 'x-large'})
+plt.rcParams.update({'axes.titlesize': 'x-large'})
+plt.rcParams.update({'xtick.labelsize': 'large', 'ytick.labelsize': 'large'})
+
 # Just make a few example plots for the document
 filterName = 'R'
 twi = np.load('TwilightMaps/twiMaps_'+filterName+'.npz')
