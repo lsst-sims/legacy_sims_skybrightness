@@ -3,6 +3,9 @@ import matplotlib.pylab as plt
 from scipy.optimize import curve_fit
 
 ## Fit a simple exponential + constant to the twilight data scrapped from Patat et al 2006
+plt.rcParams.update({'axes.labelsize': 'x-large'})
+plt.rcParams.update({'axes.titlesize': 'x-large'})
+plt.rcParams.update({'xtick.labelsize': 'large', 'ytick.labelsize': 'large'})
 
 
 

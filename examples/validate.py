@@ -1,7 +1,7 @@
 import numpy as np
 import lsst.sims.skybrightness as sb
 from scipy.stats import binned_statistic_2d
-from lsst.sims.utils import _altAzPaFromRaDec, _raDecFromAltAz, haversine, healbin
+from lsst.sims.utils import _altAzPaFromRaDec, _raDecFromAltAz, haversine, healbin, Site, ObservationMetaData
 from lsst.sims.maf.utils.telescopeInfo import TelescopeInfo
 import healpy as hp
 import os
@@ -199,18 +199,19 @@ for filterName in filters:
     darkTimeMedianResid[np.where(darkTimeMedianResid == 0)] = hp.UNSEEN
     hp.mollview(darkTimeMedianResid, fig=1,
                 unit=r'Median model-sky (mags/sq$^{\prime\prime}$)',
-                rot=(0,90), max=0.5, min=-0.5, cmap=myCmap, cbar=False,
+                rot=(0,90), max=0.5, min=-0.5, cmap=myCmap, cbar=True,
                 title='Dark Time, %s' % filterName)
-    ax = plt.gca()
-    im = ax.get_images()[0]
-    cb = plt.colorbar(im, shrink=0.75, aspect=25, orientation='horizontal',
-                            extend='both', extendrect=True, format=None)
-    cb.set_label(r'Median model-sky (mags/sq$^{\prime\prime}$)')
-    cb.solids.set_edgecolor("face")
+    #ax = plt.gca()
+    #im = ax.get_images()[0]
+    #cb = plt.colorbar(im, shrink=0.75, aspect=25, orientation='horizontal',
+    #                        extend='both', extendrect=True, format=None)
+    #cb.set_label(r'Median model-sky (mags/sq$^{\prime\prime}$)')
+    #cb.solids.set_edgecolor("face")
 
-    import pdb ; pdb.set_trace()
+    #import pdb ; pdb.set_trace()
 
-    fig.savefig('Plots/medianResidMap_%s.pdf' % filterName)
+    # XXX--WTF
+    #fig.savefig('Plots/medianResidMap_%s.pdf' % filterName)
     plt.close(fig)
 
 
@@ -228,7 +229,8 @@ for filterName in filters:
     cb.set_label(r'RMS model-sky (mags/sq$^{\prime\prime}$)')
     cb.solids.set_edgecolor("face")
 
-    fig.savefig('Plots/stdResidMap_%s.pdf' % filterName)
+    # XXX-WTF
+    # fig.savefig('Plots/stdResidMap_%s.pdf' % filterName)
     plt.close(fig)
 
 
@@ -470,6 +472,9 @@ for filterName in filters:
     dateIDs = [2844,40290,17449,22010]
 
     filterName = 'R'
+
+    telescope = Site('LSST')
+
     for i,dID in enumerate(dateIDs):
         fig = plt.figure(1, figsize=(11,2.8))
         figCounter = 0
@@ -477,7 +482,7 @@ for filterName in filters:
         airmass = 1./np.cos(np.radians(90.-skydata['alt']))
         skydata = skydata[np.where((airmass < amMax) & (airmass >= 1.))]
         alt,az,pa =  _altAzPaFromRaDec(np.radians(skydata['ra']), np.radians(skydata['dec']),
-                                       telescope.lon, telescope.lat, mjd)
+                                       ObservationMetaData(mjd=mjd, site=telescope))
         skyhp = healbin(az,alt, skydata['sky'], nside=nside)
         skyhp[np.isnan(skyhp)] = hp.UNSEEN
 
