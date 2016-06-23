@@ -8,10 +8,10 @@ from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from lsst.utils import getPackageDir
 
 # Make backwards compatible with healpy
-if hasattr(hp, 'get_neighbours'):
+if hasattr(hp, 'get_interp_weights'):
+    get_neighbours = hp.get_interp_weights
+elif hasattr(hp, 'get_neighbours'):
     get_neighbours = hp.get_neighbours
-elif hasattr(hp, 'get_interp_weight'):
-    get_neighbours = hp.get_interp_weight
 else:
     print("Could not find appropriate healpy function for get_interp_weight or get_neighbours")
 
