@@ -226,7 +226,7 @@ class SkyModel(object):
 
         lon: Longitude-like (RA or Azimuth). Can be single number, list, or numpy array
         lat: Latitude-like (Dec or Altitude)
-        mjd: Modified Julian Date for the calculation. Must be single number.
+        mjd: Modified Julian Date for the calculation. Must be a float.
         degrees: (False) Assumes lon and lat are radians unless degrees=True
         azAlt: (False) Assume lon, lat are RA, Dec unless azAlt=True
         solarFlux: solar flux in SFU Between 50 and 310. Default=130. 1 SFU=10^4 Jy.

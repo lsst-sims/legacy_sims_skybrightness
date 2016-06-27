@@ -189,7 +189,7 @@ class TestSkyModel(unittest.TestCase):
         sm2 = self.sm_mags2
         ra = np.array([0., 0., 0.])
         dec = np.array([-.1, -.2, -.3])
-        mjd = 5900
+        mjd = 5900.0
         sm1.setRaDecMjd(ra, dec, mjd)
         m1 = sm1.returnMags()
         sm2.setRaDecAltAzMjd(ra, dec, sm1.alts, sm1.azs, mjd)

@@ -13,7 +13,7 @@ class TestAltAz(unittest.TestCase):
         ra = np.random.rand(100)*np.pi*2
         dec = np.random.rand(100)*np.pi-np.pi/2
         site = Site('LSST')
-        mjd = 55000
+        mjd = 55000.0
         omd = ObservationMetaData(mjd=mjd,site=site)
 
         trueAlt,trueAz,pa = _altAzPaFromRaDec(ra,dec,omd)
@@ -30,7 +30,7 @@ class TestAltAz(unittest.TestCase):
         az = np.random.rand(100)*np.pi*2
         alt = np.random.rand(100)*np.pi-np.pi/2
         site = Site('LSST')
-        mjd = 55000
+        mjd = 55000.0
         omd = ObservationMetaData(mjd=mjd,site=site)
 
         trueRA,trueDec = _raDecFromAltAz(alt,az, omd)
