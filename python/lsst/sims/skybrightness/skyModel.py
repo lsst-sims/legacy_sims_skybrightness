@@ -220,7 +220,8 @@ class SkyModel(object):
         types = [float]*len(names)
         self.points = np.zeros(self.npts, zip(names, types))
 
-    def setRaDecMjd(self, lon, lat, mjd, degrees=False, azAlt=False, solarFlux=130.):
+    def setRaDecMjd(self, lon, lat, mjd, degrees=False, azAlt=False, solarFlux=130.,
+                    filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         """
         Set the sky parameters by computing the sky conditions on a given MJD and sky location.
 
@@ -279,9 +280,10 @@ class SkyModel(object):
         self.paramsSet = True
 
         # Interpolate the templates to the set paramters
-        self.interpSky()
+        self.interpSky(filterNames)
 
-    def setRaDecAltAzMjd(self, ra, dec, alt, az, mjd, degrees=False, solarFlux=130.):
+    def setRaDecAltAzMjd(self, ra, dec, alt, az, mjd, degrees=False, solarFlux=130.,
+                         filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         """
         Set the sky parameters by computing the sky conditions on a given MJD and sky location.
 
@@ -323,7 +325,7 @@ class SkyModel(object):
 
         self.paramsSet = True
         # Interpolate the templates to the set paramters
-        self.interpSky()
+        self.interpSky(filterNames)
 
     def getComputedVals(self):
     	"""
@@ -461,7 +463,8 @@ class SkyModel(object):
 
     def setParams(self, airmass=1., azs=90., alts=None, moonPhase=31.67, moonAlt=45.,
                   moonAz=0., sunAlt=-12., sunAz=0., sunEclipLon=0.,
-                  eclipLon=135., eclipLat=90., degrees=True, solarFlux=130.):
+                  eclipLon=135., eclipLat=90., degrees=True, solarFlux=130.,
+                  filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         """
         Set paramters manually. Note, you can put in unphysical combinations of paramters if you want
         to (e.g., put a full moon at zenith at sunset).
@@ -522,9 +525,9 @@ class SkyModel(object):
         self.mask = np.where((self.airmass > self.airmassLimit) | (self.airmass < 1.))[0]
         self.goodPix = np.where((self.airmass <= self.airmassLimit) | (self.airmass >= 1.))[0]
         # Interpolate the templates to the set paramters
-        self.interpSky()
+        self.interpSky(filterNames)
 
-    def interpSky(self):
+    def interpSky(self, filterNames):
         """
         Interpolate the template spectra to the set RA, Dec and MJD.
 
@@ -548,7 +551,7 @@ class SkyModel(object):
         mask = np.ones(self.npts)
         for key in self.components:
             if self.components[key]:
-                result = self.interpObjs[key](self.points[self.goodPix])
+                result = self.interpObjs[key](self.points[self.goodPix], filterNames=filterNames)
                 # Make sure the component has something
                 if np.max(result['spec']) > 0:
                     mask[np.where(np.sum(result['spec'], axis=1) == 0)] = 0
