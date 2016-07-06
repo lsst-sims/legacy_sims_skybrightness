@@ -2,7 +2,7 @@ import numpy as np
 import ephem
 from lsst.sims.utils import haversine, _raDecFromAltAz, _altAzPaFromRaDec, Site, ObservationMetaData, calcLmstLast
 import warnings
-from lsst.sims.skybrightness.utils import wrapRA,  mjd2djd
+from lsst.sims.skybrightness.utils import wrapRA, mjd2djd
 from .interpComponents import ScatteredStar, Airglow, LowerAtm, UpperAtm, MergedSpec, TwilightInterp, MoonInterp, ZodiacalInterp
 from lsst.sims.photUtils import Sed
 
@@ -104,9 +104,9 @@ def stupidFast_altAz2RaDec(alt, az, lat, lon, mjd):
 class SkyModel(object):
 
     def __init__(self, observatory='LSST',
-                 twilight=True, zodiacal=True,  moon=True,
+                 twilight=True, zodiacal=True, moon=True,
                  airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
-                 mergedSpec=True, mags=False,  preciseAltAz=False):
+                 mergedSpec=True, mags=False, preciseAltAz=False):
         """
         Instatiate the SkyModel. This loads all the required template spectra/magnitudes
         that will be used for interpolation.
@@ -195,7 +195,7 @@ class SkyModel(object):
         # Note that observing conditions have not been set
         self.paramsSet = False
 
-    def setComponents(self, twilight=True, zodiacal=True,  moon=True,
+    def setComponents(self, twilight=True, zodiacal=True, moon=True,
                       airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
                       mergedSpec=True):
         """
@@ -336,7 +336,7 @@ class SkyModel(object):
 
     def getComputedVals(self):
     	"""
-    	Return the intermediate values that are caluculated by setRaDecMjd and used for interpolation.
+        Return the intermediate values that are caluculated by setRaDecMjd and used for interpolation.
         All of these values are also accesible as class atributes, this is a convience method to grab them
         all at once and document the formats.
 
@@ -369,7 +369,7 @@ class SkyModel(object):
             Azimuth of each point relative to the sun (0=same direction as sun) (radians)
         moonAz : float
             Azimuth of the moon (radians)
-        moonAlt : float 
+        moonAlt : float
             Altitude of the moon (radians)
         moonRA : float
             RA of the moon (radians)
@@ -391,21 +391,21 @@ class SkyModel(object):
         Note that since the alt and az can be calculated using the fast approximation, if one wants
         to compute the distance between the the points and the sun or moon, it is probably better to
         use the ra,dec positions rather than the alt,az positions.
-    	"""
+        """
 
-    	result = {}
-    	attributes = ['ra', 'dec', 'alts', 'azs',  'airmass', 'solarFlux', 'moonPhase', 
+        result = {}
+        attributes = ['ra', 'dec', 'alts', 'azs', 'airmass', 'solarFlux', 'moonPhase',
                       'moonAz', 'moonAlt', 'sunAlt', 'sunAz', 'azRelSun', 'moonSunSep',
-                      'azRelMoon', 'eclipLon', 'eclipLat', 'moonRA', 'moonDec', 'sunRA', 
+                      'azRelMoon', 'eclipLon', 'eclipLat', 'moonRA', 'moonDec', 'sunRA',
                       'sunDec', 'sunEclipLon']
 
-    	for attribute in attributes:
-    		if hasattr(self, attribute):
-    			result[attribute] = getattr(self, attribute)
-    		else:
-    			result[attribute] = None
+        for attribute in attributes:
+            if hasattr(self, attribute):
+                result[attribute] = getattr(self, attribute)
+            else:
+                result[attribute] = None
 
-    	return result
+        return result
 
     def _setupPointGrid(self):
         """
