@@ -142,7 +142,7 @@ class BaseSingleInterp(object):
 
     def __call__(self, intepPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         if self.mags:
-            return self.interpMag(intepPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y'])
+            return self.interpMag(intepPoints, filterNames=filterNames)
         else:
             return self.interpSpec(intepPoints)
 
@@ -207,7 +207,7 @@ class BaseSingleInterp(object):
     def interpMag(self, interpPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         filterNameDict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4, 'y': 5}
         filterindx = [filterNameDict[key] for key in filterNames]
-        result = self._weighting(interpPoints, self.spec['mags'][filterindx])
+        result = self._weighting(interpPoints, self.spec['mags'][:, filterindx])
         mask = np.where(result == 0.)
         result = 10.**(-0.4*(result-np.log10(3631.)))
         result[mask] = 0.
@@ -272,7 +272,6 @@ class Airglow(BaseSingleInterp):
         for amIndex, amW in zip([amRightIndex, amLeftIndex], [amRightW, amLeftW]):
             for sfIndex, sfW in zip([sfRightIndex, sfLeftIndex], [sfRightW, sfLeftW]):
                 results[inRange] += amW[:, np.newaxis]*sfW[:, np.newaxis]*values[amIndex*self.nSolarFlux+sfIndex]
-
         return results
 
 
@@ -419,7 +418,7 @@ class TwilightInterp(object):
 
     def __call__(self, intepPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         if self.mags:
-            return self.interpMag(intepPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y'])
+            return self.interpMag(intepPoints, filterNames=filterNames)
         else:
             return self.interpSpec(intepPoints)
 
@@ -437,7 +436,8 @@ class TwilightInterp(object):
                         (interpPoints['airmass'] >= 1.))[0]
 
         for i, filterName in enumerate(filterNames):
-            result[good, i] = twilightFunc(interpPoints[good], *self.lsstEquations[i, :].tolist())
+            result[good, i] = twilightFunc(interpPoints[good],
+                                           *self.lsstEquations[filterNameDict[filterName], :].tolist())
 
         return {'spec': result, 'wave': self.lsstEffWave}
 
