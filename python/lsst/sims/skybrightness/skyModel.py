@@ -231,6 +231,7 @@ class SkyModel(object):
         degrees: (False) Assumes lon and lat are radians unless degrees=True
         azAlt: (False) Assume lon, lat are RA, Dec unless azAlt=True
         solarFlux: solar flux in SFU Between 50 and 310. Default=130. 1 SFU=10^4 Jy.
+        filterNames: list of fitlers to return magnitudes for (if initialized with mags=True).
         """
         self.filterNames = filterNames
         if self.mags:
