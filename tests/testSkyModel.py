@@ -181,6 +181,28 @@ class TestSkyModel(unittest.TestCase):
         assert(magNormal[0][2] < magFaint[0][2])
         assert(magNormal[0][2] > magBright[0][2])
 
+    def testFewerMags(self):
+        """
+        Test that can call and only interpolate a few magnitudes.
+        """
+        mjd = 56973.268218
+        sm = self.sm_mags
+        sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True)
+        all_mags = sm.returnMags()
+
+        filterNames = ['u', 'g', 'r', 'i', 'z', 'y']
+        for filterName in filterNames:
+            sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True, filterNames=[filterName])
+            one_mag = sm.returnMags()
+            assert(all_mags[filterName] == one_mag[filterName])
+
+        # Test that I can do subset of mags
+        subset = ['u', 'r', 'y']
+        sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True, filterNames=subset)
+        sub_mags = sm.returnMags()
+        for filterName in subset:
+            assert(all_mags[filterName] == sub_mags[filterName])
+
     def test_setRaDecAltAzMjd(self):
         """
         Make sure sending in self-computed alt, az works
