@@ -473,8 +473,9 @@ class SkyModel(object):
                   eclipLon=135., eclipLat=90., degrees=True, solarFlux=130.,
                   filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         """
-        Set paramters manually. Note, you can put in unphysical combinations of paramters if you want
-        to (e.g., put a full moon at zenith at sunset).
+        Set parameters manually.
+        Note, you can put in unphysical combinations of paramters if you want to
+        (e.g., put a full moon at zenith at sunset).
         if the alts kwarg is set it will override the airmass kwarg.
         MoonPhase is percent of moon illuminated (0-100)
         """
@@ -503,8 +504,8 @@ class SkyModel(object):
         else:
             self.airmass = airmass
             self.alts = np.pi/2.-np.arccos(1./airmass)
-        self.moonTargSep = haversine(azs, alts, moonAz, self.moonAlt)
-        self.npts = np.size(airmass)
+        self.moonTargSep = haversine(azs, self.alts, moonAz, self.moonAlt)
+        self.npts = np.size(self.airmass)
         self._initPoints()
 
         self.points['airmass'] = self.airmass
@@ -512,8 +513,12 @@ class SkyModel(object):
         self.points['alt'] = self.alts
         self.points['az'] = self.azs
         self.azRelMoon = wrapRA(self.azs - self.moonAz)
-        over = np.where(self.azRelMoon > np.pi)
-        self.azRelMoon[over] = 2.*np.pi - self.azRelMoon[over]
+        if isinstance(self.azRelMoon, np.ndarray):
+            over = np.where(self.azRelMoon > np.pi)
+            self.azRelMoon[over] = 2.*np.pi - self.azRelMoon[over]
+        else:
+            if self.azRelMoon > np.pi:
+                self.azRelMoon = 2.0 * np.pi - self.azRelMoon
         self.points['moonAltitude'] += np.degrees(self.moonAlt)
         self.points['azRelMoon'] = self.azRelMoon
         self.points['moonSunSep'] += self.moonPhase/100.*180.
