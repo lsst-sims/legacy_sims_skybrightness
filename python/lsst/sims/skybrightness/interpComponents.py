@@ -140,6 +140,9 @@ class BaseSingleInterp(object):
             self.dimDict[dt] = np.unique(self.spec[dt])
             self.dimSizes[dt] = np.size(np.unique(self.spec[dt]))
 
+        # Set up and save the dict to order the filters once.
+        self.filterNameDict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4, 'y': 5}
+
     def __call__(self, intepPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         if self.mags:
             return self.interpMag(intepPoints, filterNames=filterNames)
@@ -181,7 +184,6 @@ class BaseSingleInterp(object):
 
         Input interpPoints should be sorted
         """
-
         results = np.zeros((interpPoints.size, np.size(values[0])), dtype=float)
 
         inRange = np.where((interpPoints['airmass'] <= np.max(self.dimDict['airmass'])) &
@@ -205,8 +207,7 @@ class BaseSingleInterp(object):
         return {'spec': result, 'wave': self.wave}
 
     def interpMag(self, interpPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
-        filterNameDict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4, 'y': 5}
-        filterindx = [filterNameDict[key] for key in filterNames]
+        filterindx = [self.filterNameDict[key] for key in filterNames]
         result = self._weighting(interpPoints, self.spec['mags'][:, filterindx])
         mask = np.where(result == 0.)
         result = 10.**(-0.4*(result-np.log10(3631.)))
@@ -402,6 +403,8 @@ class TwilightInterp(object):
             for i, filterName in enumerate(self.lsstFilterNames):
                 self.lsstEquations[i, -1] = 10.**(-0.4*(darkSkyMags[filterName]-np.log10(3631.)))
 
+        self.filterNameDict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4, 'y': 5}
+
     def printFitsUsed(self):
         """
         Print out the fit parameters being used
@@ -425,9 +428,8 @@ class TwilightInterp(object):
     def interpMag(self, interpPoints, maxAM=2.5,
                   limits=[np.radians(-11.), np.radians(-20.)],
                   filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
+        #filterindx = [self.filterNameDict[key] for key in filterNames]
         npts = len(filterNames)
-        filterNameDict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4, 'y': 5}
-        filterindx = [filterNameDict[key] for key in filterNames]
         result = np.zeros((np.size(interpPoints), npts), dtype=float)
 
         good = np.where((interpPoints['sunAlt'] >= np.min(limits)) &
@@ -437,7 +439,7 @@ class TwilightInterp(object):
 
         for i, filterName in enumerate(filterNames):
             result[good, i] = twilightFunc(interpPoints[good],
-                                           *self.lsstEquations[filterNameDict[filterName], :].tolist())
+                                           *self.lsstEquations[self.filterNameDict[filterName], :].tolist())
 
         return {'spec': result, 'wave': self.lsstEffWave}
 

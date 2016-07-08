@@ -100,6 +100,16 @@ def stupidFast_altAz2RaDec(alt, az, lat, lon, mjd):
     ra[raneg] = ra[raneg] + 2.*np.pi
     return ra, dec
 
+def calcAzRelMoon(azs, moonAz):
+    azRelMoon = wrapRA(azs - moonAz)
+    if isinstance(azs, np.ndarray):
+        over = np.where(azRelMoon > np.pi)
+        azRelMoon[over] = 2. * np.pi - azRelMoon[over]
+    else:
+        if azRelMoon > np.pi:
+            azRelMoon = 2.0 * np.pi - azRelMoon
+    return azRelMoon
+
 
 class SkyModel(object):
 
@@ -443,9 +453,7 @@ class SkyModel(object):
             self.moonRA = moon.ra
             self.moonDec = moon.dec
             # Calc azimuth relative to moon
-            self.azRelMoon = wrapRA(self.azs - self.moonAz)
-            over = np.where(self.azRelMoon > np.pi)
-            self.azRelMoon[over] = 2.*np.pi - self.azRelMoon[over]
+            self.azRelMoon = calcAzRelMoon(self.azs, self.moonAz)
             self.points['moonAltitude'] += np.degrees(self.moonAlt)
             self.points['azRelMoon'] += self.azRelMoon
             self.moonSunSep = self.moonPhase/100.*180.
@@ -512,13 +520,8 @@ class SkyModel(object):
         self.points['nightTimes'] = 2
         self.points['alt'] = self.alts
         self.points['az'] = self.azs
-        self.azRelMoon = wrapRA(self.azs - self.moonAz)
-        if isinstance(self.azRelMoon, np.ndarray):
-            over = np.where(self.azRelMoon > np.pi)
-            self.azRelMoon[over] = 2.*np.pi - self.azRelMoon[over]
-        else:
-            if self.azRelMoon > np.pi:
-                self.azRelMoon = 2.0 * np.pi - self.azRelMoon
+        self.azRelMoon =  calcAzRelMoon(self.azs, self.moonAz)
+        self.points['moonAltitude'] += np.degrees(self.moonAlt)
         self.points['moonAltitude'] += np.degrees(self.moonAlt)
         self.points['azRelMoon'] = self.azRelMoon
         self.points['moonSunSep'] += self.moonPhase/100.*180.
@@ -603,10 +606,18 @@ class SkyModel(object):
             mags = -2.5*np.log10(self.spec)+np.log10(3631.)
             # Mask out high airmass
             mags[self.mask] *= np.nan
+            mags = mags.swapaxes(0, 1)
+            """
             # Convert to a structured array
-            mags = np.core.records.fromarrays(mags.transpose(),
+            mags = np.core.records.fromarrays(mags,
                                               names=self.filterNames,
                                               formats='float,'*len(self.filterNames))
+            """
+            # Or use dictionaries?
+            magsBack = {}
+            for i, f in enumerate(self.filterNames):
+                magsBack[f] = mags[i]
+            mags = magsBack
         else:
             mags = np.zeros(self.npts, dtype=float)-666
             tempSed = Sed()
@@ -619,7 +630,6 @@ class SkyModel(object):
                 if np.max(self.spec[i, inBand]) > 0:
                     tempSed.setSED(self.wave, flambda=self.spec[i, :])
                     mags[i] = tempSed.calcMag(bandpass)
-
             # Mask out high airmass
             mags[self.mask] *= np.nan
         return mags
