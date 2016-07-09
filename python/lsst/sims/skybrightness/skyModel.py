@@ -607,7 +607,6 @@ class SkyModel(object):
             # Mask out high airmass
             mags[self.mask] *= np.nan
             mags = mags.swapaxes(0, 1)
-            """
             # Convert to a structured array
             mags = np.core.records.fromarrays(mags,
                                               names=self.filterNames,
@@ -618,6 +617,7 @@ class SkyModel(object):
             for i, f in enumerate(self.filterNames):
                 magsBack[f] = mags[i]
             mags = magsBack
+            """
         else:
             mags = np.zeros(self.npts, dtype=float)-666
             tempSed = Sed()
