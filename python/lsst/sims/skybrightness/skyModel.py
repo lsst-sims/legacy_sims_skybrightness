@@ -591,7 +591,7 @@ class SkyModel(object):
         # self.spec[self.mask] *= 0
         return self.wave, self.spec
 
-    def returnMags(self, bandpass=None, returnDict=False):
+    def returnMags(self, bandpasses=None):
         """
         Convert the computed spectra to a magnitude using the supplied bandpass,
         or, if self.mags=True, return the mags in the LSST filters
@@ -599,38 +599,34 @@ class SkyModel(object):
         If mags=True when initialized, return mags returns an structured array with
         dtype names u,g,r,i,z,y.
 
-        returnDict=True returns the magnitudes as arrays in a dictionary keyed by filter name
-        (slightly faster than converting to a structuded array)
+        bandpasses: optional dictionary with bandpass name keys and bandpass object values.
+
         """
         if self.mags:
-            if bandpass:
+            if bandpasses:
                 warnings.warn('Ignoring set bandpasses and returning LSST ugrizy.')
             mags = -2.5*np.log10(self.spec)+np.log10(3631.)
             # Mask out high airmass
             mags[self.mask] *= np.nan
             mags = mags.swapaxes(0, 1)
-            if returnDict:
-                magsBack = {}
-                for i, f in enumerate(self.filterNames):
-                    magsBack[f] = mags[i]
-                mags = magsBack
-            else:
-                # Convert to a structured array
-                mags = np.core.records.fromarrays(mags,
-                                                  names=self.filterNames,
-                                                  formats='float,'*len(self.filterNames))
+            magsBack = {}
+            for i, f in enumerate(self.filterNames):
+                magsBack[f] = mags[i]
         else:
-            mags = np.zeros(self.npts, dtype=float)-666
-            tempSed = Sed()
-            isThrough = np.where(bandpass.sb > 0)
-            minWave = bandpass.wavelen[isThrough].min()
-            maxWave = bandpass.wavelen[isThrough].max()
-            inBand = np.where((self.wave >= minWave) & (self.wave <= maxWave))
-            for i, ra in enumerate(self.ra):
-                # Check that there is flux in the band, otherwise calcMag fails
-                if np.max(self.spec[i, inBand]) > 0:
-                    tempSed.setSED(self.wave, flambda=self.spec[i, :])
-                    mags[i] = tempSed.calcMag(bandpass)
-            # Mask out high airmass
-            mags[self.mask] *= np.nan
-        return mags
+            magsBack = {}
+            for key in bandpasses.keys():
+                mags = np.zeros(self.npts, dtype=float)-666
+                tempSed = Sed()
+                isThrough = np.where(bandpasses[key].sb > 0)
+                minWave = bandpasses[key].wavelen[isThrough].min()
+                maxWave = bandpasses[key].wavelen[isThrough].max()
+                inBand = np.where((self.wave >= minWave) & (self.wave <= maxWave))
+                for i, ra in enumerate(self.ra):
+                    # Check that there is flux in the band, otherwise calcMag fails
+                    if np.max(self.spec[i, inBand]) > 0:
+                        tempSed.setSED(self.wave, flambda=self.spec[i, :])
+                        mags[i] = tempSed.calcMag(bandpasses[key])
+                # Mask out high airmass
+                mags[self.mask] *= np.nan
+                magsBack[key] = mags.copy()
+        return magsBack

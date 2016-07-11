@@ -93,26 +93,24 @@ class TestSkyModel(unittest.TestCase):
         throughPath = os.path.join(getPackageDir('throughputs'), 'baseline')
         filters = ['u', 'g', 'r', 'i', 'z', 'y']
 
-        bps = []
+        bps = {}
         for filterName in filters:
             bp = np.loadtxt(os.path.join(throughPath, 'filter_%s.dat' % filterName),
                             dtype=zip(['wave', 'trans'], [float]*2))
             lsst_bp = Bandpass()
             lsst_bp.setBandpass(bp['wave'], bp['trans'])
-            bps.append(lsst_bp)
+            bps[filterName] = lsst_bp
 
         sm1 = self.sm_spec
         sm1.setRaDecMjd([36.], [-68.], 49353.18, degrees=True)
-        mags1 = []
-        for bp in bps:
-            mags1.append(sm1.returnMags(bandpass=bp))
-        mags1 = np.array(mags1)
+        mags1 = sm1.returnMags(bandpasses=bps)
 
         sm2 = self.sm_mags
         sm2.setRaDecMjd([36.], [-68.], 49353.18, degrees=True)
         mag2 = sm2.returnMags()
+
         for i, filtername in enumerate(filters):
-            np.testing.assert_allclose(mags1[i, :], mag2[filtername], rtol=1e-4)
+            np.testing.assert_allclose(mags1[filtername], mag2[filtername], rtol=1e-4)
 
     def testGetComputed(self):
         """
@@ -160,7 +158,7 @@ class TestSkyModel(unittest.TestCase):
         sm = self.sm_mags
         sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True)
         mags = sm.returnMags()
-        for key in mags.dtype.names:
+        for key in mags.keys():
             assert(True not in np.isnan(mags[key]))
         assert(True not in np.isnan(sm.spec))
 
@@ -178,8 +176,8 @@ class TestSkyModel(unittest.TestCase):
         sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True, solarFlux=200.)
         magBright = sm.returnMags()
 
-        assert(magNormal[0][2] < magFaint[0][2])
-        assert(magNormal[0][2] > magBright[0][2])
+        assert(magNormal['r'][0] < magFaint['r'][0])
+        assert(magNormal['r'][0] > magBright['r'][0])
 
     def testFewerMags(self):
         """
@@ -203,20 +201,6 @@ class TestSkyModel(unittest.TestCase):
         for filterName in subset:
             assert(all_mags[filterName] == sub_mags[filterName])
 
-    def testDictReturn(self):
-        """
-        Test that mags can be returned as struc array or dict
-        """
-        mjd = 56973.268218
-        sm = self.sm_mags
-        sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True)
-        all_mags = sm.returnMags()
-
-        all_mags_dict = sm.returnMags(returnDict=True)
-
-        for key in all_mags_dict.keys():
-            np.testing.assert_array_equal(all_mags[key], all_mags_dict[key])
-
     def test_setRaDecAltAzMjd(self):
         """
         Make sure sending in self-computed alt, az works
@@ -235,7 +219,7 @@ class TestSkyModel(unittest.TestCase):
         for attr in attrList:
             np.testing.assert_equal(getattr(sm1, attr), getattr(sm2, attr))
 
-        for key in m1.dtype.names:
+        for key in m1.keys():
             np.testing.assert_allclose(m1[key], m2[key], rtol=1e-6)
 
 
