@@ -294,7 +294,7 @@ class SkyModel(object):
         self.paramsSet = True
 
         # Interpolate the templates to the set paramters
-        self.interpSky()
+        self._interpSky()
 
     def setRaDecAltAzMjd(self, ra, dec, alt, az, mjd, degrees=False, solarFlux=130.,
                          filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
@@ -342,7 +342,7 @@ class SkyModel(object):
 
         self.paramsSet = True
         # Interpolate the templates to the set paramters
-        self.interpSky()
+        self._interpSky()
 
     def getComputedVals(self):
     	"""
@@ -542,9 +542,9 @@ class SkyModel(object):
         self.mask = np.where((self.airmass > self.airmassLimit) | (self.airmass < 1.))[0]
         self.goodPix = np.where((self.airmass <= self.airmassLimit) | (self.airmass >= 1.))[0]
         # Interpolate the templates to the set paramters
-        self.interpSky()
+        self._interpSky()
 
-    def interpSky(self):
+    def _interpSky(self):
         """
         Interpolate the template spectra to the set RA, Dec and MJD.
 
@@ -591,13 +591,16 @@ class SkyModel(object):
         # self.spec[self.mask] *= 0
         return self.wave, self.spec
 
-    def returnMags(self, bandpass=None):
+    def returnMags(self, bandpass=None, returnDict=False):
         """
-        Convert the computed spectra to magnitudes using the supplied bandpasses,
-        or, if self.mags=True, just return the mags in the LSST filters
+        Convert the computed spectra to a magnitude using the supplied bandpass,
+        or, if self.mags=True, return the mags in the LSST filters
 
         If mags=True when initialized, return mags returns an structured array with
         dtype names u,g,r,i,z,y.
+
+        returnDict=True returns the magnitudes as arrays in a dictionary keyed by filter name
+        (slightly faster than converting to a structuded array)
         """
         if self.mags:
             if bandpass:
@@ -606,17 +609,16 @@ class SkyModel(object):
             # Mask out high airmass
             mags[self.mask] *= np.nan
             mags = mags.swapaxes(0, 1)
-            # Convert to a structured array
-            mags = np.core.records.fromarrays(mags,
-                                              names=self.filterNames,
-                                              formats='float,'*len(self.filterNames))
-            """
-            # Or use dictionaries?
-            magsBack = {}
-            for i, f in enumerate(self.filterNames):
-                magsBack[f] = mags[i]
-            mags = magsBack
-            """
+            if returnDict:
+                magsBack = {}
+                for i, f in enumerate(self.filterNames):
+                    magsBack[f] = mags[i]
+                mags = magsBack
+            else:
+                # Convert to a structured array
+                mags = np.core.records.fromarrays(mags,
+                                                  names=self.filterNames,
+                                                  formats='float,'*len(self.filterNames))
         else:
             mags = np.zeros(self.npts, dtype=float)-666
             tempSed = Sed()

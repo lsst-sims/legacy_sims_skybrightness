@@ -203,6 +203,20 @@ class TestSkyModel(unittest.TestCase):
         for filterName in subset:
             assert(all_mags[filterName] == sub_mags[filterName])
 
+    def testDictReturn(self):
+        """
+        Test that mags can be returned as struc array or dict
+        """
+        mjd = 56973.268218
+        sm = self.sm_mags
+        sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True)
+        all_mags = sm.returnMags()
+
+        all_mags_dict = sm.returnMags(returnDict=True)
+
+        for key in all_mags_dict.keys():
+            np.testing.assert_array_equal(all_mags[key], all_mags_dict[key])
+
     def test_setRaDecAltAzMjd(self):
         """
         Make sure sending in self-computed alt, az works
