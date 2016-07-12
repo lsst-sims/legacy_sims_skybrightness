@@ -628,5 +628,5 @@ class SkyModel(object):
                         mags[i] = tempSed.calcMag(bandpasses[key])
                 # Mask out high airmass
                 mags[self.mask] *= np.nan
-                magsBack[key] = mags.copy()
+                magsBack[key] = mags
         return magsBack

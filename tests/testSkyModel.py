@@ -158,7 +158,7 @@ class TestSkyModel(unittest.TestCase):
         sm = self.sm_mags
         sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True)
         mags = sm.returnMags()
-        for key in mags.keys():
+        for key in mags:
             assert(True not in np.isnan(mags[key]))
         assert(True not in np.isnan(sm.spec))
 
