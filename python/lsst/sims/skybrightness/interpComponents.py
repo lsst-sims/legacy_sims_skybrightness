@@ -61,6 +61,13 @@ def intid2id(intids, uintids, uids, dtype=int):
 def loadSpecFiles(filenames, mags=False):
     """
     Load up the ESO spectra.
+
+    The ESO npz files contain the following arrays:
+    filterWave: The central wavelengths of the pre-computed magnitudes
+    wave: wavelengths for the spectra
+    spec: array of spectra and magnitudes along with the relevant variable inputs.  For example,
+    airglow has dtype = [('airmass', '<f8'), ('solarFlux', '<f8'), ('spectra', '<f8', (17001,)), ('mags', '<f8', (6,)]
+    For each unique airmass and solarFlux value, there is a 17001 elements spectra and 6 magnitudes.
     """
 
     if len(filenames) == 1:
@@ -140,9 +147,12 @@ class BaseSingleInterp(object):
             self.dimDict[dt] = np.unique(self.spec[dt])
             self.dimSizes[dt] = np.size(np.unique(self.spec[dt]))
 
-    def __call__(self, intepPoints):
+        # Set up and save the dict to order the filters once.
+        self.filterNameDict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4, 'y': 5}
+
+    def __call__(self, intepPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         if self.mags:
-            return self.interpMag(intepPoints)
+            return self.interpMag(intepPoints, filterNames=filterNames)
         else:
             return self.interpSpec(intepPoints)
 
@@ -181,7 +191,6 @@ class BaseSingleInterp(object):
 
         Input interpPoints should be sorted
         """
-
         results = np.zeros((interpPoints.size, np.size(values[0])), dtype=float)
 
         inRange = np.where((interpPoints['airmass'] <= np.max(self.dimDict['airmass'])) &
@@ -204,8 +213,9 @@ class BaseSingleInterp(object):
         result[mask] = 0.
         return {'spec': result, 'wave': self.wave}
 
-    def interpMag(self, interpPoints):
-        result = self._weighting(interpPoints, self.spec['mags'])
+    def interpMag(self, interpPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
+        filterindx = [self.filterNameDict[key] for key in filterNames]
+        result = self._weighting(interpPoints, self.spec['mags'][:, filterindx])
         mask = np.where(result == 0.)
         result = 10.**(-0.4*(result-np.log10(3631.)))
         result[mask] = 0.
@@ -270,7 +280,6 @@ class Airglow(BaseSingleInterp):
         for amIndex, amW in zip([amRightIndex, amLeftIndex], [amRightW, amLeftW]):
             for sfIndex, sfW in zip([sfRightIndex, sfLeftIndex], [sfRightW, sfLeftW]):
                 results[inRange] += amW[:, np.newaxis]*sfW[:, np.newaxis]*values[amIndex*self.nSolarFlux+sfIndex]
-
         return results
 
 
@@ -401,6 +410,8 @@ class TwilightInterp(object):
             for i, filterName in enumerate(self.lsstFilterNames):
                 self.lsstEquations[i, -1] = 10.**(-0.4*(darkSkyMags[filterName]-np.log10(3631.)))
 
+        self.filterNameDict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4, 'y': 5}
+
     def printFitsUsed(self):
         """
         Print out the fit parameters being used
@@ -415,15 +426,17 @@ class TwilightInterp(object):
                     numbers += ' & %.2f' % (num*1e8)
             print key, numbers, ' & ', '%.2f' % (-2.5*np.log10(self.fitResults[key][-1])+np.log10(3631.))
 
-    def __call__(self, intepPoints):
+    def __call__(self, intepPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
         if self.mags:
-            return self.interpMag(intepPoints)
+            return self.interpMag(intepPoints, filterNames=filterNames)
         else:
             return self.interpSpec(intepPoints)
 
     def interpMag(self, interpPoints, maxAM=2.5,
-                  limits=[np.radians(-11.), np.radians(-20.)]):
-        npts = np.size(self.lsstEffWave)
+                  limits=[np.radians(-11.), np.radians(-20.)],
+                  filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
+        #filterindx = [self.filterNameDict[key] for key in filterNames]
+        npts = len(filterNames)
         result = np.zeros((np.size(interpPoints), npts), dtype=float)
 
         good = np.where((interpPoints['sunAlt'] >= np.min(limits)) &
@@ -431,8 +444,9 @@ class TwilightInterp(object):
                         (interpPoints['airmass'] <= maxAM) &
                         (interpPoints['airmass'] >= 1.))[0]
 
-        for i, filterName in enumerate(self.lsstFilterNames):
-            result[good, i] = twilightFunc(interpPoints[good], *self.lsstEquations[i, :].tolist())
+        for i, filterName in enumerate(filterNames):
+            result[good, i] = twilightFunc(interpPoints[good],
+                                           *self.lsstEquations[self.filterNameDict[filterName], :].tolist())
 
         return {'spec': result, 'wave': self.lsstEffWave}
 
