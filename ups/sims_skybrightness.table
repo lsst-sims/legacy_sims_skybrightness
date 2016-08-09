@@ -1,7 +1,7 @@
 setupRequired(base)
 setupRequired(numpy)
 setupRequired(matplotlib)
-setupRequired(pyephem)
+setupRequired(ephem)
 setupRequired(sims_utils)
 setupRequired(sims_photUtils)
 setupRequired(utils)
