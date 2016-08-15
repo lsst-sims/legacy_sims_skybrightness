@@ -1,6 +1,7 @@
 import numpy as np
 import lsst.sims.skybrightness as sb
 import unittest
+import lsst.utils.tests
 import lsst.sims.photUtils.Bandpass as Bandpass
 from lsst.utils import getPackageDir
 import os
@@ -127,11 +128,11 @@ class TestSkyModel(unittest.TestCase):
                        'sunDec', 'sunEclipLon']
 
         for attr in attrToCheck:
-            assert(attr in valDict.keys())
+            assert(attr in valDict)
             if np.size(valDict[attr]) > 1:
                 np.testing.assert_array_equal(getattr(sm, attr), valDict[attr])
             else:
-                assert(getattr(sm, attr) == valDict[attr])
+                self.assertEqual(getattr(sm, attr), valDict[attr])
 
         # Check that things that should be radians are in radian range
         radList = ['ra', 'azs', 'moonAz', 'sunAz', 'azRelSun',
@@ -140,7 +141,7 @@ class TestSkyModel(unittest.TestCase):
         for attr in radList:
             if valDict[attr] is not None:
                 assert(np.min(valDict[attr]) >= 0)
-                assert(np.max(valDict[attr])) <= 2.*np.pi
+                assert(np.max(valDict[attr]) <= 2.*np.pi)
 
         # Radians in negative to positive pi range
         radList = ['moonAlt', 'sunAlt', 'alts', 'dec', 'moonDec',
@@ -148,7 +149,7 @@ class TestSkyModel(unittest.TestCase):
         for attr in radList:
             if valDict[attr] is not None:
                 assert(np.min(valDict[attr]) >= -np.pi)
-                assert(np.max(valDict[attr])) <= np.pi
+                assert(np.max(valDict[attr]) <= np.pi)
 
     def test90Deg(self):
         """
@@ -192,14 +193,14 @@ class TestSkyModel(unittest.TestCase):
         for filterName in filterNames:
             sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True, filterNames=[filterName])
             one_mag = sm.returnMags()
-            assert(all_mags[filterName] == one_mag[filterName])
+            self.assertEqual(all_mags[filterName], one_mag[filterName])
 
         # Test that I can do subset of mags
         subset = ['u', 'r', 'y']
         sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True, filterNames=subset)
         sub_mags = sm.returnMags()
         for filterName in subset:
-            assert(all_mags[filterName] == sub_mags[filterName])
+            self.assertEqual(all_mags[filterName], sub_mags[filterName])
 
     def test_setRaDecAltAzMjd(self):
         """
@@ -223,5 +224,13 @@ class TestSkyModel(unittest.TestCase):
             np.testing.assert_allclose(m1[key], m2[key], rtol=1e-6)
 
 
+class TestMemory(lsst.utils.tests.MemoryTestCase):
+    pass
+
+
+def setup_module(module):
+    lsst.utils.tests.init()
+
 if __name__ == "__main__":
+    lsst.utils.tests.init()
     unittest.main()

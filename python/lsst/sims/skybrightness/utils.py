@@ -2,12 +2,14 @@ import numpy as np
 import ephem
 from lsst.sims.utils import calcLmstLast
 
+
 def wrapRA(ra):
     """
     Wrap only RA values into 0-2pi (using mod).
     """
     ra = ra % (2.0*np.pi)
     return ra
+
 
 def mjd2djd(inDate):
     """
@@ -18,6 +20,7 @@ def mjd2djd(inDate):
     djd = inDate-mjd2djd.doff
     return djd
 
+
 def robustRMS(array, missing=0.):
     """
     Use the interquartile range to compute a robust approximation of the RMS.
@@ -26,9 +29,10 @@ def robustRMS(array, missing=0.):
     if np.size(array) < 2:
         rms = missing
     else:
-        iqr = np.percentile(array,75)-np.percentile(array,25)
-        rms = iqr/1.349 #approximation
+        iqr = np.percentile(array, 75)-np.percentile(array, 25)
+        rms = iqr/1.349  # approximation
     return rms
+
 
 def ut2Mjd(dateString):
     obs = ephem.Observer()
@@ -36,6 +40,7 @@ def ut2Mjd(dateString):
     doff = ephem.Date(0)-ephem.Date('1858/11/17')
     mjd = obs.date+doff
     return mjd
+
 
 def mjd2ut(mjd):
     obs = ephem.Observer()

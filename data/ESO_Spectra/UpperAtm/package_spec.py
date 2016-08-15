@@ -2,7 +2,7 @@ import numpy as np
 import glob
 import pyfits
 import os
-from lsst.sims.photUtils import Sed,Bandpass
+from lsst.sims.photUtils import Sed, Bandpass
 
 dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 outDir = os.path.join(dataDir, 'ESO_Spectra/UpperAtm')
@@ -18,7 +18,7 @@ airmasses = []
 nightTimes = []
 specs = []
 
-for i,filename in enumerate(files):
+for i, filename in enumerate(files):
     fits = pyfits.open(filename)
     if np.max(fits[1].data['flux']) > 0:
         specs.append(fits[1].data['flux'].copy())
@@ -45,37 +45,37 @@ Spectra['nightTimes'] = nightTimes
 Spectra['spectra'] = specs
 
 
-hPlank = 6.626068e-27 # erg s
-cLight = 2.99792458e10 # cm/s
+hPlank = 6.626068e-27  # erg s
+cLight = 2.99792458e10  # cm/s
 
 # Convert spectra from ph/s/m2/micron/arcsec2 to erg/s/cm2/nm/arcsec2
 Spectra['spectra'] = Spectra['spectra']/(100.**2)*hPlank*cLight/(wave*1e-7)/1e3
 
 # Sort things since this might be helpful later
-Spectra.sort(order=['airmass','nightTimes'])
+Spectra.sort(order=['airmass', 'nightTimes'])
 
 # Load LSST filters
 throughPath = os.getenv('LSST_THROUGHPUTS_BASELINE')
-keys = ['u','g','r','i','z','y']
+keys = ['u', 'g', 'r', 'i', 'z', 'y']
 nfilt = len(keys)
 filters = {}
 for filtername in keys:
     bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
-                    dtype=zip(['wave','trans'],[float]*2 ))
+                    dtype=zip(['wave', 'trans'], [float]*2))
     tempB = Bandpass()
-    tempB.setBandpass(bp['wave'],bp['trans'])
+    tempB.setBandpass(bp['wave'], bp['trans'])
     filters[filtername] = tempB
 
-filterWave = np.array([filters[f].calcEffWavelen()[0] for f in keys ])
+filterWave = np.array([filters[f].calcEffWavelen()[0] for f in keys])
 
-for i,spectrum in enumerate(Spectra['spectra']):
+for i, spectrum in enumerate(Spectra['spectra']):
     tempSed = Sed()
-    tempSed.setSED(wave,flambda=spectrum)
-    for j,filtName in enumerate(keys):
+    tempSed.setSED(wave, flambda=spectrum)
+    for j, filtName in enumerate(keys):
         try:
             Spectra['mags'][i][j] = tempSed.calcMag(filters[filtName])
         except:
             pass
 
 
-np.savez(os.path.join(outDir,'Spectra.npz'), wave = wave, spec=Spectra, filterWave=filterWave)
+np.savez(os.path.join(outDir, 'Spectra.npz'), wave=wave, spec=Spectra, filterWave=filterWave)

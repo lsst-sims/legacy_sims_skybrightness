@@ -100,6 +100,7 @@ def stupidFast_altAz2RaDec(alt, az, lat, lon, mjd):
     ra[raneg] = ra[raneg] + 2.*np.pi
     return ra, dec
 
+
 def calcAzRelMoon(azs, moonAz):
     azRelMoon = wrapRA(azs - moonAz)
     if isinstance(azs, np.ndarray):
@@ -345,7 +346,7 @@ class SkyModel(object):
         self._interpSky()
 
     def getComputedVals(self):
-    	"""
+        """
         Return the intermediate values that are caluculated by setRaDecMjd and used for interpolation.
         All of these values are also accesible as class atributes, this is a convience method to grab them
         all at once and document the formats.
@@ -520,7 +521,7 @@ class SkyModel(object):
         self.points['nightTimes'] = 2
         self.points['alt'] = self.alts
         self.points['az'] = self.azs
-        self.azRelMoon =  calcAzRelMoon(self.azs, self.moonAz)
+        self.azRelMoon = calcAzRelMoon(self.azs, self.moonAz)
         self.points['moonAltitude'] += np.degrees(self.moonAlt)
         self.points['azRelMoon'] = self.azRelMoon
         self.points['moonSunSep'] += self.moonPhase/100.*180.
@@ -554,7 +555,8 @@ class SkyModel(object):
         """
 
         if not self.paramsSet:
-            raise ValueError('No parameters have been set. Must run setRaDecMjd or setParams before running interpSky.')
+            raise ValueError(
+                'No parameters have been set. Must run setRaDecMjd or setParams before running interpSky.')
 
         # set up array to hold the resulting spectra for each ra, dec point.
         self.spec = np.zeros((self.npts, self.npix), dtype=float)
