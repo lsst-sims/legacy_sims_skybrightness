@@ -22,39 +22,39 @@ dec = np.pi/2-lat
 
 kwargs = dict(twilight=False, zodiacal=False, moon=True, scatteredStar=False, mergedSpec=False)
 
-sm = sb.SkyModel(observatory='LSST', mags=True)#, **kwargs)
+sm = sb.SkyModel(observatory='LSST', mags=True)  # , **kwargs)
 mjd = 49353.177645
-sm.setRaDecMjd(ra,dec,mjd)
+sm.setRaDecMjd(ra, dec, mjd)
 mag = sm.returnMags()
-lmst, last = calcLmstLast(mjd,telescope.longitude_rad)
+lmst, last = calcLmstLast(mjd, telescope.longitude_rad)
 
-moonRA, moonDec =  _raDecFromAltAz(sm.moonAlt, sm.moonAz, ObservationMetaData(mjd=mjd,site=telescope))
+moonRA, moonDec = _raDecFromAltAz(sm.moonAlt, sm.moonAz, ObservationMetaData(mjd=mjd, site=telescope))
 
-alt, az, pa = _altAzPaFromRaDec(ra,dec, ObservationMetaData(mjd=mjd,site=telescope))
-angDist2Moon = np.degrees(haversine(az,alt, sm.moonAz,sm.moonAlt))
-ang2 = np.degrees(haversine(ra,dec, moonRA,moonDec))
+alt, az, pa = _altAzPaFromRaDec(ra, dec, ObservationMetaData(mjd=mjd, site=telescope))
+angDist2Moon = np.degrees(haversine(az, alt, sm.moonAz, sm.moonAlt))
+ang2 = np.degrees(haversine(ra, dec, moonRA, moonDec))
 alt = np.degrees(alt)
 
 mags = -0.5*(np.nanmin(mag['u'])-mag['u'])
 
 
 #extent = (0,130, 0,90)
-extent = (20,120, 20,90)
+extent = (20, 120, 20, 90)
 
-xs,ys = np.mgrid[extent[0]:extent[1], extent[2]:extent[3]]
+xs, ys = np.mgrid[extent[0]:extent[1], extent[2]:extent[3]]
 resampled = griddata((angDist2Moon, alt), mags, (xs, ys))
 notInf = np.where((resampled != np.inf) & (~np.isnan(resampled)))
 
 resampled[notInf] = resampled[notInf]-resampled[notInf].max()
 
-blah=plt.imshow(resampled.T, extent=extent, origin='lower')
+blah = plt.imshow(resampled.T, extent=extent, origin='lower')
 #blah = plt.hexbin(angDist2Moon, alt, mags)
 cb = plt.colorbar(blah)
 plt.xlabel('Angular Distance to Moon (deg)')
 plt.ylabel('Altitude (deg)')
 plt.title('$u$-band')
-plt.ylim([20,90])
-plt.xlim([20,120])
+plt.ylim([20, 90])
+plt.xlim([20, 120])
 cb.set_label('$\Delta m_5$')
 cb.solids.set_edgecolor("face")
 plt.savefig('deltam5.pdf')

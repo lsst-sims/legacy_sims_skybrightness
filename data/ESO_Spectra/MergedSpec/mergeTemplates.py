@@ -25,10 +25,11 @@ for filename in files:
     try:
         flux = 10.**(-0.4*(restored['spec']['mags']-np.log10(3631.)))
     except:
-        import pdb ; pdb.set_trace()
+        import pdb
+        pdb.set_trace()
     flux[np.where(restored['spec']['mags'] == 0.)] = 0.
     spec['mags'] += flux
 
 spec['mags'] = -2.5*np.log10(spec['mags'])+np.log10(3631.)
 
-np.savez(os.path.join(outDir,'mergedSpec.npz'), spec=spec, wave=wave, filterWave=temp['filterWave'])
+np.savez(os.path.join(outDir, 'mergedSpec.npz'), spec=spec, wave=wave, filterWave=temp['filterWave'])

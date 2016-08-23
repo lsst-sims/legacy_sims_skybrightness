@@ -27,61 +27,58 @@ if 'diode' not in globals():
 
 
 moonMin = -100.
-good = np.where( (diode['r'] > 0) & (diode['z'] > 0) &
-                 (diode['y'] > 0) &
-                 (diode['sunAlt'] < np.radians(-11.)) &
-                 (diode['r'] > 20) &
-                 (diode['moonPhase'] > moonMin))
+good = np.where((diode['r'] > 0) & (diode['z'] > 0) &
+                (diode['y'] > 0) &
+                (diode['sunAlt'] < np.radians(-11.)) &
+                (diode['r'] > 20) &
+                (diode['moonPhase'] > moonMin))
 diode = diode[good]
 
-subDiode=diode[::1000]
+subDiode = diode[::1000]
 
-gridsize=20
+gridsize = 20
 
-filters = ['r','z','y']
-pads = {'r':2.5,'z':2, 'y':.5}
-for j,filterName in enumerate(filters):
+filters = ['r', 'z', 'y']
+pads = {'r': 2.5, 'z': 2, 'y': .5}
+for j, filterName in enumerate(filters):
     pad = pads[filterName]
-    fig,ax = plt.subplots(2)
+    fig, ax = plt.subplots(2)
 
     obsMags = -2.5*np.log10(subDiode[filterName])
-    dark = np.where(( subDiode['moonAlt'] < 0) & (subDiode['sunAlt'] < np.radians(-22.)) )
+    dark = np.where((subDiode['moonAlt'] < 0) & (subDiode['sunAlt'] < np.radians(-22.)))
     darkLevel = np.median(obsMags[dark])
 
-
-    hb = ax[0].hexbin(np.degrees(subDiode['moonAlt']),np.degrees(subDiode['sunAlt']),
-                      obsMags , vmin=darkLevel-pad, vmax=darkLevel,
+    hb = ax[0].hexbin(np.degrees(subDiode['moonAlt']), np.degrees(subDiode['sunAlt']),
+                      obsMags, vmin=darkLevel-pad, vmax=darkLevel,
                       gridsize=gridsize)
     cb = fig.colorbar(hb, ax=ax[0])
     ax[0].set_xlabel('Moon Alt (degrees)')
     ax[0].set_ylabel('Sun Alt (degrees)')
     ax[0].set_title('Photodiode, %s' % filterName)
 
-    modelVals = np.zeros((subDiode.size,3), dtype=float)
+    modelVals = np.zeros((subDiode.size, 3), dtype=float)
 
     sm = sb.SkyModel(mags=True)
     if not os.path.isfile('diode_%s.npz' % filterName):
-        for i,mjd in enumerate(subDiode['mjd']):
+        for i, mjd in enumerate(subDiode['mjd']):
             sm.setRaDecMjd(0., 89.9, mjd, degrees=True, azAlt=True)
             sm.computeSpec()
             mags = sm.computeMags()
-            modelVals[i] = mags[0][np.array([2,4,5])]
-        np.savez('diode_%s.npz' % filterName, modelVals=modelVals )
+            modelVals[i] = mags[0][np.array([2, 4, 5])]
+        np.savez('diode_%s.npz' % filterName, modelVals=modelVals)
     else:
         ack = np.load('diode_%s.npz' % filterName)
-        modelVals =ack['modelVals'].copy()
+        modelVals = ack['modelVals'].copy()
 
-
-    darkLevel = np.median(modelVals[:,j][dark])
-    hb = ax[1].hexbin(np.degrees(subDiode['moonAlt']),np.degrees(subDiode['sunAlt']), modelVals[:,j],
-                      gridsize=gridsize,vmin=darkLevel-pad, vmax=darkLevel)
+    darkLevel = np.median(modelVals[:, j][dark])
+    hb = ax[1].hexbin(np.degrees(subDiode['moonAlt']), np.degrees(subDiode['sunAlt']), modelVals[:, j],
+                      gridsize=gridsize, vmin=darkLevel-pad, vmax=darkLevel)
     cb = fig.colorbar(hb, ax=ax[1])
     ax[1].set_xlabel('Moon Alt (degrees)')
     ax[1].set_ylabel('Sun Alt (degrees)')
     ax[1].set_title('Sky Model, %s' % filterName)
 
-
-    resid = -2.5*np.log10(subDiode[filterName]) - modelVals[:,j]
+    resid = -2.5*np.log10(subDiode[filterName]) - modelVals[:, j]
     resid -= np.median(resid)
 
 #    hb = ax[2].hexbin(np.degrees(subDiode['moonAlt']),np.degrees(subDiode['sunAlt']),

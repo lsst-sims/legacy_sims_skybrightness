@@ -118,6 +118,7 @@ class BaseSingleInterp(object):
     """
     Base class for sky components that only need to be interpolated on airmass
     """
+
     def __init__(self, compName=None, sortedOrder=['airmass', 'nightTimes'], mags=False):
         """
         mags: Rather than the full spectrum, return the LSST ugrizy magnitudes.
@@ -202,7 +203,7 @@ class BaseSingleInterp(object):
 
         # XXX--should I use the log spectra?  Make a check and switch back and forth?
         results[inRange] = wR[:, np.newaxis]*values[indxR*nextra] + \
-                           wL[:, np.newaxis]*values[indxL*nextra]
+            wL[:, np.newaxis]*values[indxL*nextra]
 
         return results
 
@@ -226,6 +227,7 @@ class ScatteredStar(BaseSingleInterp):
     """
     Interpolate the spectra caused by scattered starlight.
     """
+
     def __init__(self, compName='ScatteredStarLight', mags=False):
         super(ScatteredStar, self).__init__(compName=compName, mags=mags)
 
@@ -234,6 +236,7 @@ class LowerAtm(BaseSingleInterp):
     """
     Interpolate the spectra caused by the lower atmosphere.
     """
+
     def __init__(self, compName='LowerAtm', mags=False):
         super(LowerAtm, self).__init__(compName=compName, mags=mags)
 
@@ -242,6 +245,7 @@ class UpperAtm(BaseSingleInterp):
     """
     Interpolate the spectra caused by the upper atmosphere.
     """
+
     def __init__(self, compName='UpperAtm', mags=False):
         super(UpperAtm, self).__init__(compName=compName, mags=mags)
 
@@ -250,6 +254,7 @@ class MergedSpec(BaseSingleInterp):
     """
     Interpolate the spectra caused by the sum of the scattered starlight, airglow, upper and lower atmosphere.
     """
+
     def __init__(self, compName='MergedSpec', mags=False):
         super(MergedSpec, self).__init__(compName=compName, mags=mags)
 
@@ -258,6 +263,7 @@ class Airglow(BaseSingleInterp):
     """
     Interpolate the spectra caused by airglow.
     """
+
     def __init__(self, compName='Airglow', sortedOrder=['airmass', 'solarFlux'], mags=False):
         super(Airglow, self).__init__(compName=compName, mags=mags, sortedOrder=sortedOrder)
         self.nSolarFlux = np.size(self.dimDict['solarFlux'])
@@ -279,11 +285,13 @@ class Airglow(BaseSingleInterp):
 
         for amIndex, amW in zip([amRightIndex, amLeftIndex], [amRightW, amLeftW]):
             for sfIndex, sfW in zip([sfRightIndex, sfLeftIndex], [sfRightW, sfLeftW]):
-                results[inRange] += amW[:, np.newaxis]*sfW[:, np.newaxis]*values[amIndex*self.nSolarFlux+sfIndex]
+                results[inRange] += amW[:, np.newaxis]*sfW[:, np.newaxis] * \
+                    values[amIndex*self.nSolarFlux+sfIndex]
         return results
 
 
 class TwilightInterp(object):
+
     def __init__(self, mags=False, darkSkyMags=None, fitResults=None):
         """
         Read the Solar spectrum into a handy object and compute mags in different filters
@@ -345,12 +353,12 @@ class TwilightInterp(object):
         # Looks like the diode is not sensitive enough to detect faint sky.
         # Using the Patat et al 2006 I-band values for z and modeified a little for y as a temp fix.
         if fitResults is None:
-            self.fitResults = {'B': [  7.56765633e+00,   2.29798055e+01,   2.86879956e-01,
-                                       3.01162143e-01,   2.58462036e-04],
-                               'G': [  2.38561156e+00,   2.29310648e+01,   2.97733083e-01,
-                                       3.16403197e-01,   7.29660095e-04],
-                               'R': [  1.75498017e+00,   2.22011802e+01,   2.98619033e-01,
-                                       3.28880254e-01,   3.24411056e-04],
+            self.fitResults = {'B': [7.56765633e+00, 2.29798055e+01, 2.86879956e-01,
+                                     3.01162143e-01, 2.58462036e-04],
+                               'G': [2.38561156e+00, 2.29310648e+01, 2.97733083e-01,
+                                     3.16403197e-01, 7.29660095e-04],
+                               'R': [1.75498017e+00, 2.22011802e+01, 2.98619033e-01,
+                                     3.28880254e-01, 3.24411056e-04],
                                'z': [2.29, 24.08, 0.3, 0.3, -666],
                                'y': [2.0, 24.08, 0.3, 0.3, -666]}
 
@@ -490,6 +498,7 @@ class MoonInterp(BaseSingleInterp):
     """
     Read in the saved Lunar spectra and interpolate.
     """
+
     def __init__(self, compName='Moon', sortedOrder=['moonSunSep', 'moonAltitude', 'hpid'], mags=False):
         super(MoonInterp, self).__init__(compName=compName, sortedOrder=sortedOrder, mags=mags)
         # Magic number from when the templates were generated
@@ -528,7 +537,7 @@ class MoonInterp(BaseSingleInterp):
         nhpid = self.dimDict['hpid'].size
         nMA = self.dimDict['moonAltitude'].size
         # Convert the hpid to an index.
-        tmp = intid2id(hpids.ravel(),  self.dimDict['hpid'],
+        tmp = intid2id(hpids.ravel(), self.dimDict['hpid'],
                        np.arange(self.dimDict['hpid'].size))
         hpindx = tmp.reshape(hpids.shape)
         # loop though the hweights and the moonAltitude weights
