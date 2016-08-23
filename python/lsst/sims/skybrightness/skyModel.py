@@ -455,6 +455,7 @@ class SkyModel(object):
             self.moonDec = moon.dec
             # Calc azimuth relative to moon
             self.azRelMoon = calcAzRelMoon(self.azs, self.moonAz)
+            self.moonTargSep = haversine(self.azs, self.alts, self.moonAz, self.moonAlt)
             self.points['moonAltitude'] += np.degrees(self.moonAlt)
             self.points['azRelMoon'] += self.azRelMoon
             self.moonSunSep = self.moonPhase/100.*180.
@@ -513,7 +514,7 @@ class SkyModel(object):
         else:
             self.airmass = airmass
             self.alts = np.pi/2.-np.arccos(1./airmass)
-        self.moonTargSep = haversine(azs, self.alts, moonAz, self.moonAlt)
+        self.moonTargSep = haversine(self.azs, self.alts, moonAz, self.moonAlt)
         self.npts = np.size(self.airmass)
         self._initPoints()
 
