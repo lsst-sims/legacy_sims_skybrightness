@@ -10,7 +10,7 @@ from lsst.sims.photUtils import Sed
 __all__ = ['justReturn', 'stupidFast_RaDec2AltAz', 'stupidFast_altAz2RaDec', 'SkyModel']
 
 
-def justReturn(input):
+def justReturn(inval):
     """
     Really, just return the input.
 
@@ -23,7 +23,19 @@ def justReturn(input):
     input : anything
         Just return whatever you sent in.
     """
-    return input
+    return inval
+
+
+def inrange(inval, minimum=-1., maximum=1.):
+    """
+    Make sure values are within min/max
+    """
+    inval = np.array(inval)
+    below = np.where(inval < minimum)
+    inval[below] = minimum
+    above = np.where(inval > maximum)
+    inval[above] = maximum
+    return inval
 
 
 def stupidFast_RaDec2AltAz(ra, dec, lat, lon, mjd):
@@ -59,8 +71,12 @@ def stupidFast_RaDec2AltAz(ra, dec, lat, lon, mjd):
     sindec = np.sin(dec)
     sinlat = np.sin(lat)
     coslat = np.cos(lat)
-    alt = np.arcsin(sindec*sinlat+np.cos(dec)*coslat*np.cos(ha))
-    az = np.arccos((sindec-np.sin(alt)*sinlat)/(np.cos(alt)*coslat))
+    sinalt = sindec*sinlat+np.cos(dec)*coslat*np.cos(ha)
+    sinalt = inrange(sinalt)
+    alt = np.arcsin(sinalt)
+    cosaz = (sindec-np.sin(alt)*sinlat)/(np.cos(alt)*coslat)
+    cosaz = inrange(cosaz)
+    az = np.arccos(cosaz)
     signflip = np.where(np.sin(ha) > 0)
     az[signflip] = 2.*np.pi-az[signflip]
     return alt, az
@@ -92,8 +108,9 @@ def stupidFast_altAz2RaDec(alt, az, lat, lon, mjd):
     """
     lmst, last = calcLmstLast(mjd, lon)
     lmst = lmst/12.*np.pi  # convert to rad
-
-    dec = np.arcsin(np.sin(lat)*np.sin(alt) + np.cos(lat)*np.cos(alt)*np.cos(az))
+    sindec = np.sin(lat)*np.sin(alt) + np.cos(lat)*np.cos(alt)*np.cos(az)
+    sindec = inrange(sindec)
+    dec = np.arcsin(sindec)
     ha = np.arctan2(-np.sin(az)*np.cos(alt), -np.cos(az)*np.sin(lat)*np.cos(alt)+np.sin(alt)*np.cos(lat))
     ra = (lmst-ha)
     raneg = np.where(ra < 0)
