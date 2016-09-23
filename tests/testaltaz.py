@@ -24,6 +24,12 @@ class TestAltAz(unittest.TestCase):
         degreeTol = 2.  # 2-degree tolerance on the fast transform
         assert(np.degrees(distanceDiff.max()) < degreeTol)
 
+        # make sure we don't have nans
+        alt, az = sb.stupidFast_RaDec2AltAz(np.radians(np.array([0.])), np.radians(np.array([-90.])),
+                                            np.radians(-30.2444), np.radians(-70.7494), 59582.05125)
+        assert(~np.isnan(alt))
+        assert(~np.isnan(az))
+
     def testaltaz2radec(self):
         np.random.seed(42)
         az = np.random.rand(100)*np.pi*2
