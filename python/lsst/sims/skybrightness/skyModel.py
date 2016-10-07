@@ -10,7 +10,7 @@ from lsst.sims.photUtils import Sed
 __all__ = ['justReturn', 'stupidFast_RaDec2AltAz', 'stupidFast_altAz2RaDec', 'SkyModel']
 
 
-def justReturn(input):
+def justReturn(inval):
     """
     Really, just return the input.
 
@@ -23,7 +23,19 @@ def justReturn(input):
     input : anything
         Just return whatever you sent in.
     """
-    return input
+    return inval
+
+
+def inrange(inval, minimum=-1., maximum=1.):
+    """
+    Make sure values are within min/max
+    """
+    inval = np.array(inval)
+    below = np.where(inval < minimum)
+    inval[below] = minimum
+    above = np.where(inval > maximum)
+    inval[above] = maximum
+    return inval
 
 
 def stupidFast_RaDec2AltAz(ra, dec, lat, lon, mjd):
@@ -59,8 +71,12 @@ def stupidFast_RaDec2AltAz(ra, dec, lat, lon, mjd):
     sindec = np.sin(dec)
     sinlat = np.sin(lat)
     coslat = np.cos(lat)
-    alt = np.arcsin(sindec*sinlat+np.cos(dec)*coslat*np.cos(ha))
-    az = np.arccos((sindec-np.sin(alt)*sinlat)/(np.cos(alt)*coslat))
+    sinalt = sindec*sinlat+np.cos(dec)*coslat*np.cos(ha)
+    sinalt = inrange(sinalt)
+    alt = np.arcsin(sinalt)
+    cosaz = (sindec-np.sin(alt)*sinlat)/(np.cos(alt)*coslat)
+    cosaz = inrange(cosaz)
+    az = np.arccos(cosaz)
     signflip = np.where(np.sin(ha) > 0)
     az[signflip] = 2.*np.pi-az[signflip]
     return alt, az
@@ -92,8 +108,9 @@ def stupidFast_altAz2RaDec(alt, az, lat, lon, mjd):
     """
     lmst, last = calcLmstLast(mjd, lon)
     lmst = lmst/12.*np.pi  # convert to rad
-
-    dec = np.arcsin(np.sin(lat)*np.sin(alt) + np.cos(lat)*np.cos(alt)*np.cos(az))
+    sindec = np.sin(lat)*np.sin(alt) + np.cos(lat)*np.cos(alt)*np.cos(az)
+    sindec = inrange(sindec)
+    dec = np.arcsin(sindec)
     ha = np.arctan2(-np.sin(az)*np.cos(alt), -np.cos(az)*np.sin(lat)*np.cos(alt)+np.sin(alt)*np.cos(lat))
     ra = (lmst-ha)
     raneg = np.where(ra < 0)
@@ -117,7 +134,7 @@ class SkyModel(object):
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True, moon=True,
                  airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
-                 mergedSpec=True, mags=False, preciseAltAz=False):
+                 mergedSpec=True, mags=False, preciseAltAz=False, airmass_limit=2.5):
         """
         Instatiate the SkyModel. This loads all the required template spectra/magnitudes
         that will be used for interpolation.
@@ -152,6 +169,9 @@ class SkyModel(object):
             transformations that do not take abberation, diffraction, etc
             into account. Results in errors up to ~1.5 degrees,
             but an order of magnitude faster than coordinate transforms in sims_utils.
+        airmass_limit : float (2.5)
+            Most of the models are only accurate to airmass 2.5. If set higher, airmass values
+            higher than 2.5 are set to 2.5.
         """
 
         self.moon = moon
@@ -166,7 +186,7 @@ class SkyModel(object):
         self.preciseAltAz = preciseAltAz
 
         # Airmass limit.
-        self.airmassLimit = 2.5
+        self.airmassLimit = airmass_limit
 
         if self.mags:
             self.npix = 6
@@ -236,6 +256,8 @@ class SkyModel(object):
         """
         Set the sky parameters by computing the sky conditions on a given MJD and sky location.
 
+
+
         lon: Longitude-like (RA or Azimuth). Can be single number, list, or numpy array
         lat: Latitude-like (Dec or Altitude)
         mjd: Modified Julian Date for the calculation. Must be single number.
@@ -294,6 +316,11 @@ class SkyModel(object):
 
         self.paramsSet = True
 
+        # Assume large airmasses are the same as airmass=2.5
+        to_fudge = np.where((self.points['airmass'] > 2.5) & (self.points['airmass'] < self.airmassLimit))
+        self.points['airmass'][to_fudge] = 2.5
+        self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
+
         # Interpolate the templates to the set paramters
         self._interpSky()
 
@@ -342,6 +369,12 @@ class SkyModel(object):
         self._setupPointGrid()
 
         self.paramsSet = True
+
+        # Assume large airmasses are the same as airmass=2.5
+        to_fudge = np.where((self.points['airmass'] > 2.5) & (self.points['airmass'] < self.airmassLimit))
+        self.points['airmass'][to_fudge] = 2.5
+        self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
+
         # Interpolate the templates to the set paramters
         self._interpSky()
 
@@ -605,6 +638,7 @@ class SkyModel(object):
         bandpasses: optional dictionary with bandpass name keys and bandpass object values.
 
         """
+
         if self.mags:
             if bandpasses:
                 warnings.warn('Ignoring set bandpasses and returning LSST ugrizy.')
