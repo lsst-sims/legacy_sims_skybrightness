@@ -614,7 +614,8 @@ class SkyModel(object):
                 else:
                     if not np.allclose(result['wave'], self.wave, rtol=1e-5, atol=1e-5):
                         warnings.warn('Wavelength arrays of components do not match.')
-        self.spec[np.where(mask == 0), :] = 0
+        if self.airmassLimit <= 2.5:
+            self.spec[np.where(mask == 0), :] = 0
         self.spec[self.mask, :] = np.nan
 
     def returnWaveSpec(self):
