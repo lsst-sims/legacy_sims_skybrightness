@@ -318,7 +318,7 @@ class SkyModel(object):
 
         # Assume large airmasses are the same as airmass=2.5
         to_fudge = np.where((self.points['airmass'] > 2.5) & (self.points['airmass'] < self.airmassLimit))
-        self.points['airmass'][to_fudge] = 2.5
+        self.points['airmass'][to_fudge] = 2.499
         self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
 
         # Interpolate the templates to the set paramters
@@ -509,7 +509,7 @@ class SkyModel(object):
             self.points['azEclipRelSun'] += wrapRA(self.eclipLon - self.sunEclipLon)
 
         self.mask = np.where((self.airmass > self.airmassLimit) | (self.airmass < 1.))[0]
-        self.goodPix = np.where((self.airmass <= self.airmassLimit) | (self.airmass >= 1.))[0]
+        self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]
 
     def setParams(self, airmass=1., azs=90., alts=None, moonPhase=31.67, moonAlt=45.,
                   moonAz=0., sunAlt=-12., sunAz=0., sunEclipLon=0.,
@@ -575,7 +575,7 @@ class SkyModel(object):
         self.paramsSet = True
 
         self.mask = np.where((self.airmass > self.airmassLimit) | (self.airmass < 1.))[0]
-        self.goodPix = np.where((self.airmass <= self.airmassLimit) | (self.airmass >= 1.))[0]
+        self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]
         # Interpolate the templates to the set paramters
         self._interpSky()
 
