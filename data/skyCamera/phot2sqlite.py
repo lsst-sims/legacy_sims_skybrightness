@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import zip
 import numpy as np
 import glob
 import sys
@@ -33,7 +34,7 @@ mjds = np.zeros(0, dtype=float)
 
 
 for filename in allFiles:
-    data = np.loadtxt(filename, dtype=zip(names, types))
+    data = np.loadtxt(filename, dtype=list(zip(names, types)))
     tempRaDec = np.round(data['dec']*1000)*10+data['ra']
     tempRaDec, uind = np.unique(tempRaDec, return_index=True)
 
@@ -79,7 +80,7 @@ maxJ = float(len(allFiles))
 for j, filename in enumerate(allFiles):
     # Maybe read in a dummy column, set it to the filter and then stack all of
     # these so they can quickly be sorted?
-    data = np.genfromtxt(filename, dtype=zip(names, types),
+    data = np.genfromtxt(filename, dtype=list(zip(names, types)),
                          usecols=(0, 1, 2, 18, 16, 19, 20, 21))
     if data.size > 0:
         data['band'] = filename[0]

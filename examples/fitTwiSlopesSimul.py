@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import zip
 import numpy as np
 import healpy as hp
 from scipy.optimize import curve_fit
@@ -75,9 +76,9 @@ fitDict = {}
 canonDict = {}
 canonFiles = {'R': 'red_canon.csv', 'G': 'green_canon.csv', 'B': 'blue_canon.csv'}
 path = os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'Canon')
-for key in canonFiles.keys():
+for key in list(canonFiles.keys()):
     data = np.loadtxt(os.path.join(path, canonFiles[key]), delimiter=',',
-                      dtype=zip(['wave', 'throughput'], [float, float]))
+                      dtype=list(zip(['wave', 'throughput'], [float, float])))
     band = Bandpass()
     band.setBandpass(data['wave'], data['throughput'])
     canonDict[key] = band
@@ -106,7 +107,7 @@ for filterName in filters:
     lam = np.where((airmass < 2.5) & (airmass >= 1))
     bam = np.where((airmass > 2.5) | (airmass < 1))
 
-    xdata = np.zeros(magMaps.shape, dtype=zip(['sunAlt', 'hpid', 'alt', 'az'], [float, int, float, float]))
+    xdata = np.zeros(magMaps.shape, dtype=list(zip(['sunAlt', 'hpid', 'alt', 'az'], [float, int, float, float])))
 
     xdata['hpid'] = hpid.reshape(hpid.size, 1)  # hpid[:,np.newaxis].T  #np.tile(hpid,72).reshape(768,72)
     #xdata['hpid'] = xdata['hpid'].T
@@ -210,8 +211,8 @@ for filterName in filters:
     p0[4] = 20.
     p0[5:] += fitParams[-np.size(np.unique(xdata['hpid'])):]
 
-    xdata2 = np.zeros(xdata.size, dtype=zip(
-        ['sunAlt', 'hpid', 'airmass', 'azRelSun'], [float, int, float, float]))
+    xdata2 = np.zeros(xdata.size, dtype=list(zip(
+        ['sunAlt', 'hpid', 'airmass', 'azRelSun'], [float, int, float, float])))
     xdata2['sunAlt'] = xdata['sunAlt']
     xdata2['hpid'] = xdata['hpid']
     xdata2['azRelSun'] = xdata['az']

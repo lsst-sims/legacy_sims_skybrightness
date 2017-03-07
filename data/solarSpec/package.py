@@ -1,3 +1,4 @@
+from builtins import zip
 import numpy as np
 import lsst.sims.photUtils.Sed as Sed
 import os
@@ -5,7 +6,7 @@ import os
 dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 
 data = np.genfromtxt(os.path.join(dataDir, 'solarSpec/solarSpec.dat'),
-                     dtype=zip(['microns', 'Irr'], [float]*2))
+                     dtype=list(zip(['microns', 'Irr'], [float]*2)))
 # data['Irr'] = data['Irr']*1 #convert W/m2/micron to erg/s/cm2/nm (HA, it's the same!)
 
 sun = Sed()

@@ -1,4 +1,7 @@
 from __future__ import print_function
+from builtins import zip
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 import glob
@@ -324,7 +327,7 @@ class TwilightInterp(object):
 
         for fname, filterName in zip(fnames, self.filterNames):
             bpdata = np.genfromtxt(os.path.join(dataDir, 'Canon/', fname), delimiter=', ',
-                                   dtype=zip(['wave', 'through'], [float]*2))
+                                   dtype=list(zip(['wave', 'through'], [float]*2)))
             bpTemp = Bandpass()
             bpTemp.setBandpass(bpdata['wave'], bpdata['through'])
             canonFilters[filterName] = bpTemp
@@ -334,7 +337,7 @@ class TwilightInterp(object):
         lsstKeys = ['u', 'g', 'r', 'i', 'z', 'y']
         for key in lsstKeys:
             bp = np.loadtxt(os.path.join(throughPath, 'filter_'+key+'.dat'),
-                            dtype=zip(['wave', 'trans'], [float]*2))
+                            dtype=list(zip(['wave', 'trans'], [float]*2)))
             tempB = Bandpass()
             tempB.setBandpass(bp['wave'], bp['trans'])
             canonFilters[key] = tempB
@@ -371,7 +374,7 @@ class TwilightInterp(object):
             self.fitResults = fitResults
 
         # Take out any filters that don't have fit results
-        self.filterNames = [key for key in self.filterNames if key in self.fitResults.keys()]
+        self.filterNames = [key for key in self.filterNames if key in list(self.fitResults.keys())]
 
         self.effWave = []
         self.solarMag = []
@@ -407,7 +410,7 @@ class TwilightInterp(object):
 
             for filtername in self.lsstFilterNames:
                 bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
-                                dtype=zip(['wave', 'trans'], [float]*2))
+                                dtype=list(zip(['wave', 'trans'], [float]*2)))
                 tempB = Bandpass()
                 tempB.setBandpass(bp['wave'], bp['trans'])
                 self.lsstEffWave.append(tempB.calcEffWavelen()[0])
@@ -426,7 +429,7 @@ class TwilightInterp(object):
         Print out the fit parameters being used
         """
         print('\\tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ (1/radians)} & \colhead{$b$ (1/airmass)} & \colhead{$c$ (az term/airmass)} & \colhead{$f_z_dark$ (erg/s/cm$^2$)$\\times 10^8$} & \colhead{m$_z_dark$}}')
-        for key in self.fitResults.keys():
+        for key in list(self.fitResults.keys()):
             numbers = ''
             for num in self.fitResults[key]:
                 if num > .001:

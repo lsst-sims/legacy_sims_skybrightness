@@ -1,10 +1,13 @@
 from __future__ import print_function
-import urllib2
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+import urllib.request, urllib.error, urllib.parse
 import re
 import os.path
 
 # Grab the page that has all the dates:
-page = urllib2.urlopen('http://lsst-web.ncsa.illinois.edu/~coughlin/allsky/data').read()
+page = urllib.request.urlopen('http://lsst-web.ncsa.illinois.edu/~coughlin/allsky/data').read()
 dates = []
 for i in range(len(page)):
     if (page[i:i+3] == '"ut') & (page[i:i+4] != '"utc'):
@@ -15,7 +18,7 @@ for date in dates:
     if not os.path.isfile(date+'.dat'):
         try:
             print('downloading %s' % date)
-            page = urllib2.urlopen('http://lsst-web.ncsa.illinois.edu/~coughlin/allsky/data/' +
+            page = urllib.request.urlopen('http://lsst-web.ncsa.illinois.edu/~coughlin/allsky/data/' +
                                    date+'/photodiodeplots/photodiode.txt').read()
             f = open(date+'.dat', 'w')
             print(page, file=f)

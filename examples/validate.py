@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import zip
 import numpy as np
 import lsst.sims.skybrightness as sb
 from scipy.stats import binned_statistic_2d
@@ -52,9 +53,9 @@ canonDict = {}
 canonFiles = {'R': 'red_canon.csv', 'G': 'green_canon.csv', 'B': 'blue_canon.csv'}
 
 path = os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'Canon')
-for key in canonFiles.keys():
+for key in list(canonFiles.keys()):
     data = np.loadtxt(os.path.join(path, canonFiles[key]), delimiter=',',
-                      dtype=zip(['wave', 'throughput'], [float, float]))
+                      dtype=list(zip(['wave', 'throughput'], [float, float])))
     band = Bandpass()
     band.setBandpass(data['wave'], data['throughput'])
     canonDict[key] = band
@@ -67,8 +68,8 @@ Observatory.elevation = telescope.elev
 
 
 sqlQ = 'select id,mjd,sunAlt,moonAlt from dates'
-dateData, mjd = sb.allSkyDB(2744, sqlQ=sqlQ, filt=None, dtypes=zip(['dateID', 'mjd', 'sunAlt', 'moonAlt'],
-                                                                   [int, float, float, float]))
+dateData, mjd = sb.allSkyDB(2744, sqlQ=sqlQ, filt=None, dtypes=list(zip(['dateID', 'mjd', 'sunAlt', 'moonAlt'],
+                                                                   [int, float, float, float])))
 
 
 skipsize = 10
@@ -96,7 +97,7 @@ names = ['moonAlt', 'sunAlt', 'obsZenith', 'modelZenith', 'obsDarkestHP',
 # I guess I might as well add the brightest points in the sky as well...
 
 types = [float, float, float, float, int, int, int, int, float, float, float, float, float, float, float]
-validationArr = np.zeros(indices.size, dtype=zip(names, types))
+validationArr = np.zeros(indices.size, dtype=list(zip(names, types)))
 
 # Don't look at Canon above this limit.
 amMax = 2.1
@@ -391,7 +392,7 @@ for filterName in filters:
                         (validationArr['moonAlt'] < 0) & (validationArr['sunAlt'] < -20.))[0]
 
     names = ['sinceSet', 'toSet']
-    mjdInfo = np.zeros(darkTime.size, dtype=zip(names, types))
+    mjdInfo = np.zeros(darkTime.size, dtype=list(zip(names, types)))
     sun = ephem.Sun()
     djds = mjd2djd(validationArr['mjd'][darkTime])
     for i, djd in enumerate(djds):

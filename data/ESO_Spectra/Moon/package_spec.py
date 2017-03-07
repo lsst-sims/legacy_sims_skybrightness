@@ -1,4 +1,6 @@
 from __future__ import print_function
+from builtins import str
+from builtins import zip
 import numpy as np
 import glob
 import pyfits
@@ -118,7 +120,7 @@ nfilt = len(keys)
 filters = {}
 for filtername in keys:
     bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
-                    dtype=zip(['wave', 'trans'], [float]*2))
+                    dtype=list(zip(['wave', 'trans'], [float]*2)))
     tempB = Bandpass()
     tempB.setBandpass(bp['wave'], bp['trans'])
     filters[filtername] = tempB

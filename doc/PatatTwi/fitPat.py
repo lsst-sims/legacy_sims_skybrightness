@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import zip
 import numpy as np
 import matplotlib.pylab as plt
 from scipy.optimize import curve_fit
@@ -19,13 +20,13 @@ files = {'B': 'Bband.dat', 'I': 'Iband.dat', 'R': 'Rband.dat', 'U': 'Uband.dat',
 
 names = ['zenithAng', 'sb']
 types = [float]*2
-dt = zip(names, types)
+dt = list(zip(names, types))
 
 fig, ax = plt.subplots()
 
 counter = 0
 
-results = np.zeros(len(files), dtype=zip(['filter', 'a', 'r12'], ['|S1', float, float]))
+results = np.zeros(len(files), dtype=list(zip(['filter', 'a', 'r12'], ['|S1', float, float])))
 
 order = ['U', 'B', 'V', 'R', 'I']
 for i, key in enumerate(order):

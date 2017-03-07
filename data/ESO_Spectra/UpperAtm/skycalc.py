@@ -1,12 +1,15 @@
 #!/usr/bin/python
 
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import os
 import io
 import sys
 import string
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import time
 import itertools
 
@@ -127,9 +130,9 @@ def section(line, delim, sub_delim):  # create a dictionary of entries encoded i
 
 
 def callEtc(url, d):
-    data = urllib.urlencode(d)
-    req = urllib2.Request(url, data)
-    response = urllib2.urlopen(req)
+    data = urllib.parse.urlencode(d)
+    req = urllib.request.Request(url, data)
+    response = urllib.request.urlopen(req)
     the_page = response.readlines()
     return the_page
 
@@ -143,7 +146,7 @@ def cleanUp(tmp_dir, deleter_script_url):
     if(tmp_dir != ''):
         try:
             # remove the temp dir and its contents on the server
-            deleter_response = urllib2.urlopen(deleter_script_url+'?d='+tmp_dir).read().strip('\n')
+            deleter_response = urllib.request.urlopen(deleter_script_url+'?d='+tmp_dir).read().strip('\n')
             if(deleter_response != 'ok'):  # it failed somehow
                 return deleter_response
         except URLError as e:
@@ -162,7 +165,7 @@ def median(x):
         return midavg
 
 # decode encoded characters and clean the POST string
-postdata = urllib2.unquote(raw_postdata)
+postdata = urllib.parse.unquote(raw_postdata)
 postdata = postdata.replace('++', '+')
 postdata = postdata.replace('=+', '=')
 
@@ -242,7 +245,7 @@ for p in prod:
 
             try:
                 # retrieve the fits file and write it to a suitable filename indicating the parameters
-                urllib.urlretrieve(server+fitsUrl, fits_file_name)
+                urllib.request.urlretrieve(server+fitsUrl, fits_file_name)
                 #info+= ' download: '+download_fits_secs
 
                 fits_status = 'saved'

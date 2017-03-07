@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import zip
 import numpy as np
 import ephem
 import lsst.sims.skybrightness as sb
@@ -40,7 +41,7 @@ for filterName in filterNames:
 
     names = ['mjd', 'ra', 'dec', 'alt', 'starMag', 'sky', 'filter']
     types = [float, float, float, float, float, float, '|S1']
-    dtypes = zip(names, types)
+    dtypes = list(zip(names, types))
 
     engine = sqla.create_engine(dbAddress)
     connection = engine.raw_connection()
@@ -70,7 +71,7 @@ for filterName in filterNames:
         left = np.searchsorted(data['mjd'], umjd)
         right = np.searchsorted(data['mjd'], umjd, side='right')
 
-        altaz = np.zeros(data.size, dtype=zip(['alt', 'az'], [float]*2))
+        altaz = np.zeros(data.size, dtype=list(zip(['alt', 'az'], [float]*2)))
         moonAlt = np.zeros(data.size, dtype=float)
 
         print('computing alts and azs')

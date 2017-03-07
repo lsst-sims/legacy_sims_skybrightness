@@ -1,3 +1,4 @@
+from builtins import zip
 import numpy as np
 import sqlalchemy as sqla
 import os
@@ -20,7 +21,7 @@ def allSkyDB(dateID, sqlQ=None, dtypes=None, dbAddress=None, filt='R'):
     if dtypes is None:
         names = ['ra', 'dec', 'alt', 'starMag', 'sky', 'filter']
         types = [float, float, float, float, float, '|S1']
-        dtypes = zip(names, types)
+        dtypes = list(zip(names, types))
 
     engine = sqla.create_engine(dbAddress)
     connection = engine.raw_connection()
@@ -49,7 +50,7 @@ def diodeSkyDB(midMJD, sqlQ=None, dtypes=None, dbAddress=None, clean=True):
     if dtypes is None:
         names = ['mjd', 'r', 'y', 'z']
         types = [float]*4
-        dtypes = zip(names, types)
+        dtypes = list(zip(names, types))
 
     engine = sqla.create_engine(dbAddress)
     connection = engine.raw_connection()

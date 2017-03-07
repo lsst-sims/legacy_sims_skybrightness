@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import zip
 import lsst.sims.skybrightness as sb
 import lsst.sims.photUtils.Bandpass as Bandpass
 import numpy as np
@@ -14,7 +15,7 @@ overview_vals = [22.9, 22.3, 21.2, 20.5, 19.6, 18.6]
 filters = {}
 for filtername in keys:
     bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
-                    dtype=zip(['wave', 'trans'], [float]*2))
+                    dtype=list(zip(['wave', 'trans'], [float]*2)))
     tempB = Bandpass()
     tempB.setBandpass(bp['wave'], bp['trans'])
     filters[filtername] = tempB
@@ -40,7 +41,7 @@ dataDir = os.getenv('SIMS_SKYBRIGHTNESS_DATA_DIR')
 cannonKeys = ['B', 'G', 'R']
 for key, fname in zip(cannonKeys, fnames):
     bpdata = np.genfromtxt(os.path.join(dataDir, 'Canon/', fname), delimiter=',',
-                           dtype=zip(['wave', 'through'], [float]*2))
+                           dtype=list(zip(['wave', 'through'], [float]*2)))
     bpTemp = Bandpass()
     bpTemp.setBandpass(bpdata['wave'], bpdata['through'])
     canonFilters[key] = bpTemp
