@@ -70,7 +70,8 @@ def loadSpecFiles(filenames, mags=False):
     filterWave: The central wavelengths of the pre-computed magnitudes
     wave: wavelengths for the spectra
     spec: array of spectra and magnitudes along with the relevant variable inputs.  For example,
-    airglow has dtype = [('airmass', '<f8'), ('solarFlux', '<f8'), ('spectra', '<f8', (17001,)), ('mags', '<f8', (6,)]
+    airglow has dtype = [('airmass', '<f8'), ('solarFlux', '<f8'), ('spectra', '<f8', (17001,)),
+                         ('mags', '<f8', (6,)]
     For each unique airmass and solarFlux value, there is a 17001 elements spectra and 6 magnitudes.
     """
 
@@ -374,7 +375,7 @@ class TwilightInterp(object):
             self.fitResults = fitResults
 
         # Take out any filters that don't have fit results
-        self.filterNames = [key for key in self.filterNames if key in list(self.fitResults.keys())]
+        self.filterNames = [key for key in self.filterNames if key in self.fitResults]
 
         self.effWave = []
         self.solarMag = []
@@ -429,7 +430,7 @@ class TwilightInterp(object):
         Print out the fit parameters being used
         """
         print('\\tablehead{\colhead{Filter} & \colhead{$r_{12/z}$} & \colhead{$a$ (1/radians)} & \colhead{$b$ (1/airmass)} & \colhead{$c$ (az term/airmass)} & \colhead{$f_z_dark$ (erg/s/cm$^2$)$\\times 10^8$} & \colhead{m$_z_dark$}}')
-        for key in list(self.fitResults.keys()):
+        for key in self.fitResults:
             numbers = ''
             for num in self.fitResults[key]:
                 if num > .001:
@@ -447,7 +448,6 @@ class TwilightInterp(object):
     def interpMag(self, interpPoints, maxAM=2.5,
                   limits=[np.radians(-11.), np.radians(-20.)],
                   filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
-        #filterindx = [self.filterNameDict[key] for key in filterNames]
         npts = len(filterNames)
         result = np.zeros((np.size(interpPoints), npts), dtype=float)
 

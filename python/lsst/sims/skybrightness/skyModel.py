@@ -654,7 +654,7 @@ class SkyModel(object):
                 magsBack[f] = mags[i]
         else:
             magsBack = {}
-            for key in list(bandpasses.keys()):
+            for key in bandpasses:
                 mags = np.zeros(self.npts, dtype=float)-666
                 tempSed = Sed()
                 isThrough = np.where(bandpasses[key].sb > 0)
