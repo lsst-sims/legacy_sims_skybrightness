@@ -1,3 +1,4 @@
+from __future__ import print_function
 import lsst.sims.skybrightness as sb
 import lsst.sims.photUtils.Bandpass as Bandpass
 import numpy as np
@@ -27,9 +28,9 @@ sm2.setRaDecMjd(np.array([0.]), np.array([90.]), mjd, azAlt=True, degrees=True)
 sm.computeSpec()
 sm2.computeSpec()
 
-print 'filter  ESO model ESO(no Z)  Overview Paper'
+print('filter  ESO model ESO(no Z)  Overview Paper')
 for i, key in enumerate(keys):
-    print key+'     %.2f &  %.2f  &  %.2f \\\\' % (sm.computeMags(filters[key])[0], sm2.computeMags(filters[key])[0], overview_vals[i])
+    print(key+'     %.2f &  %.2f  &  %.2f \\\\' % (sm.computeMags(filters[key])[0], sm2.computeMags(filters[key])[0], overview_vals[i]))
 
 # Let's also output the cannon filters while we're at it:
 canonFilters = {}
@@ -44,10 +45,10 @@ for key, fname in zip(cannonKeys, fnames):
     bpTemp.setBandpass(bpdata['wave'], bpdata['through'])
     canonFilters[key] = bpTemp
 
-print '----------'
-print 'Cannon Filters'
+print('----------')
+print('Cannon Filters')
 for i, key in enumerate(cannonKeys):
-    print key+'     %.2f    ' % (sm.computeMags(canonFilters[key])[0])
+    print(key+'     %.2f    ' % (sm.computeMags(canonFilters[key])[0]))
 
 
 # lets loop over a year and try things!
@@ -64,6 +65,6 @@ for i, time in enumerate(times):
 
 good = np.where(results[:, 0] != 0)
 results = results[good[0], :]
-print ' filter   median model pm std model,  overview vals'
+print(' filter   median model pm std model,  overview vals')
 for i, key in enumerate(keys):
-    print '$'+key+'$'+' &    %.2f $\pm$  %.2f  &  %.2f \\\\' % (np.median(results[:, i]), results[:, i].std(), overview_vals[i])
+    print('$'+key+'$'+' &    %.2f $\pm$  %.2f  &  %.2f \\\\' % (np.median(results[:, i]), results[:, i].std(), overview_vals[i]))

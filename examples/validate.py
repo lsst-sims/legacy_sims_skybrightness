@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import lsst.sims.skybrightness as sb
 from scipy.stats import binned_statistic_2d
@@ -358,28 +359,28 @@ for filterName in filters:
     plt.close(fig)
 
     # Compute the dark-time residuals:
-    print '------'
+    print('------')
     good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
                     (validationArr['moonAlt'] < 0) & (validationArr['sunAlt'] < np.radians(-20.)))
-    print 'filter = %s' % filterName
+    print('filter = %s' % filterName)
     dark = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
-    print 'Dark time zenith residuals (robust)RMS= %f mags' % dark
-    print 'Dark time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+    print('Dark time zenith residuals (robust)RMS= %f mags' % dark)
+    print('Dark time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good]))
 
     good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
                     (validationArr['moonAlt'] > 0) & (validationArr['sunAlt'] < -20.) &
                     (validationArr['moonAlt'] < 60))
-    print 'Moon beween 0 and 60 degree altitude'
+    print('Moon beween 0 and 60 degree altitude')
     gray = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
-    print 'Gray time zenith residuals (robust)RMS= %f mags' % gray
-    print 'Gray time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+    print('Gray time zenith residuals (robust)RMS= %f mags' % gray)
+    print('Gray time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good]))
 
     good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
                     (validationArr['sunAlt'] > -20.))
     bright = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
-    print 'Twilight time zenith residuals (robust)RMS= %f mags' % bright
-    print 'Twilight time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
-    print '------'
+    print('Twilight time zenith residuals (robust)RMS= %f mags' % bright)
+    print('Twilight time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good]))
+    print('------')
 
     rmsArray.append((filterName, dark, gray, bright))
 
@@ -491,13 +492,13 @@ for filterName in filters:
         fig.savefig('Plots/exampleSkys_%i.pdf' % i)
         plt.close(fig)
 
-print 'filter, dark time RMS, gray time RMS, twilight time RMS'
+print('filter, dark time RMS, gray time RMS, twilight time RMS')
 for line in rmsArray:
-    print '%s & %.2f & %.2f & %.2f \\\\' % (line)
+    print('%s & %.2f & %.2f & %.2f \\\\' % (line))
 
-print 'filter, median zenith residual'
+print('filter, median zenith residual')
 for line in medianZenithResid:
-    print '%s %.2f' % (line)
+    print('%s %.2f' % (line))
 
 
 # Do I need to use the origin='lower' ? YES

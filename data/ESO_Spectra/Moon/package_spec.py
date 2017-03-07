@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import glob
 import pyfits
@@ -37,7 +38,7 @@ for i, filename in enumerate(files):
                 elif 'SKYMODEL.MOON.ALT' in card:
                     moonAlt.append(float(card.split('=')[-1]))
     except:
-        print filename, ' Failed'
+        print(filename, ' Failed')
 
 
 import healpy as hp

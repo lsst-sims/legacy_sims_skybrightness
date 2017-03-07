@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import healpy as hp
 from scipy.optimize import curve_fit
@@ -185,21 +186,21 @@ for filterName in filters:
     plt.close(fig2)
 
     # Let's print out a little info:
-    print '-------'
-    print colors[counter-1]
-    print 'airmass,  az,  mag - max(mag)'
+    print('-------')
+    print(colors[counter-1])
+    print('airmass,  az,  mag - max(mag)')
     good = np.where(magMap[unmask] == magMap[unmask].max())
     for ind in good[0]:
-        print '%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind])
+        print('%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind]))
     good = np.where((airmass[unmask] == airmass[unmask].max()) & (az[unmask] == az[unmask].min()))
     ind = good[0]
-    print '%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind])
+    print('%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind]))
     good = np.where((airmass[unmask] == airmass[unmask].max()) & (az[unmask] == np.pi/2.))
     ind = good[0]
-    print '%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind])
+    print('%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind]))
     good = np.where((airmass[unmask] == airmass[unmask].max()) & (az[unmask] == np.pi))
     ind = good[0]
-    print '%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind])
+    print('%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind]))
 
     # OK, now let's try the better fitter
     p0 = np.zeros(5.+np.size(np.unique(xdata['hpid'])))
@@ -331,9 +332,9 @@ for filterName in filters:
     counter += 1
 
 
-print '-------------'
-print 'Best fit parameters:'
-print fitDict
+print('-------------')
+print('Best fit parameters:')
+print(fitDict)
 
 fig.savefig('Plots/simulfits.png')
 fig.savefig('Plots/simulfits.pdf')
@@ -382,10 +383,10 @@ unmasked = np.where(modelMap != hp.UNSEEN)
 magResid[masked] = hp.UNSEEN
 hp.mollview(magResid, rot=(0, 90))
 
-print '----------'
-print 'Fitted Cannon filter zeropoints'
+print('----------')
+print('Fitted Cannon filter zeropoints')
 for key in cannonZPs:
-    print '%s, %f' % (key, cannonZPs[key])
+    print('%s, %f' % (key, cannonZPs[key]))
 
 
 # Fitted Cannon filter zeropoints

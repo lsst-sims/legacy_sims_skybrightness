@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 from scipy.optimize import curve_fit
 import lsst.sims.skybrightness as sb
@@ -12,7 +13,7 @@ from lsst.sims.skybrightness import zenithTwilight
 
 
 if 'diode' not in globals():
-    print 'Loading diode data'
+    print('Loading diode data')
     #data = np.load('/Users/yoachim/gitRepos/stash_skybrigtness/data/photodiode/photodiode.npz')
     data = np.load('/Users/yoachim/gitRepos/sims_skybrightness/data/photodiode/photodiode.npz')
     diode = data['photodiode'].copy()

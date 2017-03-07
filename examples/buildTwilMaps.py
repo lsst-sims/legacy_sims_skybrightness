@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import ephem
 import lsst.sims.skybrightness as sb
@@ -49,15 +50,15 @@ for filterName in filterNames:
         q = 'select dates.mjd, stars.ra, stars.dec, obs.alt, obs.starMag, obs.sky, obs.filter from obs,stars,dates where obs.starID = stars.ID and obs.dateID = dates.ID and obs.filter = "%s" and obs.dateID in (select ID from dates where sunAlt >= %f and sunAlt <= %f)' % (filterName, sunAlts[
             i]-altBin, sunAlts[i]+altBin)
 
-        print 'Executing:'
-        print q
-        print '%i of %i' % (i, np.size(sunAlts))
+        print('Executing:')
+        print(q)
+        print('%i of %i' % (i, np.size(sunAlts)))
 
         cursor.execute(q)
         data = cursor.fetchall()
         data = np.asarray(data, dtype=dtypes)
 
-        print 'got %i results' % data.size
+        print('got %i results' % data.size)
 
         data['ra'] = np.radians(data['ra'])
         data['dec'] = np.radians(data['dec'])
@@ -72,7 +73,7 @@ for filterName in filterNames:
         altaz = np.zeros(data.size, dtype=zip(['alt', 'az'], [float]*2))
         moonAlt = np.zeros(data.size, dtype=float)
 
-        print 'computing alts and azs'
+        print('computing alts and azs')
 
         for j, (le, ri, mjd) in enumerate(zip(left, right, umjd)):
             Observatory.date = mjd2djd(mjd)
@@ -88,12 +89,12 @@ for filterName in filterNames:
             moon.compute(Observatory)
             moonAlt[le:ri] += moon.alt
 
-        print 'making maps'
+        print('making maps')
         good = np.where(moonAlt < 0)
         magMap[:, i] = _healbin(altaz['az'][good], altaz['alt'][good], data['sky'][good],
                                 nside=nside, reduceFunc=np.median)
         rmsMap[:, i] = _healbin(altaz['az'][good], altaz['alt'][good], data['sky'][good],
                                 nside=nside, reduceFunc=robustRMS)
 
-    print 'saving maps'
+    print('saving maps')
     np.savez('TwilightMaps/twiMaps_%s.npz' % filterName, magMap=magMap, rmsMap=rmsMap, sunAlts=sunAlts)

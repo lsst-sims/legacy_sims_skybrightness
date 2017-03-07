@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import glob
 import sys
@@ -51,7 +52,7 @@ for filename in allFiles:
 starids = np.arange(ra.size)
 f = open('starTable.dat', 'w')
 for i, rai in enumerate(ra):
-    print >>f, '%i,%f,%f,0' % (i, ra[i], dec[i])
+    print('%i,%f,%f,0' % (i, ra[i], dec[i]), file=f)
 f.close()
 
 # Generate mjd table
@@ -61,7 +62,7 @@ for mjdid, mjd in zip(mjdID, mjds):
     Observatory.date = mjd2djd(mjd)
     sun.compute(Observatory)
     moon.compute(Observatory)
-    print >>f, '%i,%f,%f,%f,%f' % (mjdid, mjd, sun.alt, moon.alt, moon.phase)
+    print('%i,%f,%f,%f,%f' % (mjdid, mjd, sun.alt, moon.alt, moon.phase), file=f)
 f.close()
 
 
@@ -108,9 +109,9 @@ for j, filename in enumerate(allFiles):
             starIDs[i] = starids[left[i]:right[i]]
 
         for i, starid in enumerate(starIDs):
-            print >>f, '%i,%i,%i,%f,%f,%f,%f,%s' % (obsIDs[i], starIDs[i], mjdIDs[i], data['alt'][i],
+            print('%i,%i,%i,%f,%f,%f,%f,%s' % (obsIDs[i], starIDs[i], mjdIDs[i], data['alt'][i],
                                                     data['m'][i], data['dm'][i], data['sky'][i],
-                                                    data['band'][i])
+                                                    data['band'][i]), file=f)
         progress = j/maxJ*100
         text = "\rprogress = %.1f%%"%progress
         sys.stdout.write(text)

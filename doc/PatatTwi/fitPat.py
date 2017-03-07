@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import matplotlib.pylab as plt
 from scipy.optimize import curve_fit
@@ -56,4 +57,4 @@ fig.savefig('patatFits.pdf')
 
 
 for res in results:
-    print '%s %.2f %.2f' % (res['filter'], res['r12'], res['a'])
+    print('%s %.2f %.2f' % (res['filter'], res['r12'], res['a']))

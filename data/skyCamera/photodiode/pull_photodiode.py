@@ -1,3 +1,4 @@
+from __future__ import print_function
 import urllib2
 import re
 import os.path
@@ -13,11 +14,11 @@ for i in range(len(page)):
 for date in dates:
     if not os.path.isfile(date+'.dat'):
         try:
-            print 'downloading %s' % date
+            print('downloading %s' % date)
             page = urllib2.urlopen('http://lsst-web.ncsa.illinois.edu/~coughlin/allsky/data/' +
                                    date+'/photodiodeplots/photodiode.txt').read()
             f = open(date+'.dat', 'w')
-            print >>f, page
+            print(page, file=f)
             f.close()
         except:
             pass

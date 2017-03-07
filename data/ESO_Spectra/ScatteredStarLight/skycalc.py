@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import os
 import io
 import sys
@@ -90,24 +91,24 @@ deleter_script_url = server+'/observing/etc/bin/script/rmtmp.py'
 
 # check that only one command-line argument is given
 if(len(sys.argv) != 2):
-    print 'usage: skycalc.py <post-data-file>'
-    print ''
-    print 'The file post.txt can be obtained from the skycalc web application with this special URL:'
-    print 'http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC+SKYCALC.POSTFILE.FLAG.SET=1'
-    print 'Fill the parameters and submit - a link to the corresponding post.txt is provided at the top of the output page.'
+    print('usage: skycalc.py <post-data-file>')
+    print('')
+    print('The file post.txt can be obtained from the skycalc web application with this special URL:')
+    print('http://www.eso.org/observing/etc/bin/gen/form?INS.MODE=swspectr+INS.NAME=SKYCALC+SKYCALC.POSTFILE.FLAG.SET=1')
+    print('Fill the parameters and submit - a link to the corresponding post.txt is provided at the top of the output page.')
     exit(1)
 
 fname = sys.argv[1]  # input filename is first command-line argument
 if not os.path.exists(fname):
-    print fname+' not found'
+    print(fname+' not found')
     sys.exit(1)
 
 with open(fname) as f:
     lines = f.readlines()
 
 if(len(lines) > 1):
-    print 'error: the post data file should have exactly one line.'
-    print 'but it has '+len(raw_postdata)
+    print('error: the post data file should have exactly one line.')
+    print('but it has '+len(raw_postdata))
     exit(1)
 
 raw_postdata = lines[0].strip('\n')
@@ -135,8 +136,8 @@ def callEtc(url, d):
 
 def cleanUp(tmp_dir, deleter_script_url):
     if(deleter_script_url == ''):
-        print 'error, deleter_script_url should be non-empty string'
-        print 'deleter_script_url='+deleter_script_url
+        print('error, deleter_script_url should be non-empty string')
+        print('deleter_script_url='+deleter_script_url)
         return 'empty deleter_script_url'
 
     if(tmp_dir != ''):
@@ -145,9 +146,9 @@ def cleanUp(tmp_dir, deleter_script_url):
             deleter_response = urllib2.urlopen(deleter_script_url+'?d='+tmp_dir).read().strip('\n')
             if(deleter_response != 'ok'):  # it failed somehow
                 return deleter_response
-        except URLError, e:
-            print 'Could not reach script to delete tmp dir on server: '+tmp_dir
-            print str(e)
+        except URLError as e:
+            print('Could not reach script to delete tmp dir on server: '+tmp_dir)
+            print(str(e))
             return 'Could not reach script to delete tmp dir on server: '+tmp_dir
 
     return 'ok'
@@ -172,16 +173,16 @@ d = section(postdata, '&', '=')
 match_str = 'Download the resulting model spectra as FITS table'
 
 # print keywords and values
-print ''
-print 'Parameter keywords and list of values (the FITS filenames will be named accordingly):'
-print ''
+print('')
+print('Parameter keywords and list of values (the FITS filenames will be named accordingly):')
+print('')
 for x in params:
     k, v = x
-    print k,
+    print(k, end=' ')
     for vi in v:
-        print vi,
-    print ''
-print ''
+        print(vi, end=' ')
+    print('')
+print('')
 
 for i, x in enumerate(params):
     k, v = x
@@ -245,9 +246,9 @@ for p in prod:
                 #info+= ' download: '+download_fits_secs
 
                 fits_status = 'saved'
-            except URLError, e:
-                print 'FITS file could not be retrieved: '+fits_file_name
-                print str(e)
+            except URLError as e:
+                print('FITS file could not be retrieved: '+fits_file_name)
+                print(str(e))
                 break
 
             tmp_dir = line.partition('<a href=')[2].partition('>')[0].partition(
@@ -262,7 +263,7 @@ for p in prod:
 
     cleaned_status = cleanUp(tmp_dir, deleter_script_url)
     if(cleaned_status != 'ok'):
-        print info+'An internal error occurred on the web server, please report to jvinther@eso.org. status code:"'+cleaned_status+'"'
+        print(info+'An internal error occurred on the web server, please report to jvinther@eso.org. status code:"'+cleaned_status+'"')
 
     if(fits_status != 'saved'):
         fits_status = 'error'
@@ -279,17 +280,17 @@ for p in prod:
     # print header
     if(cntr == 1):
         for i in ['i/n', 'FITS file\t\t', 'status', 'size/Mb\t', 'exec/s', 'download/s', 'total/s', 'remaining/s']:
-            print str(i)+'\t',
-        print ''
-        print ''
+            print(str(i)+'\t', end=' ')
+        print('')
+        print('')
     # print rows
     for i in [it, fits_file_name+'\t', fits_status, sizestr+'\t', callEtc_secs, download_fits_secs+'\t', total_secs, eta]:
-        print str(i)+'\t',
-    print ''
+        print(str(i)+'\t', end=' ')
+    print('')
 
     cntr = cntr+1
 
 t1 = time.time()
 script_time = str(round(t1-t0, 2))
-print ''
-print 'time for all excecutions: '+script_time+' s'
+print('')
+print('time for all excecutions: '+script_time+' s')
