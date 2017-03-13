@@ -221,7 +221,7 @@ class TestSkyModel(unittest.TestCase):
         for attr in attrList:
             np.testing.assert_equal(getattr(sm1, attr), getattr(sm2, attr))
 
-        for key in list(m1.keys()):
+        for key in m1:
             np.testing.assert_allclose(m1[key], m2[key], rtol=1e-6)
 
 
