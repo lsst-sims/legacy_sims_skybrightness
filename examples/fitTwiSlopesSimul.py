@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 import numpy as np
 import healpy as hp
 from scipy.optimize import curve_fit
@@ -74,9 +76,9 @@ fitDict = {}
 canonDict = {}
 canonFiles = {'R': 'red_canon.csv', 'G': 'green_canon.csv', 'B': 'blue_canon.csv'}
 path = os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'Canon')
-for key in canonFiles.keys():
+for key in list(canonFiles.keys()):
     data = np.loadtxt(os.path.join(path, canonFiles[key]), delimiter=',',
-                      dtype=zip(['wave', 'throughput'], [float, float]))
+                      dtype=list(zip(['wave', 'throughput'], [float, float])))
     band = Bandpass()
     band.setBandpass(data['wave'], data['throughput'])
     canonDict[key] = band
@@ -105,7 +107,7 @@ for filterName in filters:
     lam = np.where((airmass < 2.5) & (airmass >= 1))
     bam = np.where((airmass > 2.5) | (airmass < 1))
 
-    xdata = np.zeros(magMaps.shape, dtype=zip(['sunAlt', 'hpid', 'alt', 'az'], [float, int, float, float]))
+    xdata = np.zeros(magMaps.shape, dtype=list(zip(['sunAlt', 'hpid', 'alt', 'az'], [float, int, float, float])))
 
     xdata['hpid'] = hpid.reshape(hpid.size, 1)  # hpid[:,np.newaxis].T  #np.tile(hpid,72).reshape(768,72)
     #xdata['hpid'] = xdata['hpid'].T
@@ -185,21 +187,21 @@ for filterName in filters:
     plt.close(fig2)
 
     # Let's print out a little info:
-    print '-------'
-    print colors[counter-1]
-    print 'airmass,  az,  mag - max(mag)'
+    print('-------')
+    print(colors[counter-1])
+    print('airmass,  az,  mag - max(mag)')
     good = np.where(magMap[unmask] == magMap[unmask].max())
     for ind in good[0]:
-        print '%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind])
+        print('%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind]))
     good = np.where((airmass[unmask] == airmass[unmask].max()) & (az[unmask] == az[unmask].min()))
     ind = good[0]
-    print '%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind])
+    print('%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind]))
     good = np.where((airmass[unmask] == airmass[unmask].max()) & (az[unmask] == np.pi/2.))
     ind = good[0]
-    print '%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind])
+    print('%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind]))
     good = np.where((airmass[unmask] == airmass[unmask].max()) & (az[unmask] == np.pi))
     ind = good[0]
-    print '%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind])
+    print('%.2f,  %.2f,  %.2f' % (airmass[ind], np.degrees(az[ind]), magMap[unmask][ind]))
 
     # OK, now let's try the better fitter
     p0 = np.zeros(5.+np.size(np.unique(xdata['hpid'])))
@@ -209,8 +211,8 @@ for filterName in filters:
     p0[4] = 20.
     p0[5:] += fitParams[-np.size(np.unique(xdata['hpid'])):]
 
-    xdata2 = np.zeros(xdata.size, dtype=zip(
-        ['sunAlt', 'hpid', 'airmass', 'azRelSun'], [float, int, float, float]))
+    xdata2 = np.zeros(xdata.size, dtype=list(zip(
+        ['sunAlt', 'hpid', 'airmass', 'azRelSun'], [float, int, float, float])))
     xdata2['sunAlt'] = xdata['sunAlt']
     xdata2['hpid'] = xdata['hpid']
     xdata2['azRelSun'] = xdata['az']
@@ -331,9 +333,9 @@ for filterName in filters:
     counter += 1
 
 
-print '-------------'
-print 'Best fit parameters:'
-print fitDict
+print('-------------')
+print('Best fit parameters:')
+print(fitDict)
 
 fig.savefig('Plots/simulfits.png')
 fig.savefig('Plots/simulfits.pdf')
@@ -382,10 +384,10 @@ unmasked = np.where(modelMap != hp.UNSEEN)
 magResid[masked] = hp.UNSEEN
 hp.mollview(magResid, rot=(0, 90))
 
-print '----------'
-print 'Fitted Cannon filter zeropoints'
+print('----------')
+print('Fitted Cannon filter zeropoints')
 for key in cannonZPs:
-    print '%s, %f' % (key, cannonZPs[key])
+    print('%s, %f' % (key, cannonZPs[key]))
 
 
 # Fitted Cannon filter zeropoints

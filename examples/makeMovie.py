@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import zip
+from builtins import str
 import numpy as np
 import lsst.sims.skybrightness as sb
 import lsst.sims.photUtils.Bandpass as Bandpass
@@ -20,16 +23,16 @@ def makeMovie(outfileroot, outDir='', ips=10.0, fps=10.0, figformat='png'):
                 os.path.join(outDir, '%s_%%04d.png'%(outfileroot)),
                 '-r', str(fps), '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'slower',
                 os.path.join(outDir, '%s_%s_%s.mp4' % (outfileroot, str(ips), str(fps)))]
-    print 'Attempting to call ffmpeg with:'
-    print ' '.join(callList)
+    print('Attempting to call ffmpeg with:')
+    print(' '.join(callList))
     p = subprocess.check_call(callList)
 
     # OK, let's do a gif too:
     callList = ['ffmpeg', '-i', os.path.join(outDir, '%s_%%04d.png'%(outfileroot)),
                 '-vf', 'scale=%s:%s' % (str(320), str(-1)), '-t', str(10), '-r', str(10),
                 os.path.join(outDir, '%s_%s_%s.gif' % (outfileroot, str(ips), str(fps)))]
-    print 'converting to animated gif with:'
-    print ' '.join(callList)
+    print('converting to animated gif with:')
+    print(' '.join(callList))
     p2 = subprocess.check_call(callList)
 
 telescope = TelescopeInfo('LSST')
@@ -41,9 +44,9 @@ canonDict = {}
 canonFiles = {'R': 'red_canon.csv', 'G': 'green_canon.csv', 'B': 'blue_canon.csv'}
 
 path = os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'Canon')
-for key in canonFiles.keys():
+for key in list(canonFiles.keys()):
     data = np.loadtxt(os.path.join(path, canonFiles[key]), delimiter=',',
-                      dtype=zip(['wave', 'throughput'], [float, float]))
+                      dtype=list(zip(['wave', 'throughput'], [float, float])))
     band = Bandpass()
     band.setBandpass(data['wave'], data['throughput'])
     canonDict[key] = band

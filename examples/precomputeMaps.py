@@ -1,3 +1,4 @@
+from builtins import zip
 import numpy as np
 import lsst.sims.skybrightness as sb
 import healpy as hp
@@ -39,7 +40,7 @@ dec = np.pi/2. - dec
 
 leafsize = 100
 x, y, z = treexyz(ra, dec)
-healTree = kdtree(zip(x, y, z), leafsize=leafsize)
+healTree = kdtree(list(zip(x, y, z)), leafsize=leafsize)
 
 # Need to build a kdtree to quick search for healpixes within a radius
 
@@ -54,7 +55,7 @@ mjds = np.arange(mjd_start,
 names = ['u', 'g', 'r', 'i', 'z', 'y', 'airmass', 'mask']
 types = [float]*7
 types.append(int)
-results = np.zeros((mjds.size, map_size), dtype=zip(names, types))
+results = np.zeros((mjds.size, map_size), dtype=list(zip(names, types)))
 results['mask'] = 1
 site = Site('LSST')
 
@@ -102,7 +103,7 @@ for i, mjd, djd in zip(indices, mjds, mjds-doff):
 
         sm.setRaDecMjd(ra[high_enough], dec[high_enough], mjd)
         skyMags = sm.returnMags()
-        for key in filterDict.keys():
+        for key in list(filterDict.keys()):
             results[key][i][high_enough] = skyMags[:, filterDict[key]]
         percentComplete = int(float(i)/loopSize*100)
         if percentComplete > oldPC:

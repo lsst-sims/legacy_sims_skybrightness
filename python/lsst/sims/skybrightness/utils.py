@@ -1,6 +1,6 @@
+from __future__ import print_function
 import numpy as np
 import ephem
-from lsst.sims.utils import calcLmstLast
 
 
 def wrapRA(ra):
@@ -47,4 +47,4 @@ def mjd2ut(mjd):
     doff = ephem.Date(0)-ephem.Date('1858/11/17')
     djd = mjd-doff
     obs.date = djd
-    print(obs.date)
+    return obs.date

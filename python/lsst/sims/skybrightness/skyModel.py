@@ -1,3 +1,5 @@
+from builtins import zip
+from builtins import object
 import numpy as np
 import ephem
 from lsst.sims.utils import haversine, _raDecFromAltAz, _altAzPaFromRaDec, Site, ObservationMetaData, calcLmstLast
@@ -249,7 +251,7 @@ class SkyModel(object):
         names = ['airmass', 'nightTimes', 'alt', 'az', 'azRelMoon', 'moonSunSep', 'moonAltitude',
                  'altEclip', 'azEclipRelSun', 'sunAlt', 'azRelSun', 'solarFlux']
         types = [float]*len(names)
-        self.points = np.zeros(self.npts, zip(names, types))
+        self.points = np.zeros(self.npts, list(zip(names, types)))
 
     def setRaDecMjd(self, lon, lat, mjd, degrees=False, azAlt=False, solarFlux=130.,
                     filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
@@ -652,7 +654,7 @@ class SkyModel(object):
                 magsBack[f] = mags[i]
         else:
             magsBack = {}
-            for key in bandpasses.keys():
+            for key in bandpasses:
                 mags = np.zeros(self.npts, dtype=float)-666
                 tempSed = Sed()
                 isThrough = np.where(bandpasses[key].sb > 0)

@@ -1,3 +1,4 @@
+from builtins import zip
 import numpy as np
 import lsst.sims.skybrightness as sb
 import unittest
@@ -97,7 +98,7 @@ class TestSkyModel(unittest.TestCase):
         bps = {}
         for filterName in filters:
             bp = np.loadtxt(os.path.join(throughPath, 'filter_%s.dat' % filterName),
-                            dtype=zip(['wave', 'trans'], [float]*2))
+                            dtype=list(zip(['wave', 'trans'], [float]*2)))
             lsst_bp = Bandpass()
             lsst_bp.setBandpass(bp['wave'], bp['trans'])
             bps[filterName] = lsst_bp
@@ -220,7 +221,7 @@ class TestSkyModel(unittest.TestCase):
         for attr in attrList:
             np.testing.assert_equal(getattr(sm1, attr), getattr(sm2, attr))
 
-        for key in m1.keys():
+        for key in m1:
             np.testing.assert_allclose(m1[key], m2[key], rtol=1e-6)
 
 

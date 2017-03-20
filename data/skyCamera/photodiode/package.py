@@ -1,3 +1,4 @@
+from builtins import zip
 import numpy as np
 import glob
 import ephem
@@ -33,7 +34,7 @@ for filename in files:
 
 names = ['mjd', 'r', 'y', 'z', 'sunAlt', 'moonAlt', 'moonPhase']
 types = ['float']*len(names)
-photodiode = np.zeros(len(mjd), dtype=zip(names, types))
+photodiode = np.zeros(len(mjd), dtype=list(zip(names, types)))
 photodiode['mjd'] = mjd
 photodiode['r'] = rband
 photodiode['y'] = yband

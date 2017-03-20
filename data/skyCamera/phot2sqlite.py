@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 import numpy as np
 import glob
 import sys
@@ -32,7 +34,7 @@ mjds = np.zeros(0, dtype=float)
 
 
 for filename in allFiles:
-    data = np.loadtxt(filename, dtype=zip(names, types))
+    data = np.loadtxt(filename, dtype=list(zip(names, types)))
     tempRaDec = np.round(data['dec']*1000)*10+data['ra']
     tempRaDec, uind = np.unique(tempRaDec, return_index=True)
 
@@ -51,7 +53,7 @@ for filename in allFiles:
 starids = np.arange(ra.size)
 f = open('starTable.dat', 'w')
 for i, rai in enumerate(ra):
-    print >>f, '%i,%f,%f,0' % (i, ra[i], dec[i])
+    print('%i,%f,%f,0' % (i, ra[i], dec[i]), file=f)
 f.close()
 
 # Generate mjd table
@@ -61,7 +63,7 @@ for mjdid, mjd in zip(mjdID, mjds):
     Observatory.date = mjd2djd(mjd)
     sun.compute(Observatory)
     moon.compute(Observatory)
-    print >>f, '%i,%f,%f,%f,%f' % (mjdid, mjd, sun.alt, moon.alt, moon.phase)
+    print('%i,%f,%f,%f,%f' % (mjdid, mjd, sun.alt, moon.alt, moon.phase), file=f)
 f.close()
 
 
@@ -78,7 +80,7 @@ maxJ = float(len(allFiles))
 for j, filename in enumerate(allFiles):
     # Maybe read in a dummy column, set it to the filter and then stack all of
     # these so they can quickly be sorted?
-    data = np.genfromtxt(filename, dtype=zip(names, types),
+    data = np.genfromtxt(filename, dtype=list(zip(names, types)),
                          usecols=(0, 1, 2, 18, 16, 19, 20, 21))
     if data.size > 0:
         data['band'] = filename[0]
@@ -108,9 +110,9 @@ for j, filename in enumerate(allFiles):
             starIDs[i] = starids[left[i]:right[i]]
 
         for i, starid in enumerate(starIDs):
-            print >>f, '%i,%i,%i,%f,%f,%f,%f,%s' % (obsIDs[i], starIDs[i], mjdIDs[i], data['alt'][i],
+            print('%i,%i,%i,%f,%f,%f,%f,%s' % (obsIDs[i], starIDs[i], mjdIDs[i], data['alt'][i],
                                                     data['m'][i], data['dm'][i], data['sky'][i],
-                                                    data['band'][i])
+                                                    data['band'][i]), file=f)
         progress = j/maxJ*100
         text = "\rprogress = %.1f%%"%progress
         sys.stdout.write(text)

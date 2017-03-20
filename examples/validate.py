@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 import numpy as np
 import lsst.sims.skybrightness as sb
 from scipy.stats import binned_statistic_2d
@@ -51,9 +53,9 @@ canonDict = {}
 canonFiles = {'R': 'red_canon.csv', 'G': 'green_canon.csv', 'B': 'blue_canon.csv'}
 
 path = os.path.join(os.environ.get('SIMS_SKYBRIGHTNESS_DATA_DIR'), 'Canon')
-for key in canonFiles.keys():
+for key in list(canonFiles.keys()):
     data = np.loadtxt(os.path.join(path, canonFiles[key]), delimiter=',',
-                      dtype=zip(['wave', 'throughput'], [float, float]))
+                      dtype=list(zip(['wave', 'throughput'], [float, float])))
     band = Bandpass()
     band.setBandpass(data['wave'], data['throughput'])
     canonDict[key] = band
@@ -66,8 +68,8 @@ Observatory.elevation = telescope.elev
 
 
 sqlQ = 'select id,mjd,sunAlt,moonAlt from dates'
-dateData, mjd = sb.allSkyDB(2744, sqlQ=sqlQ, filt=None, dtypes=zip(['dateID', 'mjd', 'sunAlt', 'moonAlt'],
-                                                                   [int, float, float, float]))
+dateData, mjd = sb.allSkyDB(2744, sqlQ=sqlQ, filt=None, dtypes=list(zip(['dateID', 'mjd', 'sunAlt', 'moonAlt'],
+                                                                   [int, float, float, float])))
 
 
 skipsize = 10
@@ -95,7 +97,7 @@ names = ['moonAlt', 'sunAlt', 'obsZenith', 'modelZenith', 'obsDarkestHP',
 # I guess I might as well add the brightest points in the sky as well...
 
 types = [float, float, float, float, int, int, int, int, float, float, float, float, float, float, float]
-validationArr = np.zeros(indices.size, dtype=zip(names, types))
+validationArr = np.zeros(indices.size, dtype=list(zip(names, types)))
 
 # Don't look at Canon above this limit.
 amMax = 2.1
@@ -358,28 +360,28 @@ for filterName in filters:
     plt.close(fig)
 
     # Compute the dark-time residuals:
-    print '------'
+    print('------')
     good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
                     (validationArr['moonAlt'] < 0) & (validationArr['sunAlt'] < np.radians(-20.)))
-    print 'filter = %s' % filterName
+    print('filter = %s' % filterName)
     dark = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
-    print 'Dark time zenith residuals (robust)RMS= %f mags' % dark
-    print 'Dark time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+    print('Dark time zenith residuals (robust)RMS= %f mags' % dark)
+    print('Dark time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good]))
 
     good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
                     (validationArr['moonAlt'] > 0) & (validationArr['sunAlt'] < -20.) &
                     (validationArr['moonAlt'] < 60))
-    print 'Moon beween 0 and 60 degree altitude'
+    print('Moon beween 0 and 60 degree altitude')
     gray = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
-    print 'Gray time zenith residuals (robust)RMS= %f mags' % gray
-    print 'Gray time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
+    print('Gray time zenith residuals (robust)RMS= %f mags' % gray)
+    print('Gray time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good]))
 
     good = np.where((resid != 0.) & (validationArr['moonAlt'] != -666) &
                     (validationArr['sunAlt'] > -20.))
     bright = robustRMS(validationArr['obsZenith'][good]-validationArr['modelZenith'][good])
-    print 'Twilight time zenith residuals (robust)RMS= %f mags' % bright
-    print 'Twilight time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good])
-    print '------'
+    print('Twilight time zenith residuals (robust)RMS= %f mags' % bright)
+    print('Twilight time adopted frame ZP rms = %f mag' % robustRMS(validationArr['frameZP'][good]))
+    print('------')
 
     rmsArray.append((filterName, dark, gray, bright))
 
@@ -390,7 +392,7 @@ for filterName in filters:
                         (validationArr['moonAlt'] < 0) & (validationArr['sunAlt'] < -20.))[0]
 
     names = ['sinceSet', 'toSet']
-    mjdInfo = np.zeros(darkTime.size, dtype=zip(names, types))
+    mjdInfo = np.zeros(darkTime.size, dtype=list(zip(names, types)))
     sun = ephem.Sun()
     djds = mjd2djd(validationArr['mjd'][darkTime])
     for i, djd in enumerate(djds):
@@ -491,13 +493,13 @@ for filterName in filters:
         fig.savefig('Plots/exampleSkys_%i.pdf' % i)
         plt.close(fig)
 
-print 'filter, dark time RMS, gray time RMS, twilight time RMS'
+print('filter, dark time RMS, gray time RMS, twilight time RMS')
 for line in rmsArray:
-    print '%s & %.2f & %.2f & %.2f \\\\' % (line)
+    print('%s & %.2f & %.2f & %.2f \\\\' % (line))
 
-print 'filter, median zenith residual'
+print('filter, median zenith residual')
 for line in medianZenithResid:
-    print '%s %.2f' % (line)
+    print('%s %.2f' % (line))
 
 
 # Do I need to use the origin='lower' ? YES

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 import numpy as np
 from scipy.optimize import curve_fit
 import lsst.sims.skybrightness as sb
@@ -36,7 +38,7 @@ def medFilt(x, y, bins=30):
 
 # Note this is an old npz I have lying around
 if 'diode' not in globals():
-    print 'Loading diode data'
+    print('Loading diode data')
     #data = np.load('/Users/yoachim/gitRepos/stash_skybrigtness/data/photodiode/photodiode.npz')
     data = np.load('/Users/yoachim/gitRepos/sims_skybrightness/data/photodiode/photodiode.npz')
     diode = data['photodiode'].copy()
@@ -60,7 +62,7 @@ nfilt = len(keys)
 filters = {}
 for filtername in keys:
     bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
-                    dtype=zip(['wave', 'trans'], [float]*2))
+                    dtype=list(zip(['wave', 'trans'], [float]*2)))
     tempB = Bandpass()
     tempB.setBandpass(bp['wave'], bp['trans'])
     filters[filtername] = tempB
@@ -127,5 +129,5 @@ fig.savefig('Plots/diode.pdf')
 
 plt.close(fig)
 
-print 'Best fit exponential = constant, normalized to ESO dark zenith'
-print fittedParams
+print('Best fit exponential = constant, normalized to ESO dark zenith')
+print(fittedParams)
