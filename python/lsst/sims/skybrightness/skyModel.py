@@ -608,6 +608,9 @@ class SkyModel(object):
             if self.components[key]:
                 result = self.interpObjs[key](self.points[self.goodPix], filterNames=self.filterNames)
                 # Make sure the component has something
+                if np.size(result['spec']) == 0:
+                    self.spec[self.mask, :] = np.nan
+                    return
                 if np.max(result['spec']) > 0:
                     mask[np.where(np.sum(result['spec'], axis=1) == 0)] = 0
                 self.spec[self.goodPix] += result['spec']
