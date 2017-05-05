@@ -216,7 +216,13 @@ class SkyModel(object):
                 self.interpObjs[key] = interpolators[key](mags=self.mags)
 
         # Set up a pyephem observatory object
-        if observatory == 'LSST':
+        if hasattr(observatory, 'latitude_rad') & hasattr(observatory, 'longitude_rad') & hasattr(observatory, 'height'):
+            self.telescope = observatory
+            self.Observatory = ephem.Observer()
+            self.Observatory.lat = self.telescope.latitude_rad
+            self.Observatory.lon = self.telescope.longitude_rad
+            self.Observatory.elevation = self.telescope.height
+        elif observatory == 'LSST':
             self.telescope = Site('LSST')
             self.Observatory = ephem.Observer()
             self.Observatory.lat = self.telescope.latitude_rad
