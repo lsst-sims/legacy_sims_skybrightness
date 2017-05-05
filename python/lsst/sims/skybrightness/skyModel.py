@@ -278,13 +278,13 @@ class SkyModel(object):
         if self.mags:
             self.npix = len(self.filterNames)
         # Wrap in array just in case single points were passed
-        if not type(lon).__module__ == np.__name__:
-            if np.size(lon) == 1:
-                lon = np.array([lon]).ravel()
-                lat = np.array([lat]).ravel()
-            else:
-                lon = np.array(lon)
-                lat = np.array(lat)
+        #if not type(lon).__module__ == np.__name__:
+        if np.size(lon) == 1:
+            lon = np.array([lon]).ravel()
+            lat = np.array([lat]).ravel()
+        else:
+            lon = np.array(lon)
+            lat = np.array(lat)
         if degrees:
             self.ra = np.radians(lon)
             self.dec = np.radians(lat)
