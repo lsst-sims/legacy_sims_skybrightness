@@ -630,7 +630,9 @@ class SkyModel(object):
 
     def returnWaveSpec(self):
         """
-        Return the wavelength and spectra
+        Return the wavelength and spectra.
+        Wavelenth in nm
+        spectra is flambda in ergs/cm^2/s/nm
         """
         if self.mags:
             raise ValueError('SkyModel set to interpolate magnitudes. Initialize object with mags=False')
