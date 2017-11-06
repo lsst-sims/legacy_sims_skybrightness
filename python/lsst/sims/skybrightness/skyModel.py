@@ -187,6 +187,9 @@ class SkyModel(object):
         self.mags = mags
         self.preciseAltAz = preciseAltAz
 
+        # set this as a way to track if coords have been set
+        self.azs = None
+
         # Airmass limit.
         self.airmassLimit = airmass_limit
 
@@ -634,6 +637,8 @@ class SkyModel(object):
         Wavelenth in nm
         spectra is flambda in ergs/cm^2/s/nm
         """
+        if self.azs is None:
+            raise ValueError('No coordinates set. Use setRaDecMjd, setRaDecAltAzMjd, or setParams methods before calling returnWaveSpec.')
         if self.mags:
             raise ValueError('SkyModel set to interpolate magnitudes. Initialize object with mags=False')
         # Mask out high airmass points
@@ -651,6 +656,8 @@ class SkyModel(object):
         bandpasses: optional dictionary with bandpass name keys and bandpass object values.
 
         """
+        if self.azs is None:
+            raise ValueError('No coordinates set. Use setRaDecMjd, setRaDecAltAzMjd, or setParams methods before calling returnMags.')
 
         if self.mags:
             if bandpasses:
