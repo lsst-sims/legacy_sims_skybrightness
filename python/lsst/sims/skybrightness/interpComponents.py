@@ -75,6 +75,7 @@ def loadSpecFiles(filenames, mags=False):
     For each unique airmass and solarFlux value, there is a 17001 elements spectra and 6 magnitudes.
     """
 
+    filenames.sort()
     print('loading file names')
     for name in filenames:
         print(name)
