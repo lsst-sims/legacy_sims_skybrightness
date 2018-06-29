@@ -605,6 +605,7 @@ class ZodiacalInterp(BaseSingleInterp):
 
         nhpid = self.dimDict['hpid'].size
         # loop though the hweights and the airmass weights
+        print('inRange: ',inRange)
         for hpid, hweight in zip(hpids, hweights):
             for amIndex, amW in zip([amRightIndex, amLeftIndex], [amRightW, amLeftW]):
                 weight = hweight*amW
