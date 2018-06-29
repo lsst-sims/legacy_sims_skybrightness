@@ -584,6 +584,9 @@ class ZodiacalInterp(BaseSingleInterp):
         hpids, hweights = get_neighbours(self.nside, np.pi/2.-usePoints['altEclip'],
                                          usePoints['azEclipRelSun'])
 
+        for sfd_i, sfd_w in zip(hpids, hweights):
+            print(sfd_i, sfd_w)
+
         badhp = np.in1d(hpids.ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
         hweights[badhp] = 0.
 
