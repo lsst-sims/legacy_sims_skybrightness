@@ -575,6 +575,8 @@ class ZodiacalInterp(BaseSingleInterp):
         interpPoints is a numpy array where interpolation is desired
         values are the model values.
         """
+        print('inputting values')
+        print(values)
         result = np.zeros((interpPoints.size, np.size(values[0])), dtype=float)
 
         inRange = np.where((interpPoints['airmass'] <= np.max(self.dimDict['airmass'])) &
