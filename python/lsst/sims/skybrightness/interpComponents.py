@@ -597,6 +597,11 @@ class ZodiacalInterp(BaseSingleInterp):
         amRightIndex, amLeftIndex, amRightW, amLeftW = self.indxAndWeights(usePoints['airmass'],
                                                                            self.dimDict['airmass'])
 
+        print('amRightIndex: ',amRightIndex)
+        print('amLeftIndex: ',amLeftIndex)
+        print('amRightW: ',amRightW)
+        print('amLeftW: ',amLeftW)
+
         nhpid = self.dimDict['hpid'].size
         # loop though the hweights and the airmass weights
         for hpid, hweight in zip(hpids, hweights):
