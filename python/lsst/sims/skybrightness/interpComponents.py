@@ -142,7 +142,7 @@ class BaseSingleInterp(object):
         # Take the log of the spectra in case we want to interp in log space.
         if not mags:
             self.logSpec = np.zeros(self.spec['spectra'].shape, dtype=float)
-            good = np.where(self.spec['spectra'] != 0)
+            good = np.where(self.spec['spectra'] > 1.0e-10)
             self.logSpec[good] = np.log10(self.spec['spectra'][good])
             self.specSize = self.spec['spectra'][0].size
         else:
