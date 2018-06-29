@@ -213,6 +213,7 @@ class BaseSingleInterp(object):
         return results
 
     def interpSpec(self, interpPoints):
+        print('calling interpSpec')
         result = self._weighting(interpPoints, self.logSpec)
         mask = np.where(result == 0.)
         result = 10.**result
@@ -220,6 +221,7 @@ class BaseSingleInterp(object):
         return {'spec': result, 'wave': self.wave}
 
     def interpMag(self, interpPoints, filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
+        print('calling interpMag')
         filterindx = [self.filterNameDict[key] for key in filterNames]
         result = self._weighting(interpPoints, self.spec['mags'][:, filterindx])
         mask = np.where(result == 0.)
