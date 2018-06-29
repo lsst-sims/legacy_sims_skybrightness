@@ -148,6 +148,9 @@ class BaseSingleInterp(object):
         else:
             self.specSize = 0
 
+        print('logSpec')
+        print(self.logSpec)
+
         # What order are the dimesions sorted by (from how the .npz was packaged)
         self.sortedOrder = sortedOrder
         self.dimDict = {}
