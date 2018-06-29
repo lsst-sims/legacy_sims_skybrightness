@@ -133,7 +133,7 @@ class BaseSingleInterp(object):
 
         dataDir = os.path.join(getPackageDir('sims_skybrightness_data'), 'ESO_Spectra/'+compName)
 
-        filenames = glob.glob(dataDir+'/*.npz')
+        filenames = sorted(glob.glob(dataDir+'/*.npz'))
         self.spec, self.wave, self.filterWave = loadSpecFiles(filenames, mags=self.mags)
 
         # Take the log of the spectra in case we want to interp in log space.
