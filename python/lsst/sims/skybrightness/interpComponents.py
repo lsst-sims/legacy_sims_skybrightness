@@ -609,4 +609,8 @@ class ZodiacalInterp(BaseSingleInterp):
                 weight = hweight*amW
                 result[inRange] += weight[:, np.newaxis]*values[amIndex*nhpid+hpid]
 
+        with open('zodiacal_interp_results_sfd.txt', 'w') as out_file:
+            for line in result:
+                for vv in line:
+                    out_file.write('%.9f\n' % vv)
         return result
