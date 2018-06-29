@@ -587,7 +587,7 @@ class ZodiacalInterp(BaseSingleInterp):
         for sfd_i, sfd_w in zip(hpids, hweights):
             print(sfd_i, sfd_w)
 
-        badhp = np.in1d(hpids.ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
+        badhp = np.in1d(np.ascontiguousarray(hpids).ravel(), self.dimDict['hpid'], invert=True).reshape(hpids.shape)
         hweights[badhp] = 0.
 
         norm = np.sum(hweights, axis=0)
