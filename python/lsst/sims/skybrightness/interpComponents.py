@@ -149,7 +149,7 @@ class BaseSingleInterp(object):
         else:
             self.specSize = 0
 
-        print('logSpec')
+        print('logSpec ',self.logSpec.shape)
         print(self.logSpec)
 
         # What order are the dimesions sorted by (from how the .npz was packaged)
