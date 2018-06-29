@@ -75,6 +75,9 @@ def loadSpecFiles(filenames, mags=False):
     For each unique airmass and solarFlux value, there is a 17001 elements spectra and 6 magnitudes.
     """
 
+    print('loading file names')
+    for name in filenames:
+        print(name)
     if len(filenames) == 1:
         temp = np.load(filenames[0])
         wave = temp['wave'].copy()
