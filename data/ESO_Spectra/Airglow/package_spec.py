@@ -1,7 +1,7 @@
 from builtins import zip
 import numpy as np
 import glob
-import pyfits
+from astropy.io import fits
 import os
 from lsst.sims.photUtils import Sed, Bandpass
 
@@ -12,7 +12,7 @@ outDir = os.path.join(dataDir, 'ESO_Spectra/Airglow')
 
 files = glob.glob('skytable*.fits')
 
-temp = pyfits.open(files[0])
+temp = fits.open(files[0])
 wave = temp[1].data['lam'].copy()*1e3
 
 airmasses = []
@@ -20,10 +20,10 @@ solarFlux = []
 specs = []
 
 for i, filename in enumerate(files):
-    fits = pyfits.open(filename)
-    if np.max(fits[1].data['flux']) > 0:
-        specs.append(fits[1].data['flux'].copy())
-        header = fits[0].header['comment']
+    fitsfile = fits.open(filename)
+    if np.max(fitsfile[1].data['flux']) > 0:
+        specs.append(fitsfile[1].data['flux'].copy())
+        header = fitsfile[0].header['comment']
         for card in header:
             if 'SKYMODEL.TARGET.AIRMASS' in card:
                 airmasses.append(float(card.split('=')[-1]))
