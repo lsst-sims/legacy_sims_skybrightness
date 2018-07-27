@@ -324,7 +324,11 @@ class SkyModel(object):
         self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
 
         # Interpolate the templates to the set paramters
-        self._interpSky()
+        self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]
+        if self.goodPix.size > 0:
+            self._interpSky()
+        else:
+            warnings.warn('No valid points to interpolate')
 
     def setRaDecAltAzMjd(self, ra, dec, alt, az, mjd, degrees=False, solarFlux=130.,
                          filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
@@ -378,7 +382,11 @@ class SkyModel(object):
         self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
 
         # Interpolate the templates to the set paramters
-        self._interpSky()
+        self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]
+        if self.goodPix.size > 0:
+            self._interpSky()
+        else:
+            warnings.warn('No valid points to interpolate')
 
     def getComputedVals(self):
         """
@@ -579,7 +587,10 @@ class SkyModel(object):
         self.mask = np.where((self.airmass > self.airmassLimit) | (self.airmass < 1.))[0]
         self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]
         # Interpolate the templates to the set paramters
-        self._interpSky()
+        if self.goodPix.size > 0:
+            self._interpSky()
+        else:
+            warnings.warn('No points in interpolation range')
 
     def _interpSky(self):
         """
