@@ -133,7 +133,7 @@ class BaseSingleInterp(object):
 
         dataDir = os.path.join(getPackageDir('sims_skybrightness_data'), 'ESO_Spectra/'+compName)
 
-        filenames = glob.glob(dataDir+'/*.npz')
+        filenames = sorted(glob.glob(dataDir+'/*.npz'))
         self.spec, self.wave, self.filterWave = loadSpecFiles(filenames, mags=self.mags)
 
         # Take the log of the spectra in case we want to interp in log space.
@@ -446,8 +446,12 @@ class TwilightInterp(object):
             return self.interpSpec(intepPoints)
 
     def interpMag(self, interpPoints, maxAM=2.5,
-                  limits=[np.radians(-11.), np.radians(-20.)],
+                  limits=[np.radians(-5.), np.radians(-20.)],
                   filterNames=['u', 'g', 'r', 'i', 'z', 'y']):
+        """
+        Originally fit the twilight with a cutoff of sun altitude of -11 degrees. I think it can be safely
+        extrapolated farther, but be warned you may be entering a regime where it breaks down.
+        """
         npts = len(filterNames)
         result = np.zeros((np.size(interpPoints), npts), dtype=float)
 
@@ -463,7 +467,7 @@ class TwilightInterp(object):
         return {'spec': result, 'wave': self.lsstEffWave}
 
     def interpSpec(self, interpPoints, maxAM=2.5,
-                   limits=[np.radians(-11.), np.radians(-20.)]):
+                   limits=[np.radians(-5.), np.radians(-20.)]):
         """
         interpPoints should have airmass, azRelSun, and sunAlt.
         """

@@ -3,7 +3,7 @@ from builtins import str
 from builtins import zip
 import numpy as np
 import glob
-import pyfits
+from astropy.io import fits
 import os
 from lsst.sims.photUtils import Sed, Bandpass
 
@@ -14,7 +14,7 @@ outDir = os.path.join(dataDir, 'ESO_Spectra/Moon')
 
 files = glob.glob('skytable*.fits')
 
-temp = pyfits.open(files[0])
+temp = fits.open(files[0])
 moonWave = temp[1].data['lam'].copy()*1e3
 
 moonSpec = []
@@ -24,11 +24,11 @@ moonSunSep = []  # moon Phase
 moonTargetSep = []
 hpid = []
 for i, filename in enumerate(files):
-    fits = pyfits.open(filename)
+    fitsname = fits.open(filename)
     try:
-        if np.max(fits[1].data['flux']) > 0:
-            moonSpec.append(fits[1].data['flux'].copy())
-            header = fits[0].header['comment']
+        if np.max(fitsname[1].data['flux']) > 0:
+            moonSpec.append(fitsname[1].data['flux'].copy())
+            header = fitsname[0].header['comment']
             for card in header:
                 if 'SKYMODEL.MOON.SUN.SEP' in card:
                     moonSunSep.append(float(card.split('=')[-1]))

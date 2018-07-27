@@ -187,6 +187,9 @@ class SkyModel(object):
         self.mags = mags
         self.preciseAltAz = preciseAltAz
 
+        # set this as a way to track if coords have been set
+        self.azs = None
+
         # Airmass limit.
         self.airmassLimit = airmass_limit
 
@@ -216,7 +219,13 @@ class SkyModel(object):
                 self.interpObjs[key] = interpolators[key](mags=self.mags)
 
         # Set up a pyephem observatory object
-        if observatory == 'LSST':
+        if hasattr(observatory, 'latitude_rad') & hasattr(observatory, 'longitude_rad') & hasattr(observatory, 'height'):
+            self.telescope = observatory
+            self.Observatory = ephem.Observer()
+            self.Observatory.lat = self.telescope.latitude_rad
+            self.Observatory.lon = self.telescope.longitude_rad
+            self.Observatory.elevation = self.telescope.height
+        elif observatory == 'LSST':
             self.telescope = Site('LSST')
             self.Observatory = ephem.Observer()
             self.Observatory.lat = self.telescope.latitude_rad
@@ -272,13 +281,12 @@ class SkyModel(object):
         if self.mags:
             self.npix = len(self.filterNames)
         # Wrap in array just in case single points were passed
-        if not type(lon).__module__ == np.__name__:
-            if np.size(lon) == 1:
-                lon = np.array([lon]).ravel()
-                lat = np.array([lat]).ravel()
-            else:
-                lon = np.array(lon)
-                lat = np.array(lat)
+        if np.size(lon) == 1:
+            lon = np.array([lon]).ravel()
+            lat = np.array([lat]).ravel()
+        else:
+            lon = np.array(lon)
+            lat = np.array(lat)
         if degrees:
             self.ra = np.radians(lon)
             self.dec = np.radians(lat)
@@ -636,8 +644,12 @@ class SkyModel(object):
 
     def returnWaveSpec(self):
         """
-        Return the wavelength and spectra
+        Return the wavelength and spectra.
+        Wavelenth in nm
+        spectra is flambda in ergs/cm^2/s/nm
         """
+        if self.azs is None:
+            raise ValueError('No coordinates set. Use setRaDecMjd, setRaDecAltAzMjd, or setParams methods before calling returnWaveSpec.')
         if self.mags:
             raise ValueError('SkyModel set to interpolate magnitudes. Initialize object with mags=False')
         # Mask out high airmass points
@@ -655,6 +667,8 @@ class SkyModel(object):
         bandpasses: optional dictionary with bandpass name keys and bandpass object values.
 
         """
+        if self.azs is None:
+            raise ValueError('No coordinates set. Use setRaDecMjd, setRaDecAltAzMjd, or setParams methods before calling returnMags.')
 
         if self.mags:
             if bandpasses:

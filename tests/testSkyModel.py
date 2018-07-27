@@ -11,12 +11,47 @@ import os
 class TestSkyModel(unittest.TestCase):
 
     @classmethod
-    def setUpClass(self):
-        # Load up the spectra just once to speed things up a bit
-        self.sm_mags = sb.SkyModel(mags=True)
-        self.sm_mags2 = sb.SkyModel(mags=True)
-        self.sm_spec = sb.SkyModel(mags=False)
-        self.sm_spec2 = sb.SkyModel(mags=False)
+    def setUpClass(cls):
+        # initalize the class with empty models
+        cls._sm_mags = None
+        cls._sm_mags2 = None
+        cls._sm_spec = None
+        cls._sm_spec2 = None
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls._sm_mags
+        del cls._sm_mags2
+        del cls._sm_spec
+        del cls._sm_spec2
+
+    @property
+    def sm_mags(self):
+        cls = type(self)
+        if cls._sm_mags is None:
+            cls._sm_mags = sb.SkyModel(mags=True)
+        return cls._sm_mags
+
+    @property
+    def sm_mags2(self):
+        cls = type(self)
+        if cls._sm_mags2 is None:
+            cls._sm_mags2 = sb.SkyModel(mags=True)
+        return cls._sm_mags2
+
+    @property
+    def sm_spec(self):
+        cls = type(self)
+        if cls._sm_spec is None:
+            cls._sm_spec = sb.SkyModel(mags=False)
+        return cls._sm_spec
+
+    @property
+    def sm_spec2(self):
+        cls = type(self)
+        if cls._sm_spec2 is None:
+            cls._sm_spec2 = sb.SkyModel(mags=False)
+        return cls._sm_spec2
 
     def testmergedComp(self):
         """
