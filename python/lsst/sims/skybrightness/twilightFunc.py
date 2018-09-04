@@ -23,7 +23,7 @@ def simpleTwi(xdata, *args):
     return result
 
 
-def twilightFunc(xdata, *args):
+def twilightFunc(xdata, *args, amCut=1.0):
     """
     xdata: numpy array with columns 'alt', 'az', 'sunAlt' all in radians.
     az should be relative to the sun (i.e., sun is at az zero.
@@ -36,10 +36,11 @@ def twilightFunc(xdata, *args):
     args[4] = zenith dark sky flux
     args[5:] = zenith dark sky times constant (optionall)
 
-    """
+    amCut : float (1.0)
+        The airmass cut to apply to use only the away from sun fit. Was set to 1.1
+        previously for not very clear reasons.
 
-    # XXX--I think I might want to promote this to a free parameter to fit.
-    amCut = 1.1
+    """
 
     args = np.array(args)
     az = xdata['azRelSun']
