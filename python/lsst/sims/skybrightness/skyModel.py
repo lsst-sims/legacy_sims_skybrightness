@@ -2,14 +2,16 @@ from builtins import zip
 from builtins import object
 import numpy as np
 import ephem
-from lsst.sims.utils import haversine, _raDecFromAltAz, _altAzPaFromRaDec, Site, ObservationMetaData, calcLmstLast
+from lsst.sims.utils import (haversine, _raDecFromAltAz, _altAzPaFromRaDec, Site,
+                             ObservationMetaData, _approx_altAz2RaDec, _approx_RaDec2AltAz)
 import warnings
 from lsst.sims.skybrightness.utils import wrapRA, mjd2djd
-from .interpComponents import ScatteredStar, Airglow, LowerAtm, UpperAtm, MergedSpec, TwilightInterp, MoonInterp, ZodiacalInterp
+from .interpComponents import (ScatteredStar, Airglow, LowerAtm, UpperAtm, MergedSpec, TwilightInterp,
+                               MoonInterp, ZodiacalInterp)
 from lsst.sims.photUtils import Sed
 
 
-__all__ = ['justReturn', 'stupidFast_RaDec2AltAz', 'stupidFast_altAz2RaDec', 'SkyModel']
+__all__ = ['justReturn', 'SkyModel']
 
 
 def justReturn(inval):
@@ -38,86 +40,6 @@ def inrange(inval, minimum=-1., maximum=1.):
     above = np.where(inval > maximum)
     inval[above] = maximum
     return inval
-
-
-def stupidFast_RaDec2AltAz(ra, dec, lat, lon, mjd):
-    """
-    Convert Ra,Dec to Altitude and Azimuth.
-
-    Coordinate transformation is killing performance. Just use simple equations to speed it up
-    and ignore abberation, precesion, nutation, nutrition, etc.
-
-    Parameters
-    ----------
-    ra : array_like
-        RA, in radians.
-    dec : array_like
-        Dec, in radians. Must be same length as `ra`.
-    lat : float
-        Latitude of the observatory in radians.
-    lon : float
-        Longitude of the observatory in radians.
-    mjd : float
-        Modified Julian Date.
-
-    Returns
-    -------
-    alt : numpy.array
-        Altitude, same length as `ra` and `dec`. Radians.
-    az : numpy.array
-        Azimuth, same length as `ra` and `dec`. Radians.
-    """
-    lmst, last = calcLmstLast(mjd, lon)
-    lmst = lmst/12.*np.pi  # convert to rad
-    ha = lmst-ra
-    sindec = np.sin(dec)
-    sinlat = np.sin(lat)
-    coslat = np.cos(lat)
-    sinalt = sindec*sinlat+np.cos(dec)*coslat*np.cos(ha)
-    sinalt = inrange(sinalt)
-    alt = np.arcsin(sinalt)
-    cosaz = (sindec-np.sin(alt)*sinlat)/(np.cos(alt)*coslat)
-    cosaz = inrange(cosaz)
-    az = np.arccos(cosaz)
-    signflip = np.where(np.sin(ha) > 0)
-    az[signflip] = 2.*np.pi-az[signflip]
-    return alt, az
-
-
-def stupidFast_altAz2RaDec(alt, az, lat, lon, mjd):
-    """
-    Convert alt, az to RA, Dec without taking into account abberation, precesion, diffraction, ect.
-
-    Parameters
-    ----------
-    alt : numpy.array
-        Altitude, same length as `ra` and `dec`. Radians.
-    az : numpy.array
-        Azimuth, same length as `ra` and `dec`. Must be same length as `alt`. Radians.
-    lat : float
-        Latitude of the observatory in radians.
-    lon : float
-        Longitude of the observatory in radians.
-    mjd : float
-        Modified Julian Date.
-
-    Returns
-    -------
-    ra : array_like
-        RA, in radians.
-    dec : array_like
-        Dec, in radians.
-    """
-    lmst, last = calcLmstLast(mjd, lon)
-    lmst = lmst/12.*np.pi  # convert to rad
-    sindec = np.sin(lat)*np.sin(alt) + np.cos(lat)*np.cos(alt)*np.cos(az)
-    sindec = inrange(sindec)
-    dec = np.arcsin(sindec)
-    ha = np.arctan2(-np.sin(az)*np.cos(alt), -np.cos(az)*np.sin(lat)*np.cos(alt)+np.sin(alt)*np.cos(lat))
-    ra = (lmst-ha)
-    raneg = np.where(ra < 0)
-    ra[raneg] = ra[raneg] + 2.*np.pi
-    return ra, dec
 
 
 def calcAzRelMoon(azs, moonAz):
@@ -303,18 +225,18 @@ class SkyModel(object):
                 self.ra, self.dec = _raDecFromAltAz(self.alts, self.azs,
                                                     ObservationMetaData(mjd=self.mjd, site=self.telescope))
             else:
-                self.ra, self.dec = stupidFast_altAz2RaDec(self.alts, self.azs,
-                                                           self.telescope.latitude_rad,
-                                                           self.telescope.longitude_rad, mjd)
+                self.ra, self.dec = _approx_altAz2RaDec(self.alts, self.azs,
+                                                        self.telescope.latitude_rad,
+                                                        self.telescope.longitude_rad, mjd)
         else:
             if self.preciseAltAz:
                 self.alts, self.azs, pa = _altAzPaFromRaDec(self.ra, self.dec,
                                                             ObservationMetaData(mjd=self.mjd,
                                                                                 site=self.telescope))
             else:
-                self.alts, self.azs = stupidFast_RaDec2AltAz(self.ra, self.dec,
-                                                             self.telescope.latitude_rad,
-                                                             self.telescope.longitude_rad, mjd)
+                self.alts, self.azs = _approx_RaDec2AltAz(self.ra, self.dec,
+                                                          self.telescope.latitude_rad,
+                                                          self.telescope.longitude_rad, mjd)
 
         self.npts = self.ra.size
         self._initPoints()
