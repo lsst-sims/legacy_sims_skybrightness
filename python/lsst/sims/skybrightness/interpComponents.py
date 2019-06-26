@@ -204,7 +204,7 @@ class BaseSingleInterp(object):
         indxR, indxL, wR, wL = self.indxAndWeights(interpPoints['airmass'][inRange],
                                                    self.dimDict['airmass'])
 
-        nextra = 3
+        nextra = 1
 
         # XXX--should I use the log spectra?  Make a check and switch back and forth?
         results[inRange] = wR[:, np.newaxis]*values[indxR*nextra] + \
@@ -337,7 +337,7 @@ class TwilightInterp(object):
         throughPath = os.path.join(getPackageDir('throughputs'), 'baseline')
         lsstKeys = ['u', 'g', 'r', 'i', 'z', 'y']
         for key in lsstKeys:
-            bp = np.loadtxt(os.path.join(throughPath, 'filter_'+key+'.dat'),
+            bp = np.loadtxt(os.path.join(throughPath, 'total_'+key+'.dat'),
                             dtype=list(zip(['wave', 'trans'], [float]*2)))
             tempB = Bandpass()
             tempB.setBandpass(bp['wave'], bp['trans'])
@@ -410,7 +410,7 @@ class TwilightInterp(object):
                 fits[i, :] = self.fitResults[fn]
 
             for filtername in self.lsstFilterNames:
-                bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+                bp = np.loadtxt(os.path.join(throughPath, 'total_'+filtername+'.dat'),
                                 dtype=list(zip(['wave', 'trans'], [float]*2)))
                 tempB = Bandpass()
                 tempB.setBandpass(bp['wave'], bp['trans'])

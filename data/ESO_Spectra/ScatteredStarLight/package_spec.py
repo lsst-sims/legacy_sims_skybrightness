@@ -10,7 +10,7 @@ outDir = os.path.join(dataDir, 'ESO_Spectra/ScatteredStarLight')
 
 # Read in all the spectra from ESO call and package into a single npz file
 
-files = glob.glob('skytable*.fits')
+files = glob.glob('skytable*250.fits')
 
 temp = fits.open(files[0])
 wave = temp[1].data['lam'].copy()*1e3
@@ -61,7 +61,7 @@ keys = ['u', 'g', 'r', 'i', 'z', 'y']
 nfilt = len(keys)
 filters = {}
 for filtername in keys:
-    bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+    bp = np.loadtxt(os.path.join(throughPath, 'total_'+filtername+'.dat'),
                     dtype=list(zip(['wave', 'trans'], [float]*2)))
     tempB = Bandpass()
     tempB.setBandpass(bp['wave'], bp['trans'])

@@ -132,7 +132,7 @@ class TestSkyModel(unittest.TestCase):
 
         bps = {}
         for filterName in filters:
-            bp = np.loadtxt(os.path.join(throughPath, 'filter_%s.dat' % filterName),
+            bp = np.loadtxt(os.path.join(throughPath, 'total_%s.dat' % filterName),
                             dtype=list(zip(['wave', 'trans'], [float]*2)))
             lsst_bp = Bandpass()
             lsst_bp.setBandpass(bp['wave'], bp['trans'])
