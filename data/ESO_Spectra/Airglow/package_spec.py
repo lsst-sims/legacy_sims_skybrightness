@@ -61,7 +61,7 @@ keys = ['u', 'g', 'r', 'i', 'z', 'y']
 nfilt = len(keys)
 filters = {}
 for filtername in keys:
-    bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+    bp = np.loadtxt(os.path.join(throughPath, 'total_'+filtername+'.dat'),
                     dtype=list(zip(['wave', 'trans'], [float]*2)))
     tempB = Bandpass()
     tempB.setBandpass(bp['wave'], bp['trans'])

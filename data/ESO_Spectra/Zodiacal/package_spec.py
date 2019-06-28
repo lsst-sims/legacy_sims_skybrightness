@@ -86,7 +86,7 @@ keys = ['u', 'g', 'r', 'i', 'z', 'y']
 nfilt = len(keys)
 filters = {}
 for filtername in keys:
-    bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+    bp = np.loadtxt(os.path.join(throughPath, 'total_'+filtername+'.dat'),
                     dtype=list(zip(['wave', 'trans'], [float]*2)))
     tempB = Bandpass()
     tempB.setBandpass(bp['wave'], bp['trans'])
@@ -106,8 +106,9 @@ for i, spectrum in enumerate(Spectra['spectra']):
 
 # span this over multiple files to store in github
 nbreak = 3
-nrec = np.size(Spectra)
+indices = np.linspace(0, Spectra.size, nbreak+1, dtype=int)
+
 
 for i in np.arange(nbreak):
     np.savez(os.path.join(outDir, 'zodiacalSpectra_'+str(i)+'.npz'), wave=wave,
-             spec=Spectra[i*nrec/nbreak:(i+1)*nrec/nbreak], filterWave=filterWave)
+             spec=Spectra[indices[i]:indices[i+1]], filterWave=filterWave)

@@ -119,7 +119,7 @@ keys = ['u', 'g', 'r', 'i', 'z', 'y']
 nfilt = len(keys)
 filters = {}
 for filtername in keys:
-    bp = np.loadtxt(os.path.join(throughPath, 'filter_'+filtername+'.dat'),
+    bp = np.loadtxt(os.path.join(throughPath, 'total_'+filtername+'.dat'),
                     dtype=list(zip(['wave', 'trans'], [float]*2)))
     tempB = Bandpass()
     tempB.setBandpass(bp['wave'], bp['trans'])
@@ -138,32 +138,11 @@ for i, spectrum in enumerate(moonSpectra['spectra']):
 
 
 nbreak = 5
-nrec = np.size(moonSpectra)
+indices = np.linspace(0, moonSpectra.size, nbreak+1, dtype=int)
 
 for i in np.arange(nbreak):
+    break_index = np.int(np.floor(nrec/nbreak))
     np.savez(os.path.join(outDir, 'moonSpectra_'+str(i)+'.npz'), wave=moonWave,
-             spec=moonSpectra[i*nrec/nbreak:(i+1)*nrec/nbreak], filterWave=filterWave)
+             spec=moonSpectra[indices[i]:indices[i+1]], filterWave=filterWave)
 
 
-# Skip this stuff, fixed it later
-
-all_lat, all_az = hp.pix2ang(nside, np.arange(hp.nside2npix(nside)))
-
-
-# OK, let's just fold it over to make it easier to interpolate later:
-final_spec = np.zeros(nrec*2, dtype=dtype)
-final_spec['hpid'] += -1
-for i, rec in enumerate(moonSpectra):
-    final_spec[i] = rec
-    lat, az = hp.pix2ang(nside, rec['hpid'])
-    if az != 0:
-        mirrorHP = np.where((all_lat == lat) & (np.round(all_az*1e5) == np.round((az+np.pi)*1e5)))
-        final_spec[i+moonSpectra.size] = rec
-        final_spec[i+moonSpectra.size]['hpid'] = good[0]
-
-good = np.where(final_spec['hpid'] != -1)
-moonSpectra = final_spec[good]
-moonSpectra.sort(order=['moonSunSep', 'moonAltitude', 'hpid'])
-
-
-# OK, so this is az difference between 0 and 180.
