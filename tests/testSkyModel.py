@@ -76,6 +76,25 @@ class TestSkyModel(unittest.TestCase):
 
         np.testing.assert_almost_equal(spec1, spec2)
 
+        # and then check for the mags
+        sky1 = sb.SkyModel(twilight=False, zodiacal=False, moon=False,
+                           lowerAtm=False, upperAtm=False,
+                           airglow=False, scatteredStar=False,
+                           mergedSpec=True, mags=True)
+        sky1.setRaDecMjd([36.], [-68.], 49353.18, degrees=True)
+
+        sky2 = sb.SkyModel(twilight=False, zodiacal=False, moon=False,
+                           lowerAtm=True, upperAtm=True,
+                           airglow=False, scatteredStar=True,
+                           mergedSpec=False, mags=True)
+        sky2.setRaDecMjd([36.], [-68.], 49353.18, degrees=True)
+
+        m1 = sky1.returnMags()
+        m2 = sky2.returnMags()
+        for key in m1:
+            np.testing.assert_almost_equal(m1[key], m2[key], decimal=2)
+
+
     def testSetups(self):
         """
         Check that things are the same if the model is set up with
@@ -199,22 +218,6 @@ class TestSkyModel(unittest.TestCase):
             assert(True not in np.isnan(mags[key]))
         assert(True not in np.isnan(sm.spec))
 
-    def testAirglow(self):
-        """
-        test that the airglow goes up with increasing SFU
-        """
-
-        mjd = 56973.268218
-        sm = self.sm_mags
-        sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True, solarFlux=130.)
-        magNormal = sm.returnMags()
-        sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True, solarFlux=50.)
-        magFaint = sm.returnMags()
-        sm.setRaDecMjd(0., 90., mjd, degrees=True, azAlt=True, solarFlux=200.)
-        magBright = sm.returnMags()
-
-        assert(magNormal['r'][0] < magFaint['r'][0])
-        assert(magNormal['r'][0] > magBright['r'][0])
 
     def testFewerMags(self):
         """

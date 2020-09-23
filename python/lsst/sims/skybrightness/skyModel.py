@@ -118,7 +118,7 @@ class SkyModel(object):
         if self.mags:
             self.npix = 6
         else:
-            self.npix = 17001
+            self.npix = 11001
 
         self.components = {'moon': self.moon, 'lowerAtm': self.lowerAtm, 'twilight': self.twilight,
                            'upperAtm': self.upperAtm, 'airglow': self.airglow, 'zodiacal': self.zodiacal,
@@ -173,6 +173,26 @@ class SkyModel(object):
         self.airglow = airglow
         self.scatteredStar = scatteredStar
         self.mergedSpec = mergedSpec
+
+        self.components = {'moon': self.moon, 'lowerAtm': self.lowerAtm, 'twilight': self.twilight,
+                           'upperAtm': self.upperAtm, 'airglow': self.airglow, 'zodiacal': self.zodiacal,
+                           'scatteredStar': self.scatteredStar, 'mergedSpec': self.mergedSpec}
+
+        # Check that the merged component isn't being run with other components
+        mergedComps = [self.lowerAtm, self.upperAtm, self.scatteredStar]
+        for comp in mergedComps:
+            if comp & self.mergedSpec:
+                warnings.warn("Adding component multiple times to the final output spectra.")
+
+        interpolators = {'scatteredStar': ScatteredStar, 'airglow': Airglow, 'lowerAtm': LowerAtm,
+                         'upperAtm': UpperAtm, 'mergedSpec': MergedSpec, 'moon': MoonInterp,
+                         'zodiacal': ZodiacalInterp, 'twilight': TwilightInterp}
+
+        # Load up the interpolation objects for each component
+        self.interpObjs = {}
+        for key in self.components:
+            if self.components[key]:
+                self.interpObjs[key] = interpolators[key](mags=self.mags)
 
     def _initPoints(self):
         """

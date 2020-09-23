@@ -383,10 +383,10 @@ class TwilightInterp(object):
             self.effWave.append(canonFilters[filterName].calcEffWavelen()[0])
             self.solarMag.append(self.solarSpec.calcMag(canonFilters[filterName]))
 
-        ord = np.argsort(self.effWave)
-        self.filterNames = np.array(self.filterNames)[ord]
-        self.effWave = np.array(self.effWave)[ord]
-        self.solarMag = np.array(self.solarMag)[ord]
+        order = np.argsort(self.effWave)
+        self.filterNames = np.array(self.filterNames)[order]
+        self.effWave = np.array(self.effWave)[order]
+        self.solarMag = np.array(self.solarMag)[order]
 
         # update the fit results to be zeropointed properly
         for key in self.fitResults:
