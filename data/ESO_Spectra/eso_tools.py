@@ -263,6 +263,7 @@ def generate_moon(outDir=None):
     spectra['moonAltitude'] = final_moonAlt
     spectra['moonSunSep'] = final_moonSunSep
     spectra['spectra'] = specs
+    spectra['mags'] = mags['mags']
 
     spectra.sort(order=['moonSunSep', 'moonAltitude', 'hpid'])
 
@@ -409,13 +410,13 @@ def recalc_mags():
 
 
 if __name__ == '__main__':
-    generate_airglow()
-    generate_loweratm()
+    #generate_airglow()
+    #generate_loweratm()
     generate_moon()
-    generate_scatteredStar()
-    generate_upperatm()
-    generate_zodi()
-    merged_spec()
+    #generate_scatteredStar()
+    #generate_upperatm()
+    #generate_zodi()
+    #merged_spec()
 
 
 
