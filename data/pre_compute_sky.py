@@ -12,8 +12,8 @@ from lsst.sims.skybrightness.utils import mjd2djd
 def generate_sky(mjd0=59560.2, mjd_max=59565.2, timestep=5., timestep_max=15.,
                  outfile=None, outpath=None, nside=32,
                  sunLimit=-8., airmass_overhead=1.5, dm=0.2,
-                 airmass_limit=3.1,
-                 requireStride=3, verbose=True, alt_limit=15.):
+                 airmass_limit=3.,
+                 requireStride=3, verbose=True, alt_limit=None):
     """
     Pre-compute the sky brighntess for a series of mjd dates at the LSST site.
 
@@ -49,8 +49,6 @@ def generate_sky(mjd0=59560.2, mjd_max=59565.2, timestep=5., timestep_max=15.,
         Pixels (fields) closer than moon_dist_limit (degrees) are masked
     planet_dist_limit : float (2.)
         Pixels (fields) closer than planet_dist_limit (degrees) to Venus, Mars, Jupiter, or Saturn are masked
-    alt_limit : float (86.5)
-        Altitude limit of the telescope (degrees). Altitudes higher than this are masked.
     requireStride : int (3)
         Require every nth mjd. Makes it possible to easily select an evenly spaced number states of a pixel.
 
@@ -68,6 +66,10 @@ def generate_sky(mjd0=59560.2, mjd_max=59565.2, timestep=5., timestep_max=15.,
     """
 
     sunLimit_rad = np.radians(sunLimit)
+
+    if alt_limit is None:
+        alt_limit = np.degrees(np.pi/2. - np.arccos(1./airmass_limit))
+        print('setting alt limit to %f degrees' % alt_limit)
 
     # Set the time steps
     timestep = timestep / 60. / 24.  # Convert to days

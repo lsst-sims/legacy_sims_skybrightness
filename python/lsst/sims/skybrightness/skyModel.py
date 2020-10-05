@@ -233,11 +233,6 @@ class SkyModel(object):
 
         self.paramsSet = True
 
-        # Assume large airmasses are the same as airmass=2.5
-        to_fudge = np.where(self.points['airmass'] > self.airmassLimit)
-        self.points['airmass'][to_fudge] = self.airmassLimit
-        self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
-
         # Interpolate the templates to the set paramters
         self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]
         if self.goodPix.size > 0:
@@ -290,11 +285,6 @@ class SkyModel(object):
         self._setupPointGrid()
 
         self.paramsSet = True
-
-        # Assume large airmasses are the same as airmass=2.5
-        to_fudge = np.where((self.points['airmass'] > 2.5) & (self.points['airmass'] < self.airmassLimit))
-        self.points['airmass'][to_fudge] = 2.5
-        self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
 
         # Interpolate the templates to the set paramters
         self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]

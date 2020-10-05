@@ -231,7 +231,7 @@ def generate_moon(outDir=None):
 
     moonSunSeps = np.array([0.0, 15, 30, 45, 60, 75, 90, 105, 120, 135,
                             150, 165, 180], dtype=float)
-    moonAlts = np.array([-15, 0, 15, 30, 45, 60, 75, 90], dtype=float)
+    moonAlts = np.array([-1., 0, 15, 30, 45, 60, 75, 90], dtype=float)
 
     specs = []
     final_moonSunSep = []
