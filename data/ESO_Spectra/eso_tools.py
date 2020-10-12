@@ -410,13 +410,13 @@ def recalc_mags():
 
 
 if __name__ == '__main__':
-    #generate_airglow()
-    #generate_loweratm()
+    generate_airglow()
+    generate_loweratm()
     generate_moon()
-    #generate_scatteredStar()
-    #generate_upperatm()
-    #generate_zodi()
-    #merged_spec()
+    generate_scatteredStar()
+    generate_upperatm()
+    generate_zodi()
+    merged_spec()
 
 
 
