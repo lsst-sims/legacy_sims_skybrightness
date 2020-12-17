@@ -58,7 +58,7 @@ class SkyModel(object):
     def __init__(self, observatory='LSST',
                  twilight=True, zodiacal=True, moon=True,
                  airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
-                 mergedSpec=True, mags=False, preciseAltAz=False, airmass_limit=2.5):
+                 mergedSpec=True, mags=False, preciseAltAz=False, airmass_limit=3.0):
         """
         Instatiate the SkyModel. This loads all the required template spectra/magnitudes
         that will be used for interpolation.
@@ -93,9 +93,9 @@ class SkyModel(object):
             transformations that do not take abberation, diffraction, etc
             into account. Results in errors up to ~1.5 degrees,
             but an order of magnitude faster than coordinate transforms in sims_utils.
-        airmass_limit : float (2.5)
-            Most of the models are only accurate to airmass 2.5. If set higher, airmass values
-            higher than 2.5 are set to 2.5.
+        airmass_limit : float (3.0)
+            Most of the models are only accurate to airmass 3.0. If set higher, airmass values
+            higher than 3.0 are set to 3.0.
         """
 
         self.moon = moon
@@ -118,7 +118,7 @@ class SkyModel(object):
         if self.mags:
             self.npix = 6
         else:
-            self.npix = 17001
+            self.npix = 11001
 
         self.components = {'moon': self.moon, 'lowerAtm': self.lowerAtm, 'twilight': self.twilight,
                            'upperAtm': self.upperAtm, 'airglow': self.airglow, 'zodiacal': self.zodiacal,
@@ -158,21 +158,6 @@ class SkyModel(object):
 
         # Note that observing conditions have not been set
         self.paramsSet = False
-
-    def setComponents(self, twilight=True, zodiacal=True, moon=True,
-                      airglow=True, lowerAtm=False, upperAtm=False, scatteredStar=False,
-                      mergedSpec=True):
-        """
-        Convience function for turning on/off different sky components.
-        """
-        self.moon = moon
-        self.lowerAtm = lowerAtm
-        self.twilight = twilight
-        self.zodiacal = zodiacal
-        self.upperAtm = upperAtm
-        self.airglow = airglow
-        self.scatteredStar = scatteredStar
-        self.mergedSpec = mergedSpec
 
     def _initPoints(self):
         """
@@ -248,11 +233,6 @@ class SkyModel(object):
 
         self.paramsSet = True
 
-        # Assume large airmasses are the same as airmass=2.5
-        to_fudge = np.where((self.points['airmass'] > 2.5) & (self.points['airmass'] < self.airmassLimit))
-        self.points['airmass'][to_fudge] = 2.499
-        self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
-
         # Interpolate the templates to the set paramters
         self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]
         if self.goodPix.size > 0:
@@ -305,11 +285,6 @@ class SkyModel(object):
         self._setupPointGrid()
 
         self.paramsSet = True
-
-        # Assume large airmasses are the same as airmass=2.5
-        to_fudge = np.where((self.points['airmass'] > 2.5) & (self.points['airmass'] < self.airmassLimit))
-        self.points['airmass'][to_fudge] = 2.5
-        self.points['alt'][to_fudge] = np.pi/2-np.arccos(1./self.airmassLimit)
 
         # Interpolate the templates to the set paramters
         self.goodPix = np.where((self.airmass <= self.airmassLimit) & (self.airmass >= 1.))[0]
@@ -409,7 +384,7 @@ class SkyModel(object):
         self.airmass = 1./np.cos(np.pi/2.-self.alts)
 
         self.points['airmass'] = self.airmass
-        self.points['nightTimes'] = 2
+        self.points['nightTimes'] = 0
         self.points['alt'] = self.alts
         self.points['az'] = self.azs
 
@@ -492,7 +467,7 @@ class SkyModel(object):
         self._initPoints()
 
         self.points['airmass'] = self.airmass
-        self.points['nightTimes'] = 2
+        self.points['nightTimes'] = 0
         self.points['alt'] = self.alts
         self.points['az'] = self.azs
         self.azRelMoon = calcAzRelMoon(self.azs, self.moonAz)
