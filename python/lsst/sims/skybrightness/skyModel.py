@@ -533,7 +533,7 @@ class SkyModel(object):
                 if not hasattr(self, 'wave'):
                     self.wave = result['wave']
                 else:
-                    if not np.allclose(result['wave'], self.wave, rtol=1e-5, atol=1e-5):
+                    if not np.allclose(result['wave'], self.wave, rtol=1e-4, atol=1e-4):
                         warnings.warn('Wavelength arrays of components do not match.')
         if self.airmassLimit <= 2.5:
             self.spec[np.where(mask == 0), :] = 0
